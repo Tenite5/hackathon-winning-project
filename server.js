@@ -933,7 +933,10 @@ io.on('connection', (socket) => {
         if (lobby.players.length < 2) return socket.emit('lobby-error', 'Need at least 2 players');
 
         lobby.status = 'playing';
-        const questions = await generateQuestions(lobby.topic, lobby.questionCount);
+        // Use preset questions if available, otherwise generate via AI
+        const questions = lobby.presetQuestions
+            ? lobby.presetQuestions
+            : await generateQuestions(lobby.topic, lobby.questionCount);
 
         const gameId = uuidv4();
         const game = {
@@ -1002,10 +1005,13 @@ io.on('connection', (socket) => {
         const preset = PRESET_QUESTIONS[presetId];
         if (!preset) return socket.emit('game-error', 'Invalid preset');
 
+        // Pick 3 random questions from the preset bank
+        const shuffled = [...preset.questions].sort(() => Math.random() - 0.5);
+        const picked = shuffled.slice(0, 3);
+
         // Deep-clone and shuffle options for each question (to prevent memorization)
-        const questions = preset.questions.map(q => {
+        const questions = picked.map(q => {
             const optionsCopy = [...q.options];
-            // Fisher-Yates shuffle
             for (let i = optionsCopy.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [optionsCopy[i], optionsCopy[j]] = [optionsCopy[j], optionsCopy[i]];
@@ -1017,25 +1023,38 @@ io.on('connection', (socket) => {
             };
         });
 
-        const gameId = uuidv4();
-        const game = {
-            id: gameId,
-            type: 'solo',
-            topic: preset.name,
-            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [] }],
-            questions,
-            currentQuestion: 0,
-            timeLimit: 15,
-            questionStartTime: null,
-            status: 'playing',
-            chat: [],
+        // Time limit: 120s for math, 30s for others
+        const timeLimit = presetId === 'hard-math' ? 120 : 30;
+
+        // Create a public lobby so it appears in Browse
+        const lobbyId = uuidv4();
+        const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        const lobby = {
+            id: lobbyId,
+            inviteCode,
+            topic: `📚 ${preset.name}`,
+            isPublic: true,
+            ranked: false,
+            hostId: currentUser.id,
+            hostUsername: currentUser.username,
+            maxPlayers: 8,
+            questionCount: 3,
+            timeLimit,
+            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: true }],
+            status: 'waiting',
             createdAt: Date.now(),
+            expiresAt: Date.now() + 10 * 60 * 1000,
+            // Preset-specific: store questions so lobby-start uses them instead of AI
+            presetId,
+            presetQuestions: questions,
         };
 
-        db.games.set(gameId, game);
-        socket.join(gameId);
+        db.lobbies.set(lobbyId, lobby);
+        socket.join(lobbyId);
 
-        setTimeout(() => startGameQuestion(gameId), 1000);
+        socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
+        io.emit('lobbies-updated');
     });
 
     // ── Tournament ─────────────────────────────────────────

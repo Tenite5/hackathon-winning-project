@@ -419,10 +419,7 @@
             const presetId = card.dataset.preset;
             socket.emit('preset-start', { presetId });
             hideModal('modal-preset');
-            showView('view-game');
-            $('game-question-text').textContent = 'Loading preset questions...';
-            $('game-options').innerHTML = '';
-            toast('Starting preset game!', 'success');
+            toast('Creating preset lobby...', 'info');
         });
     });
 
