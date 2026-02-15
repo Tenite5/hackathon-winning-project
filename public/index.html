@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QVIZIO — 1v1 Competitive Trivia</title>
+  <meta name="description"
+    content="QVIZIO is a real-time 1v1 competitive trivia game. Challenge opponents, climb the leaderboard, and prove your knowledge." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+  <!-- ═══════ PARTICLES BACKGROUND ═══════ -->
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- ═══════ TOAST NOTIFICATIONS ═══════ -->
+  <div id="toast-container"></div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- AUTH VIEW -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="view-auth" class="view active">
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 64 64" fill="none">
+            <defs>
+              <linearGradient id="logo-grad" x1="0" y1="0" x2="64" y2="64">
+                <stop offset="0%" stop-color="#6C5CE7" />
+                <stop offset="100%" stop-color="#00CEFF" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#logo-grad)" />
+            <text x="32" y="44" text-anchor="middle" fill="white" font-size="30" font-weight="800"
+              font-family="Outfit">Q</text>
+          </svg>
+        </div>
+        <h1 class="logo-text">QVIZIO</h1>
+        <p class="logo-tagline">Real-Time Competitive Trivia</p>
+      </div>
+
+      <div class="auth-card glass-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login" id="tab-login">Login</button>
+          <button class="auth-tab" data-tab="register" id="tab-register">Register</button>
+        </div>
+
+        <form id="form-login" class="auth-form">
+          <div class="input-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username" required />
+          </div>
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"
+              required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-login">
+            <span>Sign In</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        </form>
+
+        <form id="form-register" class="auth-form hidden">
+          <div class="input-group">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" placeholder="Choose a username" autocomplete="username" required
+              minlength="2" maxlength="20" />
+          </div>
+          <div class="input-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" placeholder="Choose a password" autocomplete="new-password"
+              required minlength="4" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-register">
+            <span>Create Account</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </form>
+
+        <div id="auth-error" class="auth-error hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- DASHBOARD VIEW -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="view-dashboard" class="view">
+    <!-- Top Nav -->
+    <nav class="top-nav">
+      <div class="nav-brand">
+        <svg viewBox="0 0 64 64" fill="none" width="36" height="36">
+          <defs>
+            <linearGradient id="nav-grad" x1="0" y1="0" x2="64" y2="64">
+              <stop offset="0%" stop-color="#6C5CE7" />
+              <stop offset="100%" stop-color="#00CEFF" />
+            </linearGradient>
+          </defs>
+          <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#nav-grad)" />
+          <text x="32" y="44" text-anchor="middle" fill="white" font-size="30" font-weight="800"
+            font-family="Outfit">Q</text>
+        </svg>
+        <span class="brand-text">QVIZIO</span>
+      </div>
+      <div class="nav-user">
+        <div class="nav-user-info" id="nav-user-info">
+          <span class="nav-username" id="nav-username"></span>
+          <span class="nav-elo" id="nav-elo"></span>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-logout" title="Logout">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-layout">
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <button class="sidebar-btn active" data-panel="home" id="nav-home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span>Home</span>
+          </button>
+          <button class="sidebar-btn" data-panel="browser" id="nav-browser">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <span>Browse</span>
+          </button>
+          <button class="sidebar-btn" data-panel="leaderboard" id="nav-leaderboard">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+            <span>Rankings</span>
+          </button>
+          <button class="sidebar-btn" data-panel="profile" id="nav-profile">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Profile</span>
+          </button>
+          <button class="sidebar-btn" data-panel="friends" id="nav-friends">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+            <span>Friends</span>
+            <span class="sidebar-badge hidden" id="friends-badge">0</span>
+          </button>
+          <button class="sidebar-btn" data-panel="tournament" id="nav-tournament">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <span>Tourney</span>
+          </button>
+          <button class="sidebar-btn" data-panel="wronglog" id="nav-wronglog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+            <span>Mistakes</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- HOME PANEL -->
+        <div id="panel-home" class="panel active">
+          <div class="home-hero">
+            <h2 class="section-title">Ready to Compete?</h2>
+            <p class="section-subtitle">Challenge anyone, prove your knowledge, climb the ranks.</p>
+          </div>
+
+          <div class="action-grid">
+            <!-- Quick Game Card -->
+            <div class="action-card glow-card" id="card-quick-game">
+              <div class="action-card-icon" style="--accent: #6C5CE7;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              </div>
+              <h3>Quick Game</h3>
+              <p>Jump into a ranked 1v1 match instantly. Elo is on the line!</p>
+              <button class="btn btn-primary" id="btn-quick-game">Play Now</button>
+            </div>
+
+            <!-- Custom Game Card -->
+            <div class="action-card glow-card" id="card-custom-game">
+              <div class="action-card-icon" style="--accent: #00CEFF;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                </svg>
+              </div>
+              <h3>Custom Game</h3>
+              <p>Create an AI-generated lobby on any topic you want!</p>
+              <button class="btn btn-accent" id="btn-custom-game">Create Lobby</button>
+            </div>
+
+            <!-- Solo Mode Card -->
+            <div class="action-card glow-card" id="card-solo-mode">
+              <div class="action-card-icon" style="--accent: #FDCB6E;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+                </svg>
+              </div>
+              <h3>Solo Practice</h3>
+              <p>Practice any topic against the AI — no ranking pressure.</p>
+              <button class="btn btn-warm" id="btn-solo-mode">Practice</button>
+            </div>
+
+            <!-- Tournament Card -->
+            <div class="action-card glow-card" id="card-tournament-mode">
+              <div class="action-card-icon" style="--accent: #E17055;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              </div>
+              <h3>Tournament</h3>
+              <p>Battle Royale bracket — last player standing wins it all!</p>
+              <button class="btn btn-danger" id="btn-tournament-mode">Enter</button>
+            </div>
+
+            <!-- Wrong Answers Card -->
+            <div class="action-card glow-card" id="card-wrong-answers">
+              <div class="action-card-icon" style="--accent: #fd79a8;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              </div>
+              <h3>Wrong Answers</h3>
+              <p>Review every question you got wrong. Get AI explanations!</p>
+              <button class="btn" id="btn-wrong-answers"
+                style="background: linear-gradient(135deg, #fd79a8, #e84393);">Review</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BROWSE LOBBIES PANEL -->
+        <div id="panel-browser" class="panel">
+          <h2 class="section-title">Public Lobbies</h2>
+          <p class="section-subtitle">Join any open game or create your own.</p>
+          <div class="lobby-controls">
+            <button class="btn btn-ghost btn-sm" id="btn-refresh-lobbies">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+              </svg>
+              Refresh
+            </button>
+            <button class="btn btn-accent btn-sm" id="btn-join-code">Join by Code</button>
+          </div>
+          <div class="lobby-list" id="lobby-list">
+            <div class="empty-state">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
+                opacity="0.3">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+              <p>No public lobbies available. Create one!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- LEADERBOARD PANEL -->
+        <div id="panel-leaderboard" class="panel">
+          <h2 class="section-title">Global Rankings</h2>
+          <p class="section-subtitle">Top 50 players by Elo rating.</p>
+          <div class="leaderboard-table" id="leaderboard-table">
+            <div class="empty-state">
+              <p>Loading rankings...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROFILE PANEL -->
+        <div id="panel-profile" class="panel">
+          <div class="profile-header">
+            <div class="profile-avatar" id="profile-avatar">
+              <span id="profile-avatar-letter"></span>
+            </div>
+            <div class="profile-info">
+              <h2 id="profile-username" class="profile-name"></h2>
+              <div class="profile-rank-badge" id="profile-rank-badge">
+                <span class="rank-icon" id="profile-rank-icon"></span>
+                <span id="profile-rank-name"></span>
+              </div>
+              <div class="profile-elo-bar">
+                <span class="elo-label">Elo</span>
+                <span class="elo-value" id="profile-elo-value"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-bio glass-card" id="profile-bio-card">
+            <div class="bio-header">
+              <h3>AI Bio</h3>
+              <button class="btn btn-ghost btn-sm" id="btn-regen-bio">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                </svg>
+                Regenerate
+              </button>
+            </div>
+            <p id="profile-bio-text" class="bio-text"></p>
+          </div>
+
+          <div class="profile-stats-grid">
+            <div class="stat-card glass-card">
+              <span class="stat-value" id="stat-wins">0</span>
+              <span class="stat-label">Wins</span>
+            </div>
+            <div class="stat-card glass-card">
+              <span class="stat-value" id="stat-losses">0</span>
+              <span class="stat-label">Losses</span>
+            </div>
+            <div class="stat-card glass-card">
+              <span class="stat-value" id="stat-accuracy">0%</span>
+              <span class="stat-label">Accuracy</span>
+            </div>
+            <div class="stat-card glass-card">
+              <span class="stat-value" id="stat-games">0</span>
+              <span class="stat-label">Games</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FRIENDS PANEL -->
+        <div id="panel-friends" class="panel">
+          <h2 class="section-title">Friends</h2>
+          <div class="friends-add glass-card">
+            <div class="input-row">
+              <input type="text" id="friend-username-input" placeholder="Enter username to add..." />
+              <button class="btn btn-primary btn-sm" id="btn-add-friend">Add Friend</button>
+            </div>
+          </div>
+
+          <div id="friend-requests-section" class="hidden">
+            <h3 class="subsection-title">Pending Requests</h3>
+            <div id="friend-requests-list" class="friends-list"></div>
+          </div>
+
+          <h3 class="subsection-title">Your Friends</h3>
+          <div id="friends-list" class="friends-list">
+            <div class="empty-state">
+              <p>No friends yet. Add someone!</p>
+            </div>
+          </div>
+
+          <!-- DM Panel -->
+          <div id="dm-panel" class="dm-panel hidden glass-card">
+            <div class="dm-header">
+              <button class="btn btn-ghost btn-sm" id="btn-close-dm">&larr;</button>
+              <span id="dm-username" class="dm-username"></span>
+            </div>
+            <div id="dm-messages" class="dm-messages"></div>
+            <div class="dm-input-row">
+              <input type="text" id="dm-input" placeholder="Type a message..." />
+              <button class="btn btn-primary btn-sm" id="btn-send-dm">Send</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TOURNAMENT PANEL -->
+        <div id="panel-tournament" class="panel">
+          <h2 class="section-title">Tournaments</h2>
+          <p class="section-subtitle">Join or create a bracket-style elimination tournament.</p>
+
+          <div class="tournament-create glass-card">
+            <h3>Create Tournament</h3>
+            <div class="input-group">
+              <label for="tournament-topic">Topic</label>
+              <input type="text" id="tournament-topic" placeholder="e.g. Space Exploration" />
+            </div>
+            <div class="input-row">
+              <div class="input-group">
+                <label for="tournament-size">Players</label>
+                <select id="tournament-size">
+                  <option value="8">8 Players</option>
+                  <option value="16">16 Players</option>
+                </select>
+              </div>
+              <button class="btn btn-danger" id="btn-create-tournament">Create</button>
+            </div>
+          </div>
+
+          <h3 class="subsection-title">Active Tournaments</h3>
+          <div id="tournament-list" class="tournament-list">
+            <div class="empty-state">
+              <p>No active tournaments.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- WRONG ANSWERS PANEL -->
+        <div id="panel-wronglog" class="panel">
+          <h2 class="section-title">
+            Wrong Answers
+            <span id="wrong-count-badge" class="wrong-count-badge">0</span>
+          </h2>
+          <p class="section-subtitle">Every question you've gotten wrong. Click "AI Explain" to learn why!</p>
+
+          <div id="wrong-questions-list" class="wrong-questions-list">
+            <div class="empty-state">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
+                style="opacity: 0.3; margin-bottom: 1rem;">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 15h8" />
+                <path d="M9 9h.01" />
+                <path d="M15 9h.01" />
+              </svg>
+              <p>No wrong answers yet — you're perfect! 🎯</p>
+              <p class="text-muted">Play some games and any mistakes will show up here for review.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Sidebar — Chat -->
+      <aside class="chat-sidebar">
+        <div class="chat-header">
+          <h3>Global Chat</h3>
+          <div class="chat-online">
+            <span class="online-dot"></span>
+            <span id="online-count">0</span> online
+          </div>
+        </div>
+        <div id="global-chat-messages" class="chat-messages"></div>
+        <div class="chat-input-row">
+          <input type="text" id="global-chat-input" placeholder="Say something..." maxlength="200" />
+          <button class="btn btn-primary btn-sm" id="btn-global-chat-send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav" id="mobile-nav">
+      <button class="mobile-nav-btn active" data-panel="home" id="mnav-home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        <span>Home</span>
+      </button>
+      <button class="mobile-nav-btn" data-panel="browser" id="mnav-browser">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
+        <span>Browse</span>
+      </button>
+      <button class="mobile-nav-btn" data-panel="leaderboard" id="mnav-leaderboard">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="M2 17l10 5 10-5" />
+          <path d="M2 12l10 5 10-5" />
+        </svg>
+        <span>Ranks</span>
+      </button>
+      <button class="mobile-nav-btn" data-panel="profile" id="mnav-profile">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        <span>Profile</span>
+      </button>
+      <button class="mobile-nav-btn" id="mnav-more">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="12" cy="5" r="1" />
+          <circle cx="12" cy="19" r="1" />
+        </svg>
+        <span>More</span>
+      </button>
+    </nav>
+
+    <!-- Mobile More Menu -->
+    <div class="mobile-more-menu hidden" id="mobile-more-menu">
+      <div class="mobile-more-backdrop" id="mobile-more-backdrop"></div>
+      <div class="mobile-more-content">
+        <button class="mobile-more-item" data-panel="friends">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 00-3-3.87" />
+            <path d="M16 3.13a4 4 0 010 7.75" />
+          </svg>
+          <span>Friends</span>
+          <span class="mobile-more-badge hidden" id="mobile-friends-badge">0</span>
+        </button>
+        <button class="mobile-more-item" data-panel="tournament">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon
+              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          <span>Tournament</span>
+        </button>
+        <button class="mobile-more-item" data-panel="wronglog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+          <span>Mistakes</span>
+        </button>
+        <button class="mobile-more-item" id="mobile-chat-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+          <span>Global Chat</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Chat Overlay -->
+    <div class="mobile-chat-overlay hidden" id="mobile-chat-overlay">
+      <div class="mobile-chat-header">
+        <h3>Global Chat</h3>
+        <div class="chat-online">
+          <span class="online-dot"></span>
+          <span id="mobile-online-count">0</span> online
+        </div>
+        <button class="btn btn-ghost btn-sm" id="mobile-chat-close">✕</button>
+      </div>
+      <div id="mobile-chat-messages" class="chat-messages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="mobile-chat-input" placeholder="Say something..." maxlength="200" />
+        <button class="btn btn-primary btn-sm" id="btn-mobile-chat-send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- QUEUE OVERLAY -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="overlay-queue" class="overlay hidden">
+    <div class="overlay-content glass-card">
+      <div class="queue-spinner"></div>
+      <h2>Finding Opponent...</h2>
+      <p class="text-muted">Sit tight. Matching you with a worthy rival.</p>
+      <button class="btn btn-ghost" id="btn-cancel-queue">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- CREATE LOBBY MODAL -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="modal-create-lobby" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="modal-create-lobby"></div>
+    <div class="modal-content glass-card">
+      <h2>Create Custom Lobby</h2>
+      <div class="input-group">
+        <label for="lobby-topic">Topic / Prompt</label>
+        <input type="text" id="lobby-topic" placeholder="e.g. Underwater Basket Weaving, Quantum Physics..." />
+      </div>
+      <div class="input-row-3col">
+        <div class="input-group">
+          <label for="lobby-time">Time (sec)</label>
+          <input type="number" id="lobby-time" value="10" min="5" max="30" />
+        </div>
+        <div class="input-group">
+          <label for="lobby-questions">Questions</label>
+          <input type="number" id="lobby-questions" value="5" min="3" max="20" />
+        </div>
+        <div class="input-group">
+          <label for="lobby-players">Max Players</label>
+          <input type="number" id="lobby-players" value="2" min="2" max="8" />
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="toggle-label">
+          <input type="checkbox" id="lobby-public" checked />
+          <span class="toggle-switch"></span>
+          <span>Public Lobby</span>
+        </label>
+      </div>
+      <div class="input-group">
+        <label class="toggle-label">
+          <input type="checkbox" id="lobby-ranked" checked />
+          <span class="toggle-switch"></span>
+          <span>Ranked (affects Elo)</span>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close-modal="modal-create-lobby">Cancel</button>
+        <button class="btn btn-accent" id="btn-create-lobby">Create & Wait</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SOLO MODE MODAL -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="modal-solo" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="modal-solo"></div>
+    <div class="modal-content glass-card">
+      <h2>Solo Practice</h2>
+      <div class="input-group">
+        <label for="solo-topic">Topic / Prompt</label>
+        <input type="text" id="solo-topic" placeholder="e.g. World War II, JavaScript, Anime..." />
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label for="solo-time">Time (sec)</label>
+          <input type="number" id="solo-time" value="10" min="5" max="30" />
+        </div>
+        <div class="input-group">
+          <label for="solo-questions">Questions</label>
+          <input type="number" id="solo-questions" value="5" min="3" max="20" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close-modal="modal-solo">Cancel</button>
+        <button class="btn btn-warm" id="btn-start-solo">Start Practice</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- JOIN CODE MODAL -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="modal-join-code" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="modal-join-code"></div>
+    <div class="modal-content glass-card">
+      <h2>Join by Invite Code</h2>
+      <div class="input-group">
+        <label for="join-code-input">Invite Code</label>
+        <input type="text" id="join-code-input" placeholder="e.g. A1B2C3" maxlength="6"
+          style="text-transform:uppercase;letter-spacing:4px;text-align:center;font-size:1.5rem;" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close-modal="modal-join-code">Cancel</button>
+        <button class="btn btn-primary" id="btn-join-with-code">Join</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- LOBBY WAITING VIEW -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="view-lobby" class="view">
+    <div class="lobby-view-container">
+      <div class="glass-card lobby-info-card">
+        <h2>Lobby: <span id="lobby-view-topic" class="text-gradient"></span></h2>
+        <div class="lobby-meta">
+          <span id="lobby-view-code" class="lobby-code"></span>
+          <span id="lobby-view-settings"></span>
+        </div>
+        <div id="lobby-players-list" class="lobby-players-grid"></div>
+        <div class="lobby-actions">
+          <button class="btn btn-primary" id="btn-lobby-start" style="display:none;">Start Game</button>
+          <button class="btn btn-ghost" id="btn-lobby-leave">Leave</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- GAME VIEW -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="view-game" class="view">
+    <div class="game-container">
+      <!-- Header -->
+      <div class="game-header">
+        <div class="game-scoreboard" id="game-scoreboard">
+          <div class="game-player game-player-left">
+            <span class="game-player-name" id="game-p1-name"></span>
+            <span class="game-player-score" id="game-p1-score">0</span>
+          </div>
+          <div class="game-vs">
+            <span class="game-question-counter" id="game-q-counter"></span>
+          </div>
+          <div class="game-player game-player-right">
+            <span class="game-player-name" id="game-p2-name"></span>
+            <span class="game-player-score" id="game-p2-score">0</span>
+          </div>
+        </div>
+        <div class="game-timer-bar">
+          <div class="game-timer-fill" id="game-timer-fill"></div>
+        </div>
+      </div>
+
+      <!-- Question -->
+      <div class="game-question-area">
+        <div class="game-topic-label" id="game-topic-label"></div>
+        <h2 class="game-question-text" id="game-question-text">Waiting for question...</h2>
+        <div class="game-options" id="game-options"></div>
+        <div class="game-feedback hidden" id="game-feedback"></div>
+      </div>
+
+      <!-- In-Game Chat Toggle -->
+      <button class="game-chat-toggle" id="game-chat-toggle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+        </svg>
+      </button>
+      <div class="game-chat-panel hidden" id="game-chat-panel">
+        <div class="game-chat-messages" id="game-chat-messages"></div>
+        <div class="game-chat-input-row">
+          <input type="text" id="game-chat-input" placeholder="Chat..." maxlength="200" />
+          <button class="btn btn-primary btn-sm" id="btn-game-chat-send">Send</button>
+        </div>
+      </div>
+
+      <!-- Round Results Overlay (for 3+ players) -->
+      <div id="round-results-overlay" class="round-results-overlay hidden">
+        <div class="round-results-card glass-card">
+          <h3>📊 Round Results</h3>
+          <div id="round-results-list" class="round-results-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- GAME OVER VIEW -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="view-game-over" class="view">
+    <div class="game-over-container">
+      <div class="game-over-card glass-card">
+        <div id="game-over-banner" class="game-over-banner">
+          <h1 id="game-over-title">Victory!</h1>
+          <p id="game-over-subtitle"></p>
+        </div>
+
+        <div class="game-over-scores" id="game-over-scores"></div>
+
+        <div class="game-over-elo hidden" id="game-over-elo">
+          <div class="elo-change" id="elo-change-display"></div>
+        </div>
+
+        <div class="game-over-review">
+          <h3>Question Review</h3>
+          <div id="game-over-questions" class="review-questions-list"></div>
+        </div>
+
+        <div class="game-over-actions">
+          <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+          <button class="btn btn-ghost" id="btn-back-dashboard">Back to Dashboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- CHALLENGE NOTIFICATION MODAL -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="modal-challenge" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="modal-challenge"></div>
+    <div class="modal-content glass-card">
+      <h2>⚔️ Challenge!</h2>
+      <p id="challenge-text">Someone challenged you!</p>
+      <p id="challenge-topic-text" class="text-muted"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="btn-decline-challenge">Decline</button>
+        <button class="btn btn-primary" id="btn-accept-challenge">Accept</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- USER PROFILE MODAL (public view) -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="modal-user-profile" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="modal-user-profile"></div>
+    <div class="modal-content glass-card">
+      <div class="profile-header" style="margin-bottom: 1rem;">
+        <div class="profile-avatar" id="modal-profile-avatar">
+          <span id="modal-profile-avatar-letter"></span>
+        </div>
+        <div class="profile-info">
+          <h2 id="modal-profile-username" class="profile-name"></h2>
+          <div class="profile-rank-badge">
+            <span class="rank-icon" id="modal-profile-rank-icon"></span>
+            <span id="modal-profile-rank-name"></span>
+          </div>
+          <div class="profile-elo-bar">
+            <span class="elo-label">Elo</span>
+            <span class="elo-value" id="modal-profile-elo"></span>
+          </div>
+        </div>
+      </div>
+      <div class="profile-bio glass-card" style="margin-bottom: 1rem;">
+        <h3>AI Bio</h3>
+        <p id="modal-profile-bio" class="bio-text"></p>
+      </div>
+      <div class="profile-stats-grid" style="margin-bottom: 1rem;">
+        <div class="stat-card glass-card">
+          <span class="stat-value" id="modal-stat-wins">0</span>
+          <span class="stat-label">Wins</span>
+        </div>
+        <div class="stat-card glass-card">
+          <span class="stat-value" id="modal-stat-losses">0</span>
+          <span class="stat-label">Losses</span>
+        </div>
+        <div class="stat-card glass-card">
+          <span class="stat-value" id="modal-stat-accuracy">0%</span>
+          <span class="stat-label">Accuracy</span>
+        </div>
+        <div class="stat-card glass-card">
+          <span class="stat-value" id="modal-stat-games">0</span>
+          <span class="stat-label">Games</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close-modal="modal-user-profile">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SCRIPTS -->
+  <!-- ═══════════════════════════════════════════ -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+
+</html>
