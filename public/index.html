@@ -10,8 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Roboto+Slab:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
     rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined|Material+Icons" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 
@@ -132,57 +133,32 @@
       <aside class="sidebar">
         <nav class="sidebar-nav">
           <button class="sidebar-btn active" data-panel="home" id="nav-home">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
+            <span class="material-icons-outlined">home</span>
             <span>Home</span>
           </button>
           <button class="sidebar-btn" data-panel="browser" id="nav-browser">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
+            <span class="material-icons-outlined">search</span>
             <span>Browse</span>
           </button>
           <button class="sidebar-btn" data-panel="leaderboard" id="nav-leaderboard">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
+            <span class="material-icons-outlined">emoji_events</span>
             <span>Rankings</span>
           </button>
           <button class="sidebar-btn" data-panel="profile" id="nav-profile">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <span class="material-icons-outlined">person</span>
             <span>Profile</span>
           </button>
           <button class="sidebar-btn" data-panel="friends" id="nav-friends">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 00-3-3.87" />
-              <path d="M16 3.13a4 4 0 010 7.75" />
-            </svg>
+            <span class="material-icons-outlined">group</span>
             <span>Friends</span>
             <span class="sidebar-badge hidden" id="friends-badge">0</span>
           </button>
           <button class="sidebar-btn" data-panel="tournament" id="nav-tournament">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon
-                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
+            <span class="material-icons-outlined">star</span>
             <span>Tourney</span>
           </button>
           <button class="sidebar-btn" data-panel="wronglog" id="nav-wronglog">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="15" y1="9" x2="9" y2="15" />
-              <line x1="9" y1="9" x2="15" y2="15" />
-            </svg>
+            <span class="material-icons-outlined">cancel</span>
             <span>Mistakes</span>
           </button>
         </nav>
@@ -199,15 +175,12 @@
 
           <div class="action-grid">
             <!-- Quick Game Card -->
-            <div class="action-card glow-card" id="card-quick-game">
-              <div class="action-card-icon" style="--accent: #6C5CE7;">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-              </div>
+            <!-- Quick Game Card -->
+            <div class="action-card card-quick" id="btn-quick-game">
+              <span class="material-icons-outlined card-icon">bolt</span>
               <h3>Quick Game</h3>
               <p>Jump into a ranked 1v1 match instantly. Elo is on the line!</p>
-              <button class="btn btn-primary" id="btn-quick-game">Play Now</button>
+              <button class="btn btn-action">Play Now</button>
             </div>
 
             <!-- Custom Game Card -->
