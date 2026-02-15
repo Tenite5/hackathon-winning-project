@@ -614,8 +614,9 @@ io.on('connection', (socket) => {
 
         let points = 0;
         if (isCorrect) {
-            // Speed bonus: max 100, minimum 10, decays linearly
-            points = Math.max(10, Math.round(100 * (1 - elapsed / timeLimit)));
+            // Base 70 points for correctness + up to 30 speed bonus
+            const speedBonus = Math.round(30 * Math.max(0, 1 - elapsed / timeLimit));
+            points = 70 + speedBonus;
         }
 
         player.answers[game.currentQuestion] = { answerIndex, isCorrect, points, elapsed };
@@ -694,6 +695,36 @@ io.on('connection', (socket) => {
         socket.join(lobbyId);
 
         socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
+        io.emit('lobbies-updated');
+    });
+
+    // ── Leave Lobby ─────────────────────────────────────────────
+    socket.on('leave-lobby', ({ lobbyId }) => {
+        if (!currentUser) return;
+        const lobby = db.lobbies.get(lobbyId);
+        if (!lobby) return;
+
+        // Remove the player from the lobby
+        lobby.players = lobby.players.filter(p => p.userId !== currentUser.id);
+        socket.leave(lobbyId);
+
+        // If lobby is now empty or host left, delete the lobby
+        if (lobby.players.length === 0 || lobby.hostId === currentUser.id) {
+            db.lobbies.delete(lobbyId);
+            // Notify remaining players if host left
+            if (lobby.players.length > 0) {
+                io.to(lobbyId).emit('lobby-error', 'Host left the lobby. Lobby has been closed.');
+                // Remove remaining players from the room
+                lobby.players.forEach(p => {
+                    const s = io.sockets.sockets.get(p.socketId);
+                    if (s) s.leave(lobbyId);
+                });
+            }
+        } else {
+            // Notify remaining players about the update
+            io.to(lobbyId).emit('lobby-updated', lobby);
+        }
+
         io.emit('lobbies-updated');
     });
 
@@ -965,6 +996,29 @@ io.on('connection', (socket) => {
                 }
             });
 
+            // Handle lobbies — clean up if player was in a waiting lobby
+            for (const [lobbyId, lobby] of db.lobbies) {
+                if (lobby.status !== 'waiting') continue;
+                const inLobby = lobby.players.find(p => p.userId === currentUser.id);
+                if (!inLobby) continue;
+
+                lobby.players = lobby.players.filter(p => p.userId !== currentUser.id);
+                if (lobby.players.length === 0 || lobby.hostId === currentUser.id) {
+                    // Notify remaining players if host disconnected
+                    if (lobby.players.length > 0) {
+                        io.to(lobbyId).emit('lobby-error', 'Host disconnected. Lobby has been closed.');
+                        lobby.players.forEach(p => {
+                            const s = io.sockets.sockets.get(p.socketId);
+                            if (s) s.leave(lobbyId);
+                        });
+                    }
+                    db.lobbies.delete(lobbyId);
+                } else {
+                    io.to(lobbyId).emit('lobby-updated', lobby);
+                }
+                io.emit('lobbies-updated');
+            }
+
             // Handle in-progress games
             for (const [, game] of db.games) {
                 if (game.status === 'playing') {
@@ -1004,11 +1058,13 @@ function recordWrongAnswers(game) {
         }
         const userLog = db.wrongAnswers.get(userId);
 
-        game.questions.forEach((q, idx) => {
+        // Only iterate up to the number of questions actually played, not all generated questions.
+        // This prevents correct answers or unplayed questions from being logged as wrong.
+        const questionsPlayed = Math.min(game.currentQuestion + 1, game.questions.length);
+        game.questions.slice(0, questionsPlayed).forEach((q, idx) => {
             const myAnswer = player.answers[idx];
-            // If answer is correct, skip. 
-            // Note: if myAnswer is undefined (didn't initiate answer), treat as wrong/timeout if game finished normally?
-            // Actually, if it's undefined, it's a timeout/skip.
+            // If answer is correct, skip.
+            // If myAnswer is undefined, it's a timeout/skip.
 
             if (myAnswer && myAnswer.isCorrect) return;
 
@@ -1053,8 +1109,13 @@ function startGameQuestion(gameId) {
     const q = game.questions[game.currentQuestion];
     game.questionStartTime = Date.now();
 
+    // Unique ID per question round to prevent race conditions / glitches
+    const questionId = `${gameId}_q${game.currentQuestion}_${Date.now()}`;
+    game.currentQuestionId = questionId;
+
     io.to(gameId).emit('game-question', {
         gameId,
+        questionId,
         questionIndex: game.currentQuestion,
         totalQuestions: game.questions.length,
         question: q.question,
@@ -1067,6 +1128,9 @@ function startGameQuestion(gameId) {
 
     // Timer
     game.questionTimer = setTimeout(() => {
+        // Verify this timer is still for the current question (prevent stale timers)
+        if (game.currentQuestionId !== questionId) return;
+
         // Auto-fill unanswered
         game.players.forEach(p => {
             if (p.answers[game.currentQuestion] === undefined) {

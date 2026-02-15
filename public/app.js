@@ -323,7 +323,14 @@
         }
     });
 
-    socket.on('lobby-error', (msg) => toast(msg, 'error'));
+    socket.on('lobby-error', (msg) => {
+        toast(msg, 'error');
+        // If we're in a lobby view and get an error (e.g. host left), return to dashboard
+        if (state.currentView === 'view-lobby') {
+            state.currentLobbyId = null;
+            showView('view-dashboard');
+        }
+    });
 
     socket.on('lobby-game-start', ({ gameId }) => {
         state.currentGameId = gameId;
@@ -365,6 +372,9 @@
     });
 
     $('btn-lobby-leave').addEventListener('click', () => {
+        if (state.currentLobbyId) {
+            socket.emit('leave-lobby', { lobbyId: state.currentLobbyId });
+        }
         state.currentLobbyId = null;
         showView('view-dashboard');
     });
@@ -403,6 +413,12 @@
     // GAME LOGIC
     // ═══════════════════════════════════════════════════════════════
     socket.on('game-question', (data) => {
+        // Track questionId to prevent stale question data from rendering
+        if (data.questionId) {
+            if (state.currentQuestionId && state.currentQuestionId === data.questionId) return; // duplicate
+            state.currentQuestionId = data.questionId;
+        }
+
         state.currentGameId = data.gameId;
         state.gameTimeLimit = data.timeLimit;
         state.gameTimeLeft = data.timeLimit;
