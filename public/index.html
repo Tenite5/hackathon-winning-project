@@ -224,6 +224,22 @@
               <button class="btn btn-accent" id="btn-custom-game">Create Lobby</button>
             </div>
 
+            <!-- Preset Game Card -->
+            <div class="action-card glow-card" id="card-preset-game">
+              <div class="action-card-icon" style="--accent: #00B894;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+                  <line x1="9" y1="7" x2="17" y2="7" />
+                  <line x1="9" y1="11" x2="15" y2="11" />
+                </svg>
+              </div>
+              <h3>Preset Game</h3>
+              <p>Play hand-picked question sets — Math, SAT, Driving &amp; more!</p>
+              <button class="btn" id="btn-preset-game"
+                style="background: linear-gradient(135deg, #00B894, #00CEFF);">Choose Preset</button>
+            </div>
+
             <!-- Solo Mode Card -->
             <div class="action-card glow-card" id="card-solo-mode">
               <div class="action-card-icon" style="--accent: #FDCB6E;">
@@ -673,6 +689,43 @@
       <div class="modal-actions">
         <button class="btn btn-ghost" data-close-modal="modal-join-code">Cancel</button>
         <button class="btn btn-primary" id="btn-join-with-code">Join</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PRESET GAME MODAL -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="modal-preset" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="modal-preset"></div>
+    <div class="modal-content glass-card">
+      <h2>📚 Choose a Preset</h2>
+      <p class="text-muted" style="margin-bottom: 1.5rem;">Select a hand-picked question set to play solo.</p>
+      <div class="preset-list" id="preset-list">
+        <button class="preset-card" data-preset="hard-math">
+          <div class="preset-card-icon" style="background: linear-gradient(135deg, #6C5CE7, #a29bfe);">📐</div>
+          <div class="preset-card-info">
+            <h4>ძნელი მათემატიკა</h4>
+            <span>9 questions · Hard</span>
+          </div>
+        </button>
+        <button class="preset-card" data-preset="sat">
+          <div class="preset-card-icon" style="background: linear-gradient(135deg, #00CEFF, #0984e3);">📝</div>
+          <div class="preset-card-info">
+            <h4>SAT</h4>
+            <span>6 questions · Medium</span>
+          </div>
+        </button>
+        <button class="preset-card" data-preset="driving">
+          <div class="preset-card-icon" style="background: linear-gradient(135deg, #FDCB6E, #E17055);">🚗</div>
+          <div class="preset-card-info">
+            <h4>Driving License</h4>
+            <span>3 questions · Easy</span>
+          </div>
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close-modal="modal-preset">Cancel</button>
       </div>
     </div>
   </div>

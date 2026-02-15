@@ -410,6 +410,23 @@
     });
 
     // ═══════════════════════════════════════════════════════════════
+    // PRESET GAME
+    // ═══════════════════════════════════════════════════════════════
+    $('btn-preset-game').addEventListener('click', () => showModal('modal-preset'));
+
+    document.querySelectorAll('.preset-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const presetId = card.dataset.preset;
+            socket.emit('preset-start', { presetId });
+            hideModal('modal-preset');
+            showView('view-game');
+            $('game-question-text').textContent = 'Loading preset questions...';
+            $('game-options').innerHTML = '';
+            toast('Starting preset game!', 'success');
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════════════
     // GAME LOGIC
     // ═══════════════════════════════════════════════════════════════
     socket.on('game-question', (data) => {

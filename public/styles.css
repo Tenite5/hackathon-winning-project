@@ -24,7 +24,7 @@
 
   --gradient-main: linear-gradient(135deg, #6C5CE7 0%, #00CEFF 100%);
   --gradient-warm: linear-gradient(135deg, #FDCB6E 0%, #E17055 100%);
-  --gradient-danger: linear-gradient(135deg, #E17055 0%, #d63031 100%);
+  --gradient-danger: linear-gradient(135deg, #E17055 0%, #e63030 100%);
   --gradient-success: linear-gradient(135deg, #00B894 0%, #00CEFF 100%);
 
   --border-color: rgba(108, 92, 231, 0.15);
@@ -1396,6 +1396,67 @@ input::placeholder {
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 1.5rem;
+}
+
+/* ── Preset Cards ──────────────────────────────────────────── */
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preset-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+  width: 100%;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+}
+
+.preset-card:hover {
+  border-color: var(--accent-success);
+  background: rgba(0, 184, 148, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 184, 148, 0.15);
+}
+
+.preset-card:active {
+  transform: scale(0.98);
+}
+
+.preset-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.preset-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.preset-card-info h4 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.preset-card-info span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 /* ═══════════════════════════════════════════════════════════════
