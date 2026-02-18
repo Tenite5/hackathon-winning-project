@@ -1,5 +1,16 @@
 # How to Deploy QVIZIO
 
+## 🛠️ Project Tech Stack
+- **Frontend:** React.js / HTML5 / CSS3 (Railway)
+- **Backend:** Node.js / Python (Django/Flask)
+- **AI Engine:** OpenAI API (GPT-4o / GPT-3.5) / LangChain
+- **Database:** MongoDB / PostgreSQL / Firebase
+- **Real-time:** Socket.io (მულტიპლეიერისთვის)
+
+---
+
+# Deployment Guide
+
 Since this app uses a **Node.js server** with **Socket.io** (for real-time multiplayer), you cannot deploy it on static hosting like Netlify or Vercel alone. You need a host that supports backend servers.
 
 Here are the best free/low-cost options:

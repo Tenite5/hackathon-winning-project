@@ -18,6 +18,7 @@
         gameTimeLimit: 10,
         dmFriendId: null,
         lastGameData: null,
+        isStartingGame: false,
     };
 
     // ── Socket ─────────────────────────────────────────────────
@@ -280,8 +281,12 @@
     // QUICK GAME
     // ═══════════════════════════════════════════════════════════════
     $('btn-quick-game').addEventListener('click', () => {
+        if (state.isStartingGame) return;
+        state.isStartingGame = true;
+        $('btn-quick-game').disabled = true;
         socket.emit('queue-join');
         $('overlay-queue').classList.remove('hidden');
+        setTimeout(() => { state.isStartingGame = false; $('btn-quick-game').disabled = false; }, 3000);
     });
 
     $('btn-cancel-queue').addEventListener('click', () => {
@@ -291,6 +296,11 @@
 
     socket.on('queue-matched', ({ opponent, topic }) => {
         $('overlay-queue').classList.add('hidden');
+        // Clear stale question/feedback from previous game (Firefox fix)
+        $('game-question-text').textContent = 'Loading questions...';
+        $('game-options').innerHTML = '';
+        $('game-feedback').classList.add('hidden');
+        $('game-q-counter').textContent = '';
         toast(`Matched with ${opponent.username}! Topic: ${topic}`, 'success');
     });
 
@@ -336,6 +346,11 @@
         state.currentGameId = gameId;
         state.currentLobbyId = null;
         showView('view-game');
+        // Clear stale question/feedback from previous game (Firefox fix)
+        $('game-question-text').textContent = 'Loading questions...';
+        $('game-options').innerHTML = '';
+        $('game-feedback').classList.add('hidden');
+        $('game-q-counter').textContent = '';
         toast('Game starting!', 'info');
     });
 
@@ -368,7 +383,11 @@
     }
 
     $('btn-lobby-start').addEventListener('click', () => {
+        if (state.isStartingGame) return;
+        state.isStartingGame = true;
+        $('btn-lobby-start').disabled = true;
         socket.emit('lobby-start', { lobbyId: state.currentLobbyId });
+        setTimeout(() => { state.isStartingGame = false; $('btn-lobby-start').disabled = false; }, 5000);
     });
 
     $('btn-lobby-leave').addEventListener('click', () => {
@@ -395,18 +414,24 @@
     $('btn-solo-mode').addEventListener('click', () => showModal('modal-solo'));
 
     $('btn-start-solo').addEventListener('click', () => {
+        if (state.isStartingGame) return;
+        state.isStartingGame = true;
+        $('btn-start-solo').disabled = true;
         const topic = $('solo-topic').value.trim() || 'General Knowledge';
         const questionCount = parseInt($('solo-questions').value) || 5;
         const timeLimit = parseInt($('solo-time').value) || 10;
         socket.emit('solo-start', { topic, questionCount, timeLimit });
         hideModal('modal-solo');
         toast('Generating questions...', 'info');
+        setTimeout(() => { state.isStartingGame = false; $('btn-start-solo').disabled = false; }, 5000);
     });
 
     socket.on('solo-generating', () => {
         showView('view-game');
         $('game-question-text').textContent = 'AI is generating questions...';
         $('game-options').innerHTML = '';
+        $('game-feedback').classList.add('hidden');
+        $('game-q-counter').textContent = '';
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -416,10 +441,14 @@
 
     document.querySelectorAll('.preset-card').forEach(card => {
         card.addEventListener('click', () => {
+            if (state.isStartingGame) return;
+            state.isStartingGame = true;
+            card.style.pointerEvents = 'none';
             const presetId = card.dataset.preset;
             socket.emit('preset-start', { presetId });
             hideModal('modal-preset');
             toast('Creating preset lobby...', 'info');
+            setTimeout(() => { state.isStartingGame = false; card.style.pointerEvents = ''; }, 5000);
         });
     });
 
@@ -432,6 +461,9 @@
             if (state.currentQuestionId && state.currentQuestionId === data.questionId) return; // duplicate
             state.currentQuestionId = data.questionId;
         }
+
+        // Reset starting game lock when first question arrives
+        state.isStartingGame = false;
 
         state.currentGameId = data.gameId;
         state.gameTimeLimit = data.timeLimit;
@@ -674,8 +706,23 @@
     });
 
     $('btn-play-again').addEventListener('click', () => {
-        showView('view-dashboard');
-        showPanel('home');
+        if (!state.lastGameData) {
+            showView('view-dashboard');
+            showPanel('home');
+            return;
+        }
+        const lastGame = state.lastGameData;
+        // Re-queue or re-start based on previous game type
+        if (lastGame.topic) {
+            // For quick games, re-enter the queue
+            socket.emit('queue-join');
+            $('overlay-queue').classList.remove('hidden');
+            showView('view-dashboard');
+            showPanel('home');
+        } else {
+            showView('view-dashboard');
+            showPanel('home');
+        }
     });
 
     $('btn-back-dashboard').addEventListener('click', () => {
@@ -1477,6 +1524,17 @@
         });
         chatObserver.observe(desktopChatContainer, { childList: true });
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // LEAVE GAME CONFIRMATION (beforeunload)
+    // ═══════════════════════════════════════════════════════════════
+    window.addEventListener('beforeunload', (e) => {
+        if (state.currentGameId) {
+            e.preventDefault();
+            e.returnValue = 'You are in an active game! Leaving will count as a forfeit and you will lose ELO. Are you sure?';
+            return e.returnValue;
+        }
+    });
 
     // ═══════════════════════════════════════════════════════════════
     // INIT

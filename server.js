@@ -697,6 +697,10 @@ io.on('connection', (socket) => {
     // ── Quick Game Queue ─────────────────────────────────────
     socket.on('queue-join', async () => {
         if (!currentUser) return;
+        // Rate limit: prevent spamming queue-join
+        const now = Date.now();
+        if (currentUser._lastQueueJoin && now - currentUser._lastQueueJoin < 3000) return;
+        currentUser._lastQueueJoin = now;
         // Remove if already in queue
         db.quickQueue = db.quickQueue.filter(q => q.userId !== currentUser.id);
         db.quickQueue.push({ userId: currentUser.id, socketId: socket.id, joinedAt: Date.now() });
@@ -931,6 +935,9 @@ io.on('connection', (socket) => {
         const lobby = db.lobbies.get(lobbyId);
         if (!lobby || lobby.hostId !== currentUser.id) return;
         if (lobby.players.length < 2) return socket.emit('lobby-error', 'Need at least 2 players');
+        // Rate limit: prevent spamming lobby-start
+        if (lobby._starting) return;
+        lobby._starting = true;
 
         lobby.status = 'playing';
         // Use preset questions if available, otherwise generate via AI
@@ -972,6 +979,10 @@ io.on('connection', (socket) => {
     // ── Solo Practice Mode ─────────────────────────────────
     socket.on('solo-start', async ({ topic, questionCount, timeLimit }) => {
         if (!currentUser) return;
+        // Rate limit: prevent spamming solo-start
+        const now = Date.now();
+        if (currentUser._lastGameStart && now - currentUser._lastGameStart < 5000) return;
+        currentUser._lastGameStart = now;
 
         socket.emit('solo-generating', { topic });
 
@@ -1001,6 +1012,10 @@ io.on('connection', (socket) => {
     // ── Preset Game Mode ──────────────────────────────────────
     socket.on('preset-start', ({ presetId }) => {
         if (!currentUser) return;
+        // Rate limit: prevent spamming preset-start
+        const now = Date.now();
+        if (currentUser._lastGameStart && now - currentUser._lastGameStart < 5000) return;
+        currentUser._lastGameStart = now;
 
         const preset = PRESET_QUESTIONS[presetId];
         if (!preset) return socket.emit('game-error', 'Invalid preset');
@@ -1251,7 +1266,82 @@ io.on('connection', (socket) => {
                         game.status = 'finished';
                         clearTimeout(game.questionTimer);
                         recordWrongAnswers(game);
+
+                        // Strict ELO penalty for leaving mid-game (like chess.com forfeit)
+                        const isRanked = game.players.length === 2 && (
+                            game.type === 'quick' || (game.type === 'custom' && game.ranked !== false)
+                        );
+
                         const winner = game.players.find(p => p.userId !== currentUser.id);
+
+                        if (isRanked && winner) {
+                            const winnerUser = db.users.get(winner.userId);
+                            const loserUser = db.users.get(currentUser.id);
+                            if (winnerUser && loserUser) {
+                                // Harsher penalty: K=48 for abandonment (50% more than normal K=32)
+                                const K_ABANDON = 48;
+                                const expected = 1 / (1 + Math.pow(10, (loserUser.elo - winnerUser.elo) / 400));
+                                const winnerNew = Math.round(winnerUser.elo + K_ABANDON * (1 - expected));
+                                const loserNew = Math.round(loserUser.elo + K_ABANDON * (0 - (1 - expected)));
+                                const eloDelta = winnerNew - winnerUser.elo;
+
+                                winnerUser.elo = Math.max(0, winnerNew);
+                                loserUser.elo = Math.max(0, loserNew);
+
+                                winnerUser.stats.totalWins++;
+                                loserUser.stats.totalLosses++;
+                                winnerUser.stats.gamesPlayed++;
+                                loserUser.stats.gamesPlayed++;
+
+                                const cat = game.topic;
+                                [winnerUser, loserUser].forEach(u => {
+                                    if (!u.stats.categories[cat]) u.stats.categories[cat] = { wins: 0, losses: 0, accuracy: 0, totalAnswered: 0, correctAnswers: 0 };
+                                });
+                                winnerUser.stats.categories[cat].wins++;
+                                loserUser.stats.categories[cat].losses++;
+
+                                game.players.forEach(p => {
+                                    const u = db.users.get(p.userId);
+                                    if (u) {
+                                        const correct = p.answers.filter(a => a && a.isCorrect).length;
+                                        const total = p.answers.filter(a => a).length;
+                                        u.stats.totalAnswers += total;
+                                        u.stats.correctAnswers += correct;
+                                        if (u.stats.categories[cat]) {
+                                            u.stats.categories[cat].totalAnswered += total;
+                                            u.stats.categories[cat].correctAnswers += correct;
+                                            u.stats.categories[cat].accuracy = u.stats.categories[cat].totalAnswered > 0
+                                                ? u.stats.categories[cat].correctAnswers / u.stats.categories[cat].totalAnswered
+                                                : 0;
+                                        }
+                                    }
+                                });
+
+                                io.to(game.id).emit('game-over', {
+                                    reason: 'opponent-disconnect',
+                                    winner: { userId: winner.userId, username: winner.username, score: winner.score },
+                                    isDraw: false,
+                                    eloDelta,
+                                    playerCount: game.players.length,
+                                    players: game.players.map(p => {
+                                        const u = db.users.get(p.userId);
+                                        return {
+                                            userId: p.userId,
+                                            username: p.username,
+                                            score: p.score,
+                                            answers: p.answers,
+                                            elo: u ? u.elo : 0,
+                                            eloChange: p.userId === winner.userId ? eloDelta : -eloDelta,
+                                        };
+                                    }),
+                                    questions: game.questions,
+                                    topic: game.topic,
+                                });
+                                continue;
+                            }
+                        }
+
+                        // Non-ranked or solo: just notify without ELO
                         if (winner) {
                             io.to(game.id).emit('game-over', {
                                 reason: 'opponent-disconnect',
