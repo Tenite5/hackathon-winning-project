@@ -43,9 +43,14 @@ const db = {
             return;
         }
 
-        await mongoose.connect(uri);
-        db.mongoConnected = true;
-        console.log('✅ Connected to MongoDB');
+        try {
+            await mongoose.connect(uri);
+            db.mongoConnected = true;
+            console.log('✅ Connected to MongoDB');
+        } catch (err) {
+            console.error('⚠️  MongoDB connection failed — running in memory-only mode:', err.message);
+            return;
+        }
 
         // Load users
         const users = await UserModel.find().lean();
