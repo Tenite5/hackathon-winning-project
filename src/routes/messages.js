@@ -35,6 +35,7 @@ router.post('/messages/:friendId', requireAuth, (req, res) => {
 
     const msg = { from: user.id, fromUsername: user.username, to: friendId, text: cleanText, ts: Date.now() };
     db.messages.get(key).push(msg);
+    db.saveMessages(key);
 
     // Notify friend
     const friend = db.users.get(friendId);

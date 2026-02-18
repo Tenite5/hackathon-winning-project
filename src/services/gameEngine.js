@@ -48,6 +48,7 @@ function recordWrongAnswers(game) {
         if (userLog.length > 100) {
             userLog.length = 100;
         }
+        db.saveWrongAnswers(userId);
     });
 }
 
@@ -233,8 +234,11 @@ function endGame(gameId, io) {
                 topic: game.topic,
             });
 
-            if (winnerUser.stats.gamesPlayed % 3 === 0) generateBio(winnerUser).then(bio => { winnerUser.bio = bio; });
-            if (loserUser.stats.gamesPlayed % 3 === 0) generateBio(loserUser).then(bio => { loserUser.bio = bio; });
+            if (winnerUser.stats.gamesPlayed % 3 === 0) generateBio(winnerUser).then(bio => { winnerUser.bio = bio; db.saveUser(winnerUser.id); });
+            if (loserUser.stats.gamesPlayed % 3 === 0) generateBio(loserUser).then(bio => { loserUser.bio = bio; db.saveUser(loserUser.id); });
+
+            db.saveUser(winnerUser.id);
+            db.saveUser(loserUser.id);
 
             return;
         }
@@ -264,7 +268,8 @@ function endGame(gameId, io) {
                 u.stats.categories[cat].accuracy = u.stats.categories[cat].totalAnswered > 0
                     ? u.stats.categories[cat].correctAnswers / u.stats.categories[cat].totalAnswered
                     : 0;
-                if (u.stats.gamesPlayed % 3 === 0) generateBio(u).then(bio => { u.bio = bio; });
+                if (u.stats.gamesPlayed % 3 === 0) generateBio(u).then(bio => { u.bio = bio; db.saveUser(u.id); });
+                db.saveUser(u.id);
             }
         });
     }
@@ -391,6 +396,9 @@ function handleDisconnectFromGames(io, currentUser) {
                         }
                     }
                 });
+
+                db.saveUser(winnerUser.id);
+                db.saveUser(loserUser.id);
 
                 io.to(game.id).emit('game-over', {
                     reason: 'opponent-disconnect',

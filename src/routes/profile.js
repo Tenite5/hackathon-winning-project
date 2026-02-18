@@ -42,6 +42,7 @@ router.get('/profile-by-name/:username', (req, res) => {
 router.post('/profile/regenerate-bio', requireAuth, async (req, res) => {
     const bio = await generateBio(req.user);
     req.user.bio = bio;
+    db.saveUser(req.user.id);
     res.json({ bio });
 });
 

@@ -32,6 +32,7 @@ router.post('/friends/request', requireAuth, (req, res) => {
     if (target.friendRequests.includes(user.id)) return res.status(400).json({ error: 'Request already sent' });
 
     target.friendRequests.push(user.id);
+    db.saveUser(target.id);
     // io notification is handled via the socket layer — we attach io to app in src/app.js
     const io = req.app.get('io');
     if (io && target.socketId) {
@@ -51,11 +52,13 @@ router.post('/friends/accept', requireAuth, (req, res) => {
     const other = db.users.get(userId);
     if (other) {
         other.friends.push(user.id);
+        db.saveUser(other.id);
         const io = req.app.get('io');
         if (io && other.socketId) {
             io.to(other.socketId).emit('friend-accepted', { user: sanitizeUser(user) });
         }
     }
+    db.saveUser(user.id);
     res.json({ success: true });
 });
 
@@ -65,6 +68,7 @@ router.post('/friends/decline', requireAuth, (req, res) => {
     const idx = user.friendRequests.indexOf(userId);
     if (idx === -1) return res.status(400).json({ error: 'No request from this user' });
     user.friendRequests.splice(idx, 1);
+    db.saveUser(user.id);
     res.json({ success: true });
 });
 

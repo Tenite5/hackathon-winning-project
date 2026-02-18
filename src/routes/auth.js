@@ -52,8 +52,10 @@ router.post('/register', async (req, res) => {
     };
 
     db.users.set(id, user);
+    db.saveUser(id);
     const token = uuidv4();
     db.sessions.set(token, id);
+    db.saveSession(token, id);
     res.json({ token, user: sanitizeUser(user) });
 });
 
@@ -75,6 +77,7 @@ router.post('/login', async (req, res) => {
 
     const token = uuidv4();
     db.sessions.set(token, user.id);
+    db.saveSession(token, user.id);
     res.json({ token, user: sanitizeUser(user) });
 });
 
