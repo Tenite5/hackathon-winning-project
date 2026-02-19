@@ -135,6 +135,22 @@
         if (file) processAvatarFile(file);
     });
 
+    // Paste image (Ctrl+V anywhere on setup page)
+    document.addEventListener('paste', (e) => {
+        // Only handle paste when profile setup view is active
+        if (!$('view-profile-setup').classList.contains('active')) return;
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (file) processAvatarFile(file);
+                return;
+            }
+        }
+    });
+
     // Fallback if image fails to load
     $('setup-avatar-preview').addEventListener('error', () => {
         const name = $('setup-username').value.trim() || 'Q';
