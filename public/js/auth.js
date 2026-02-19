@@ -8,24 +8,31 @@
     const { $, $$, api, state, showView, toast } = QV;
 
     let auth = null;
-    let firebaseReady = null; // resolves when Firebase is initialized
+    let firebaseInitialized = false;
 
-    // ── Firebase Init (resolves a promise so handlers can await it) ──
-    firebaseReady = (async () => {
+    // ── Firebase Init (retryable — won't permanently fail) ──
+    async function initFirebase() {
+        if (firebaseInitialized) return;
         try {
             const config = await api('/firebase-config');
-            firebase.initializeApp(config);
+            if (!firebase.apps.length) {
+                firebase.initializeApp(config);
+            }
             auth = firebase.auth();
+            firebaseInitialized = true;
         } catch (err) {
             console.error('Failed to load Firebase config:', err);
             throw err;
         }
-    })();
+    }
 
-    // Wait for Firebase to be ready, show spinner text on button
+    // Start init eagerly (but failures are not permanent)
+    initFirebase().catch(() => {});
+
+    // Wait for Firebase to be ready — retries if first attempt failed
     async function ensureFirebase() {
-        if (auth) return;
-        await firebaseReady;
+        if (firebaseInitialized) return;
+        await initFirebase();
     }
 
     // ── Helpers ────────────────────────────────────────────────

@@ -46,4 +46,43 @@ router.post('/profile/regenerate-bio', requireAuth, async (req, res) => {
     res.json({ bio });
 });
 
+/**
+ * POST /profile/update-settings
+ * Update display name and/or avatar.
+ * Body: { username?, photoURL? }
+ */
+router.post('/profile/update-settings', requireAuth, (req, res) => {
+    const { username, photoURL } = req.body;
+
+    // Validate & update username if provided
+    if (username !== undefined) {
+        if (typeof username !== 'string') {
+            return res.status(400).json({ error: 'Invalid username' });
+        }
+        const clean = username.trim().replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
+        if (clean.length < 2) {
+            return res.status(400).json({ error: 'Username must be at least 2 characters (letters, numbers, _)' });
+        }
+        // Check uniqueness
+        for (const [, u] of db.users) {
+            if (u.id !== req.user.id && u.username.toLowerCase() === clean.toLowerCase()) {
+                return res.status(409).json({ error: 'Username already taken' });
+            }
+        }
+        req.user.username = clean;
+    }
+
+    // Update avatar
+    if (photoURL !== undefined) {
+        if (photoURL === '' || photoURL === null) {
+            req.user.photoURL = '';
+        } else if (typeof photoURL === 'string' && (photoURL.startsWith('http') || photoURL.startsWith('data:image/'))) {
+            req.user.photoURL = photoURL;
+        }
+    }
+
+    db.saveUser(req.user.id);
+    res.json({ user: sanitizeUser(req.user) });
+});
+
 module.exports = router;

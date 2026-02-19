@@ -21,9 +21,9 @@ if (!admin.apps.length) {
 const router = Router();
 
 const authLimit = createRateLimit({ windowMs: 60000, max: 10 });
-router.use(authLimit);
 
 // ── Serve Firebase client config (no secrets leaked — these are all public keys) ──
+// This endpoint is NOT rate limited — it's public config fetched on every page load.
 router.get('/firebase-config', (req, res) => {
     res.json({
         apiKey: process.env.FIREBASE_API_KEY,
@@ -77,7 +77,7 @@ function createNewUser({ uid, email, picture }) {
  * Unified Firebase auth — works for both Google and Email/Password sign-in.
  * Accepts { idToken } from the Firebase client SDK.
  */
-router.post('/firebase-auth', async (req, res) => {
+router.post('/firebase-auth', authLimit, async (req, res) => {
     const { idToken } = req.body;
     if (!idToken) return res.status(400).json({ error: 'Missing idToken' });
 
@@ -118,7 +118,7 @@ router.post('/firebase-auth', async (req, res) => {
  * Called after first sign-up to set the user's chosen display name and optional avatar.
  * Body: { username, photoURL? }
  */
-router.post('/complete-profile', requireAuth, (req, res) => {
+router.post('/complete-profile', authLimit, requireAuth, (req, res) => {
     const { username, photoURL } = req.body;
 
     // Validate username

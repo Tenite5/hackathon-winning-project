@@ -106,5 +106,17 @@ window.QV = window.QV || {};
     QV.updateNavUser = function () {
         QV.$('nav-username').textContent = QV.state.user.username;
         QV.$('nav-elo').textContent = `⭐ ${QV.state.user.elo} Elo`;
+        // Show PFP or letter fallback
+        const img = QV.$('nav-avatar-img');
+        const letter = QV.$('nav-avatar-letter');
+        if (QV.state.user.photoURL) {
+            img.src = QV.state.user.photoURL;
+            img.classList.remove('hidden');
+            letter.classList.add('hidden');
+        } else {
+            img.classList.add('hidden');
+            letter.classList.remove('hidden');
+            letter.textContent = QV.state.user.username[0].toUpperCase();
+        }
     };
 })();

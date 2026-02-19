@@ -19,6 +19,7 @@
             if (btn.dataset.panel === 'tournament') QV.loadTournaments();
             if (btn.dataset.panel === 'profile') QV.updateProfile();
             if (btn.dataset.panel === 'wronglog') QV.loadWrongQuestions();
+            if (btn.dataset.panel === 'settings') QV.loadSettings();
         });
     });
 
@@ -31,7 +32,6 @@
             const data = await QV.api('/me');
             state.user = data.user;
             if (data.needsSetup) {
-                // User signed up but never set their name — show setup screen
                 showView('view-profile-setup');
             } else {
                 onAuthenticated();
@@ -39,6 +39,7 @@
         } catch {
             localStorage.removeItem('qvizio_token');
             state.token = null;
+            showView('view-auth');
         }
     }
 
@@ -86,5 +87,10 @@
     // ═══════════════════════════════════════════════════════════════
     // INIT
     // ═══════════════════════════════════════════════════════════════
+    // If no token, show auth view immediately (no flash).
+    // If token exists, tryAutoLogin will resolve to dashboard or auth.
+    if (!QV.state.token) {
+        QV.showView('view-auth');
+    }
     tryAutoLogin();
 })();

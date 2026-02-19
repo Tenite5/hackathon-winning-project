@@ -29,7 +29,7 @@
   <!-- ═══════════════════════════════════════════ -->
   <!-- AUTH VIEW -->
   <!-- ═══════════════════════════════════════════ -->
-  <div id="view-auth" class="view active">
+  <div id="view-auth" class="view">
     <div class="auth-container">
       <div class="auth-logo">
         <div class="logo-icon">
@@ -184,6 +184,10 @@
         <span class="brand-text">QVIZIO</span>
       </div>
       <div class="nav-user">
+        <div class="nav-avatar" id="nav-avatar">
+          <img id="nav-avatar-img" src="" alt="" class="nav-avatar-img hidden" />
+          <span id="nav-avatar-letter" class="nav-avatar-letter"></span>
+        </div>
         <div class="nav-user-info" id="nav-user-info">
           <span class="nav-username" id="nav-username"></span>
           <span class="nav-elo" id="nav-elo"></span>
@@ -254,6 +258,13 @@
               <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
             <span>Mistakes</span>
+          </button>
+          <button class="sidebar-btn" data-panel="settings" id="nav-settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+            <span>Settings</span>
           </button>
         </nav>
       </aside>
@@ -394,6 +405,7 @@
         <div id="panel-profile" class="panel">
           <div class="profile-header">
             <div class="profile-avatar" id="profile-avatar">
+              <img id="profile-avatar-img" src="" alt="" class="profile-avatar-img hidden" />
               <span id="profile-avatar-letter"></span>
             </div>
             <div class="profile-info">
@@ -532,6 +544,45 @@
             </div>
           </div>
         </div>
+
+        <!-- SETTINGS PANEL -->
+        <div id="panel-settings" class="panel">
+          <h2 class="section-title">Settings</h2>
+          <p class="section-subtitle">Update your profile and preferences.</p>
+
+          <div class="settings-section glass-card">
+            <h3 class="settings-heading">Profile Picture</h3>
+            <div class="settings-avatar-area">
+              <div class="settings-avatar-preview" id="settings-avatar-zone">
+                <img id="settings-avatar-img" src="" alt="Avatar" />
+                <div class="settings-avatar-overlay">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <span>Click, drag, or paste</span>
+                </div>
+                <input type="file" id="settings-avatar-file" accept="image/*" class="hidden" />
+              </div>
+              <button class="btn btn-ghost btn-sm" id="btn-remove-avatar">Remove Photo</button>
+            </div>
+          </div>
+
+          <div class="settings-section glass-card">
+            <h3 class="settings-heading">Display Name</h3>
+            <div class="settings-input-row">
+              <input type="text" id="settings-username" placeholder="Your display name" maxlength="20" class="qv-input" />
+            </div>
+          </div>
+
+          <div class="settings-actions">
+            <button class="btn btn-primary" id="btn-save-settings">Save Changes</button>
+            <span id="settings-status" class="settings-status hidden"></span>
+          </div>
+
+          <div id="settings-error" class="auth-error hidden"></div>
+        </div>
       </main>
 
       <!-- Right Sidebar — Chat -->
@@ -625,6 +676,13 @@
             <line x1="9" y1="9" x2="15" y2="15" />
           </svg>
           <span>Mistakes</span>
+        </button>
+        <button class="mobile-more-item" data-panel="settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+          <span>Settings</span>
         </button>
         <button class="mobile-more-item" id="mobile-chat-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -931,6 +989,7 @@
     <div class="modal-content glass-card">
       <div class="profile-header" style="margin-bottom: 1rem;">
         <div class="profile-avatar" id="modal-profile-avatar">
+          <img id="modal-profile-avatar-img" src="" alt="" class="profile-avatar-img hidden" />
           <span id="modal-profile-avatar-letter"></span>
         </div>
         <div class="profile-info">
