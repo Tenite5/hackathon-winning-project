@@ -31,7 +31,9 @@ function createRateLimit({ windowMs = 60000, max = 30 } = {}) {
         hits.set(key, timestamps);
 
         if (timestamps.length > max) {
-            return res.status(429).json({ error: 'Too many requests. Please slow down.' });
+            const retryAfter = Math.ceil(windowMs / 1000);
+            res.set('Retry-After', String(retryAfter));
+            return res.status(429).json({ error: 'Hold on — too many requests. Try again in a few seconds.' });
         }
         next();
     };

@@ -34,8 +34,8 @@ app.set('io', io);
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// General API rate limit: 30 requests per minute
-const apiLimit = createRateLimit({ windowMs: 60000, max: 30 });
+// General API rate limit: 120 requests per minute (dashboard loads ~8 at once)
+const apiLimit = createRateLimit({ windowMs: 60000, max: 120 });
 
 // Mount routes
 app.use('/api', apiLimit, authRoutes);

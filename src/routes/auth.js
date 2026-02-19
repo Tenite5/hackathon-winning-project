@@ -20,7 +20,7 @@ if (!admin.apps.length) {
 
 const router = Router();
 
-const authLimit = createRateLimit({ windowMs: 60000, max: 10 });
+const authLimit = createRateLimit({ windowMs: 60000, max: 30 });
 
 // ── Serve Firebase client config (no secrets leaked — these are all public keys) ──
 // This endpoint is NOT rate limited — it's public config fetched on every page load.
