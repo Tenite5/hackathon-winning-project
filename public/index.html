@@ -14,6 +14,9 @@
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined|Material+Icons" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
+  <!-- Firebase SDK for Google Auth -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
 
 <body>
@@ -47,47 +50,12 @@
       </div>
 
       <div class="auth-card glass-card">
-        <div class="auth-tabs">
-          <button class="auth-tab active" data-tab="login" id="tab-login">Login</button>
-          <button class="auth-tab" data-tab="register" id="tab-register">Register</button>
-        </div>
+        <p style="text-align:center; color:#aaa; margin-bottom: 20px; font-size:15px;">Sign in to start playing</p>
 
-        <form id="form-login" class="auth-form">
-          <div class="input-group">
-            <label for="login-username">Username</label>
-            <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username" required />
-          </div>
-          <div class="input-group">
-            <label for="login-password">Password</label>
-            <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password"
-              required />
-          </div>
-          <button type="submit" class="btn btn-primary btn-full" id="btn-login">
-            <span>Sign In</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </button>
-        </form>
-
-        <form id="form-register" class="auth-form hidden">
-          <div class="input-group">
-            <label for="register-username">Username</label>
-            <input type="text" id="register-username" placeholder="Choose a username" autocomplete="username" required
-              minlength="2" maxlength="20" />
-          </div>
-          <div class="input-group">
-            <label for="register-password">Password</label>
-            <input type="password" id="register-password" placeholder="Choose a password" autocomplete="new-password"
-              required minlength="4" />
-          </div>
-          <button type="submit" class="btn btn-primary btn-full" id="btn-register">
-            <span>Create Account</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-        </form>
+        <button class="btn btn-primary btn-full" id="btn-google-login" style="display:flex; align-items:center; justify-content:center; gap:10px;">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="22" height="22" />
+          <span>Sign in with Google</span>
+        </button>
 
         <div id="auth-error" class="auth-error hidden"></div>
       </div>

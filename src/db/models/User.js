@@ -10,7 +10,10 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
     _id: { type: String, required: true },               // UUID
     username: { type: String, required: true, unique: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, default: '' },
+    googleId: { type: String, default: '' },
+    email: { type: String, default: '' },
+    photoURL: { type: String, default: '' },
     elo: { type: Number, default: 1000 },
     stats: {
         totalWins:      { type: Number, default: 0 },

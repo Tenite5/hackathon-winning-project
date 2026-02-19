@@ -1,70 +1,61 @@
 /**
  * @file public/js/auth.js
- * @description Login / register form handlers, auth tab switching, logout.
+ * @description Google Sign-In via Firebase, logout.
  */
 
 (function () {
     'use strict';
-    const { $, $$, api, state, showView, toast } = QV;
+    const { $, api, state, showView, toast } = QV;
 
-    // Tab switching
-    $$('.auth-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            $$('.auth-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            $('form-login').classList.toggle('hidden', tab.dataset.tab !== 'login');
-            $('form-register').classList.toggle('hidden', tab.dataset.tab !== 'register');
-            $('auth-error').classList.add('hidden');
-        });
-    });
+    // ── Firebase config ────────────────────────────────────────
+    const firebaseConfig = {
+        apiKey: "AIzaSyDXZsgi2jypW5kPy4EaH-ScUPNBy5B8Dkc",
+        authDomain: "quizrankedio.firebaseapp.com",
+        projectId: "quizrankedio",
+        storageBucket: "quizrankedio.firebasestorage.app",
+        messagingSenderId: "1069522836587",
+        appId: "1:1069522836587:web:67d04f02e2a1f4b427e52e",
+        measurementId: "G-TXLFGWBF1D"
+    };
 
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // ── Helpers ────────────────────────────────────────────────
     function showAuthError(msg) {
         const el = $('auth-error');
         el.textContent = msg;
         el.classList.remove('hidden');
     }
 
-    $('form-login').addEventListener('submit', async (e) => {
-        e.preventDefault();
+    // ── Google Sign-In ─────────────────────────────────────────
+    $('btn-google-login').addEventListener('click', async () => {
         $('auth-error').classList.add('hidden');
+        const provider = new firebase.auth.GoogleAuthProvider();
         try {
-            const data = await api('/login', {
+            const result = await auth.signInWithPopup(provider);
+            const idToken = await result.user.getIdToken();
+
+            // Send token to our backend
+            const data = await api('/google-auth', {
                 method: 'POST',
-                body: {
-                    username: $('login-username').value.trim(),
-                    password: $('login-password').value,
-                },
+                body: { idToken },
             });
+
             state.token = data.token;
             state.user = data.user;
             localStorage.setItem('qvizio_token', data.token);
             QV.onAuthenticated();
         } catch (err) {
-            showAuthError(err.message);
+            if (err.code === 'auth/popup-closed-by-user') return;
+            showAuthError(err.message || 'Google sign-in failed');
         }
     });
 
-    $('form-register').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        $('auth-error').classList.add('hidden');
-        try {
-            const data = await api('/register', {
-                method: 'POST',
-                body: {
-                    username: $('register-username').value.trim(),
-                    password: $('register-password').value,
-                },
-            });
-            state.token = data.token;
-            state.user = data.user;
-            localStorage.setItem('qvizio_token', data.token);
-            QV.onAuthenticated();
-        } catch (err) {
-            showAuthError(err.message);
-        }
-    });
-
-    $('btn-logout').addEventListener('click', () => {
+    // ── Logout ─────────────────────────────────────────────────
+    $('btn-logout').addEventListener('click', async () => {
+        // Sign out of Firebase
+        try { await auth.signOut(); } catch (_) { /* ignore */ }
         state.token = null;
         state.user = null;
         localStorage.removeItem('qvizio_token');

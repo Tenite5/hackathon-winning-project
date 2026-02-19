@@ -34,23 +34,12 @@ const db = {
     // ═══════════════════════════════════════════════════════════════
     // INIT — connect to MongoDB and hydrate Maps
     // ═══════════════════════════════════════════════════════════════
-    mongoConnected: false,
-
     async init() {
         const uri = process.env.MONGODB_URI;
-        if (!uri) {
-            console.warn('⚠️  MONGODB_URI not set — running in memory-only mode (data will NOT persist across restarts)');
-            return;
-        }
+        if (!uri) throw new Error('MONGODB_URI is not set in .env');
 
-        try {
-            await mongoose.connect(uri);
-            db.mongoConnected = true;
-            console.log('✅ Connected to MongoDB');
-        } catch (err) {
-            console.error('⚠️  MongoDB connection failed — running in memory-only mode:', err.message);
-            return;
-        }
+        await mongoose.connect(uri);
+        console.log('✅ Connected to MongoDB');
 
         // Load users
         const users = await UserModel.find().lean();
@@ -58,7 +47,10 @@ const db = {
             db.users.set(u._id, {
                 id: u._id,
                 username: u.username,
-                passwordHash: u.passwordHash,
+                passwordHash: u.passwordHash || '',
+                googleId: u.googleId || '',
+                email: u.email || '',
+                photoURL: u.photoURL || '',
                 elo: u.elo,
                 stats: u.stats || { totalWins: 0, totalLosses: 0, totalAnswers: 0, correctAnswers: 0, gamesPlayed: 0, categories: {} },
                 friends: u.friends || [],
@@ -99,13 +91,15 @@ const db = {
 
     /** Persist a user to MongoDB. Call after creating or mutating a user object. */
     saveUser(userId) {
-        if (!db.mongoConnected) return;
         const u = db.users.get(userId);
         if (!u) return;
         const doc = {
             _id: u.id,
             username: u.username,
-            passwordHash: u.passwordHash,
+            passwordHash: u.passwordHash || '',
+            googleId: u.googleId || '',
+            email: u.email || '',
+            photoURL: u.photoURL || '',
             elo: u.elo,
             stats: u.stats,
             friends: u.friends,
@@ -119,21 +113,18 @@ const db = {
 
     /** Persist a session token. */
     saveSession(token, userId) {
-        if (!db.mongoConnected) return;
         SessionModel.findByIdAndUpdate(token, { _id: token, userId }, { upsert: true, returnDocument: 'after' })
             .catch(err => console.error('saveSession error:', err.message));
     },
 
     /** Delete a session token from MongoDB. */
     deleteSession(token) {
-        if (!db.mongoConnected) return;
         SessionModel.findByIdAndDelete(token)
             .catch(err => console.error('deleteSession error:', err.message));
     },
 
     /** Persist a message thread. */
     saveMessages(key) {
-        if (!db.mongoConnected) return;
         const msgs = db.messages.get(key);
         if (!msgs) return;
         MessageThreadModel.findByIdAndUpdate(key, { _id: key, messages: msgs }, { upsert: true, returnDocument: 'after' })
@@ -142,7 +133,6 @@ const db = {
 
     /** Persist a user's wrong-answer log. */
     saveWrongAnswers(userId) {
-        if (!db.mongoConnected) return;
         const entries = db.wrongAnswers.get(userId);
         if (!entries) return;
         WrongAnswerModel.findByIdAndUpdate(userId, { _id: userId, entries }, { upsert: true, returnDocument: 'after' })
