@@ -31,7 +31,7 @@ const io = new Server(server, {
 app.set('io', io);
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // General API rate limit: 30 requests per minute

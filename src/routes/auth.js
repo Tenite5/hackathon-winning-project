@@ -138,8 +138,11 @@ router.post('/complete-profile', requireAuth, (req, res) => {
     }
 
     req.user.username = clean;
-    if (photoURL && typeof photoURL === 'string' && photoURL.startsWith('http')) {
-        req.user.photoURL = photoURL;
+    if (photoURL && typeof photoURL === 'string') {
+        // Accept both URLs and base64 data URIs
+        if (photoURL.startsWith('http') || photoURL.startsWith('data:image/')) {
+            req.user.photoURL = photoURL;
+        }
     }
     req.user.bio = `${clean} just arrived. Watch out.`;
     req.user.needsSetup = false;
