@@ -30,7 +30,12 @@
         try {
             const data = await QV.api('/me');
             state.user = data.user;
-            onAuthenticated();
+            if (data.needsSetup) {
+                // User signed up but never set their name — show setup screen
+                showView('view-profile-setup');
+            } else {
+                onAuthenticated();
+            }
         } catch {
             localStorage.removeItem('qvizio_token');
             state.token = null;

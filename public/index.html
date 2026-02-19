@@ -50,14 +50,115 @@
       </div>
 
       <div class="auth-card glass-card">
-        <p style="text-align:center; color:#aaa; margin-bottom: 20px; font-size:15px;">Sign in to start playing</p>
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login" id="tab-login">Login</button>
+          <button class="auth-tab" data-tab="register" id="tab-register">Register</button>
+        </div>
 
-        <button class="btn btn-primary btn-full" id="btn-google-login" style="display:flex; align-items:center; justify-content:center; gap:10px;">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="22" height="22" />
-          <span>Sign in with Google</span>
+        <!-- Login Form -->
+        <form id="form-login" class="auth-form">
+          <div class="input-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required />
+          </div>
+          <div class="input-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-login">
+            <span>Sign In</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+          <p style="text-align:right; margin-top:6px;">
+            <a href="#" id="btn-forgot-password" style="color:#818cf8; font-size:12px; text-decoration:none;">Forgot password?</a>
+          </p>
+        </form>
+
+        <!-- Register Form -->
+        <form id="form-register" class="auth-form hidden">
+          <div class="input-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" placeholder="you@example.com" autocomplete="email" required />
+          </div>
+          <div class="input-group">
+            <label for="register-password">Password (min 6 characters)</label>
+            <input type="password" id="register-password" placeholder="Create a password" autocomplete="new-password" required minlength="6" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="btn-register">
+            <span>Create Account</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </form>
+
+        <div style="display:flex; align-items:center; margin:18px 0; color:#666; font-size:13px;">
+          <div style="flex:1; height:1px; background:rgba(255,255,255,0.15);"></div>
+          <span style="padding:0 12px;">or</span>
+          <div style="flex:1; height:1px; background:rgba(255,255,255,0.15);"></div>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="btn-google-login" style="display:flex; align-items:center; justify-content:center; gap:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2);">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="20" height="20" />
+          <span>Continue with Google</span>
         </button>
 
         <div id="auth-error" class="auth-error hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PROFILE SETUP VIEW (shown after first sign-up) -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="view-profile-setup" class="view">
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 64 64" fill="none">
+            <defs>
+              <linearGradient id="setup-grad" x1="0" y1="0" x2="64" y2="64">
+                <stop offset="0%" stop-color="#6C5CE7" />
+                <stop offset="100%" stop-color="#00CEFF" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#setup-grad)" />
+            <text x="32" y="44" text-anchor="middle" fill="white" font-size="30" font-weight="800" font-family="Outfit">Q</text>
+          </svg>
+        </div>
+        <h1 class="logo-text">Set Up Your Profile</h1>
+        <p class="logo-tagline">Choose a display name to get started</p>
+      </div>
+
+      <div class="auth-card glass-card">
+        <div style="text-align:center; margin-bottom:20px;">
+          <img id="setup-avatar-preview" src="https://ui-avatars.com/api/?name=Q&background=6C5CE7&color=fff&size=100"
+            alt="Avatar" style="width:90px; height:90px; border-radius:50%; border:3px solid #6C5CE7; object-fit:cover;" />
+        </div>
+
+        <div class="input-group">
+          <label for="setup-username">Display Name</label>
+          <input type="text" id="setup-username" placeholder="Enter your name" required minlength="2" maxlength="20"
+            style="font-size:16px;" />
+          <small style="color:#888; font-size:11px;">2-20 characters. Letters, numbers, underscores only.</small>
+        </div>
+
+        <div class="input-group" style="margin-top:12px;">
+          <label for="setup-avatar-url">Profile Picture URL <span style="color:#666;">(optional)</span></label>
+          <input type="url" id="setup-avatar-url" placeholder="https://example.com/photo.jpg" />
+          <small style="color:#888; font-size:11px;">Paste an image URL, or leave blank for a default avatar.</small>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="btn-complete-profile" style="margin-top:18px;">
+          <span>Let's Go!</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <div id="setup-error" class="auth-error hidden"></div>
       </div>
     </div>
   </div>

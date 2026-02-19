@@ -12,8 +12,10 @@ const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     passwordHash: { type: String, default: '' },
     googleId: { type: String, default: '' },
+    firebaseUid: { type: String, default: '' },
     email: { type: String, default: '' },
     photoURL: { type: String, default: '' },
+    needsSetup: { type: Boolean, default: false },
     elo: { type: Number, default: 1000 },
     stats: {
         totalWins:      { type: Number, default: 0 },

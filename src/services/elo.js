@@ -42,6 +42,7 @@ function sanitizeUser(user) {
         bio: user.bio,
         online: user.online,
         friends: user.friends,
+        photoURL: user.photoURL || '',
     };
 }
 
