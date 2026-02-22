@@ -39,34 +39,43 @@ module.exports = function (io, socket, getCurrentUser) {
             io.to(p1.socketId).emit('queue-matched', { opponent: sanitizeUser(user2), topic });
             io.to(p2.socketId).emit('queue-matched', { opponent: sanitizeUser(user1), topic });
 
-            const questions = await generateQuestions(topic, 7);
-            const gameId = uuidv4();
+            try {
+                const questions = await generateQuestions(topic, 7);
+                const gameId = uuidv4();
 
-            const game = {
-                id: gameId,
-                type: 'quick',
-                topic,
-                players: [
-                    { userId: p1.userId, username: user1.username, socketId: p1.socketId, score: 0, answers: [] },
-                    { userId: p2.userId, username: user2.username, socketId: p2.socketId, score: 0, answers: [] },
-                ],
-                questions,
-                currentQuestion: 0,
-                timeLimit: 10,
-                questionStartTime: null,
-                status: 'playing',
-                chat: [],
-                createdAt: Date.now(),
-            };
+                const game = {
+                    id: gameId,
+                    type: 'quick',
+                    topic,
+                    players: [
+                        { userId: p1.userId, username: user1.username, socketId: p1.socketId, score: 0, answers: [] },
+                        { userId: p2.userId, username: user2.username, socketId: p2.socketId, score: 0, answers: [] },
+                    ],
+                    questions,
+                    currentQuestion: 0,
+                    timeLimit: 10,
+                    questionStartTime: null,
+                    status: 'playing',
+                    chat: [],
+                    createdAt: Date.now(),
+                };
 
-            db.games.set(gameId, game);
+                db.games.set(gameId, game);
 
-            const s1 = io.sockets.sockets.get(p1.socketId);
-            const s2 = io.sockets.sockets.get(p2.socketId);
-            if (s1) s1.join(gameId);
-            if (s2) s2.join(gameId);
+                const s1 = io.sockets.sockets.get(p1.socketId);
+                const s2 = io.sockets.sockets.get(p2.socketId);
+                if (s1) s1.join(gameId);
+                if (s2) s2.join(gameId);
 
-            setTimeout(() => startGameQuestion(gameId, io), 2000);
+                setTimeout(() => startGameQuestion(gameId, io), 2000);
+            } catch (err) {
+                console.error('Queue matchmaking question generation failed:', err.message);
+                // Notify both players of the failure
+                io.to(p1.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
+                io.to(p2.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
+                // Re-add both players to the queue
+                db.quickQueue.unshift(p1, p2);
+            }
         }
     });
 

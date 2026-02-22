@@ -14,8 +14,15 @@ const router = Router();
 
 router.get('/messages/:friendId', requireAuth, (req, res) => {
     const user = req.user;
-    const key1 = `${user.id}_${req.params.friendId}`;
-    const key2 = `${req.params.friendId}_${user.id}`;
+    const friendId = req.params.friendId;
+
+    // Validate friendship
+    if (!user.friends.includes(friendId)) {
+        return res.status(403).json({ error: 'You can only message friends' });
+    }
+
+    const key1 = `${user.id}_${friendId}`;
+    const key2 = `${friendId}_${user.id}`;
     const msgs = db.messages.get(key1) || db.messages.get(key2) || [];
     res.json({ messages: msgs });
 });
@@ -27,6 +34,12 @@ router.post('/messages/:friendId', requireAuth, (req, res) => {
     if (!cleanText) return res.status(400).json({ error: 'Message required' });
 
     const friendId = req.params.friendId;
+
+    // Validate friendship
+    if (!user.friends.includes(friendId)) {
+        return res.status(403).json({ error: 'You can only message friends' });
+    }
+
     const key1 = `${user.id}_${friendId}`;
     const key2 = `${friendId}_${user.id}`;
     let key = key1;

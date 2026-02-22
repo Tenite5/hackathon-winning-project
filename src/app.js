@@ -21,6 +21,8 @@ const lobbiesRoutes = require('./routes/lobbies');
 const tournamentsRoutes = require('./routes/tournaments');
 const questionsRoutes = require('./routes/questions');
 
+const helmet = require('helmet');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -31,6 +33,10 @@ const io = new Server(server, {
 app.set('io', io);
 
 // Middleware
+app.use(helmet({
+    contentSecurityPolicy: false,       // Disable CSP for now (Firebase SDK uses inline scripts)
+    crossOriginEmbedderPolicy: false,   // Allow loading Firebase/Google resources
+}));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

@@ -1,6 +1,6 @@
 /**
  * @file sockets/tournament.js
- * @description Socket handlers for tournament creation, joining, and starting.
+ * @description Socket handlers for tournament creation, joining, starting, and round progression.
  */
 
 'use strict';
@@ -10,6 +10,117 @@ const db = require('../db/store');
 const { generateQuestions } = require('../services/ai');
 const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText, validateInt } = require('../middleware/validate');
+
+/**
+ * Check if all matches in the current round are finished.
+ * If yes, advance to the next round or declare the tournament winner.
+ */
+async function checkRoundCompletion(tournamentId, io) {
+    const t = db.tournaments.get(tournamentId);
+    if (!t || t.status !== 'playing') return;
+
+    const currentBracket = t.brackets[t.brackets.length - 1];
+    if (!currentBracket) return;
+
+    // Check if all matches in the current round have a winner
+    const allDone = currentBracket.matches.every(m => m.winnerId !== null);
+    if (!allDone) return;
+
+    // Collect winners
+    const winners = currentBracket.matches
+        .map(m => {
+            const player = t.players.find(p => p.userId === m.winnerId);
+            return player || { userId: m.winnerId, username: 'Unknown', socketId: null };
+        })
+        .filter(Boolean);
+
+    // If only one winner, tournament is over
+    if (winners.length <= 1) {
+        t.status = 'finished';
+        io.to(`tournament-${tournamentId}`).emit('tournament-finished', {
+            tournamentId,
+            winner: winners[0] || null,
+            brackets: t.brackets,
+        });
+        io.emit('tournaments-updated');
+        return;
+    }
+
+    // Create next round
+    t.currentRound++;
+    const pairs = [];
+    for (let i = 0; i < winners.length; i += 2) {
+        if (winners[i + 1]) {
+            pairs.push([winners[i], winners[i + 1]]);
+        } else {
+            // Bye — auto-advance
+            pairs.push([winners[i], null]);
+        }
+    }
+
+    t.brackets.push({
+        round: t.currentRound,
+        matches: pairs.map((pair, idx) => ({
+            id: idx,
+            players: pair,
+            winnerId: pair[1] === null ? pair[0].userId : null,
+            gameId: null,
+        })),
+    });
+
+    io.to(`tournament-${tournamentId}`).emit('tournament-round', {
+        tournamentId,
+        round: t.currentRound,
+        brackets: t.brackets,
+    });
+
+    // Start matches for the new round
+    const newBracket = t.brackets[t.brackets.length - 1];
+    for (const match of newBracket.matches) {
+        if (match.winnerId) continue;
+
+        try {
+            const questions = await generateQuestions(t.topic, 5);
+            const gameId = uuidv4();
+
+            const game = {
+                id: gameId,
+                type: 'tournament',
+                tournamentId,
+                matchIndex: match.id,
+                roundIndex: t.currentRound,
+                topic: t.topic,
+                players: match.players.map(p => ({ ...p, score: 0, answers: [] })),
+                questions,
+                currentQuestion: 0,
+                timeLimit: 10,
+                questionStartTime: null,
+                status: 'playing',
+                chat: [],
+                createdAt: Date.now(),
+            };
+
+            db.games.set(gameId, game);
+            match.gameId = gameId;
+
+            match.players.forEach(p => {
+                if (p && p.socketId) {
+                    const s = io.sockets.sockets.get(p.socketId);
+                    if (s) s.join(gameId);
+                }
+            });
+
+            setTimeout(() => startGameQuestion(gameId, io), 3000);
+        } catch (err) {
+            console.error('Tournament match question generation failed:', err.message);
+        }
+    }
+
+    io.emit('tournaments-updated');
+
+    // Check if all matches in new round have byes (auto-complete)
+    setTimeout(() => checkRoundCompletion(tournamentId, io), 1000);
+}
 
 async function startTournament(tournamentId, io) {
     const t = db.tournaments.get(tournamentId);
@@ -44,39 +155,47 @@ async function startTournament(tournamentId, io) {
     for (const match of t.brackets[0].matches) {
         if (match.winnerId) continue;
 
-        const questions = await generateQuestions(t.topic, 5);
-        const gameId = uuidv4();
+        try {
+            const questions = await generateQuestions(t.topic, 5);
+            const gameId = uuidv4();
 
-        const game = {
-            id: gameId,
-            type: 'tournament',
-            tournamentId,
-            matchIndex: match.id,
-            topic: t.topic,
-            players: match.players.map(p => ({ ...p, score: 0, answers: [] })),
-            questions,
-            currentQuestion: 0,
-            timeLimit: 10,
-            questionStartTime: null,
-            status: 'playing',
-            chat: [],
-            createdAt: Date.now(),
-        };
+            const game = {
+                id: gameId,
+                type: 'tournament',
+                tournamentId,
+                matchIndex: match.id,
+                roundIndex: 1,
+                topic: t.topic,
+                players: match.players.map(p => ({ ...p, score: 0, answers: [] })),
+                questions,
+                currentQuestion: 0,
+                timeLimit: 10,
+                questionStartTime: null,
+                status: 'playing',
+                chat: [],
+                createdAt: Date.now(),
+            };
 
-        db.games.set(gameId, game);
-        match.gameId = gameId;
+            db.games.set(gameId, game);
+            match.gameId = gameId;
 
-        match.players.forEach(p => {
-            if (p && p.socketId) {
-                const s = io.sockets.sockets.get(p.socketId);
-                if (s) s.join(gameId);
-            }
-        });
+            match.players.forEach(p => {
+                if (p && p.socketId) {
+                    const s = io.sockets.sockets.get(p.socketId);
+                    if (s) s.join(gameId);
+                }
+            });
 
-        setTimeout(() => startGameQuestion(gameId, io), 3000);
+            setTimeout(() => startGameQuestion(gameId, io), 3000);
+        } catch (err) {
+            console.error('Tournament match question generation failed:', err.message);
+        }
     }
 
     io.emit('tournaments-updated');
+
+    // Check if all matches have byes (auto-complete)
+    setTimeout(() => checkRoundCompletion(tournamentId, io), 1000);
 }
 
 module.exports = function (io, socket, getCurrentUser) {
@@ -137,3 +256,6 @@ module.exports = function (io, socket, getCurrentUser) {
         startTournament(tournamentId, io);
     });
 };
+
+// Export checkRoundCompletion for use in gameEngine.js when a tournament match ends
+module.exports.checkRoundCompletion = checkRoundCompletion;

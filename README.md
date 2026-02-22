@@ -6,22 +6,25 @@
 
 ## 🛠️ Technology Stack
 
-Our project utilizes a cutting-edge tech stack designed for high performance and scalability:
-
 ### **Frontend**
-- **Core:** React.js
+- **Core:** Vanilla JavaScript (ES6+)
 - **Styling:** HTML5 & CSS3
-- **Hosting:** [Railway](https://railway.app/)
+- **Real-time:** Socket.io Client
+- **Authentication:** Firebase Auth (Google + Email/Password)
 
 ### **Backend**
-- **Environment:** Node.js
-- **Frameworks:** Express / Python (Django/Flask)
-- **Real-time:** Socket.io (მულტიპლეიერისთვის / for multiplayer synchronization)
+- **Runtime:** Node.js (v18+)
+- **Framework:** Express.js
+- **Real-time:** Socket.io (multiplayer synchronization)
+- **Security:** Helmet.js, rate limiting, input validation
 
 ### **AI & Data**
-- **Intelligence:** OpenAI API (GPT-4o / GPT-3.5)
-- **Orchestration:** LangChain
-- **Storage:** MongoDB / PostgreSQL / Firebase
+- **AI Engine:** Groq API (Llama 3.3 70B)
+- **Database:** MongoDB (via Mongoose ODM)
+- **Auth Provider:** Firebase Authentication
+
+### **Deployment**
+- **Hosting:** [Railway](https://railway.app/)
 
 ---
 
@@ -30,6 +33,7 @@ Our project utilizes a cutting-edge tech stack designed for high performance and
 - **⚡ Real-time Duels:** Experience zero-latency multiplayer trivia powered by Socket.io.
 - **🤖 AI Question Engine:** Every game is unique. Our AI generates context-aware questions on any topic.
 - **🏆 Competitive Ranks:** Progress from **Bronze** to **Grandmaster**. Your ELO speaks for your knowledge.
+- **🎮 Multiple Game Modes:** Quick 1v1, Custom Lobbies, Preset Quizzes, Solo Practice, and Tournaments.
 - **💬 Social Hub:** Integrated chat system and friend management for easy matchmaking.
 - **🔥 Personalized AI Bios:** Dynamically generated bios that roast or boast about your trivia performance.
 - **📚 Smart Review Log:** Review your mistakes with AI-generated explanations to ensure you never miss the same question twice.
@@ -41,6 +45,9 @@ Our project utilizes a cutting-edge tech stack designed for high performance and
 ### Prerequisites
 - **Node.js** (v18+)
 - **npm** or **yarn**
+- **MongoDB** (local or Atlas)
+- **Firebase** project (for authentication)
+- **Groq API** key (for AI question generation)
 
 ### Installation
 1. **Clone the repository:**
@@ -54,8 +61,16 @@ Our project utilizes a cutting-edge tech stack designed for high performance and
 3. **Configure Environment:**
    Create a `.env` file in the root directory:
    ```env
-   GROQ_API_KEY=your_api_key_here
    PORT=3000
+   CORS_ORIGIN=http://localhost:3000
+   MONGODB_URI=your_mongodb_connection_string
+   GROQ_API_KEY=your_groq_api_key
+   FIREBASE_PROJECT_ID=your_project_id
+   FIREBASE_API_KEY=your_api_key
+   FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   FIREBASE_APP_ID=your_app_id
    ```
 4. **Launch Application:**
    ```bash

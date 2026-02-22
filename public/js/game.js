@@ -31,6 +31,11 @@
         toast(`Matched with ${opponent.username}! Topic: ${topic}`, 'success');
     });
 
+    socket.on('queue-error', ({ message }) => {
+        $('overlay-queue').classList.add('hidden');
+        toast(message || 'Matchmaking failed. Please try again.', 'error');
+    });
+
     // ── Solo Mode ──────────────────────────────────────────────
     $('btn-solo-mode').addEventListener('click', () => QV.showModal('modal-solo'));
 

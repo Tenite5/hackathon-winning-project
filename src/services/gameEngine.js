@@ -164,6 +164,11 @@ function endGame(gameId, io) {
     if (!game) return;
     game.status = 'finished';
 
+    // Tournament match bookkeeping — record winner in bracket
+    if (game.type === 'tournament' && game.tournamentId) {
+        handleTournamentMatchEnd(game, io);
+    }
+
     const sorted = [...game.players].sort((a, b) => b.score - a.score);
     const winner = sorted[0];
 
@@ -290,6 +295,43 @@ function endGame(gameId, io) {
     });
 }
 
+/** Handle tournament bracket update after a match ends. */
+function handleTournamentMatchEnd(game, io) {
+    const t = db.tournaments.get(game.tournamentId);
+    if (!t) return;
+
+    const sorted = [...game.players].sort((a, b) => b.score - a.score);
+    const winnerId = sorted[0] ? sorted[0].userId : null;
+    if (!winnerId) return;
+
+    // Find the bracket and match, update winnerId
+    for (const bracket of t.brackets) {
+        const match = bracket.matches.find(m => m.gameId === game.id);
+        if (match) {
+            match.winnerId = winnerId;
+            break;
+        }
+    }
+
+    // Notify tournament room
+    io.to(`tournament-${game.tournamentId}`).emit('tournament-match-result', {
+        tournamentId: game.tournamentId,
+        gameId: game.id,
+        winnerId,
+        brackets: t.brackets,
+    });
+
+    // Defer the round completion check to allow the lazy-loaded module to be available
+    setTimeout(() => {
+        try {
+            const { checkRoundCompletion } = require('../sockets/tournament');
+            checkRoundCompletion(game.tournamentId, io);
+        } catch (err) {
+            console.error('Tournament round check failed:', err.message);
+        }
+    }, 500);
+}
+
 /** Handle a player's answer to the current question. */
 function handleAnswer(io, socket, currentUser, gameId, answerIndex) {
     if (!currentUser) return;
@@ -324,10 +366,12 @@ function handleAnswer(io, socket, currentUser, gameId, answerIndex) {
         playerScore: player.score,
     });
 
-    const opponent = game.players.find(p => p.userId !== currentUser.id);
-    if (opponent && opponent.socketId) {
-        io.to(opponent.socketId).emit('opponent-answered', { hasAnswered: true });
-    }
+    // Notify all other players that this player has answered
+    game.players.forEach(p => {
+        if (p.userId !== currentUser.id && p.socketId) {
+            io.to(p.socketId).emit('opponent-answered', { hasAnswered: true, userId: currentUser.id });
+        }
+    });
 
     const allAnswered = game.players.every(p => p.answers[game.currentQuestion] !== undefined);
     if (allAnswered) {
