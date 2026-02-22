@@ -40,6 +40,10 @@
             ? Math.round((u.stats.correctAnswers / u.stats.totalAnswers) * 100)
             : 0;
         $('stat-accuracy').textContent = acc + '%';
+
+        // Load history datasets
+        QV.loadMatchHistory();
+        QV.loadEloHistory();
     };
 
     $('btn-regen-bio').addEventListener('click', async () => {

@@ -253,7 +253,8 @@
         loadFriends();
         loadLobbies();
         loadTournaments();
-        updateProfile();
+        if (QV.updateProfile) QV.updateProfile();
+        if (QV.loadNotifications) QV.loadNotifications();
     }
 
     function updateNavUser() {

@@ -12,11 +12,21 @@
     // ═══════════════════════════════════════════════════════════════
     // TOGGLE PANEL
     // ═══════════════════════════════════════════════════════════════
-    $('btn-notifications').addEventListener('click', (e) => {
+    $('btn-notifications').addEventListener('click', async (e) => {
         e.stopPropagation();
         panelOpen = !panelOpen;
         $('notif-panel').classList.toggle('hidden', !panelOpen);
-        if (panelOpen) loadNotifications();
+        if (panelOpen) {
+            await loadNotifications();
+            // Automatically mark all as read when opening panel
+            try {
+                await api('/profile/notifications/read', { method: 'POST' });
+                document.querySelectorAll('.notif-item.unread').forEach(el => {
+                    el.classList.remove('unread');
+                });
+                updateBadge(0);
+            } catch (err) { }
+        }
     });
 
     // Close panel when clicking outside
