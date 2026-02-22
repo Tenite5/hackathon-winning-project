@@ -18,17 +18,20 @@ const userSchema = new mongoose.Schema({
     needsSetup: { type: Boolean, default: false },
     elo: { type: Number, default: 1000 },
     stats: {
-        totalWins:      { type: Number, default: 0 },
-        totalLosses:    { type: Number, default: 0 },
-        totalAnswers:   { type: Number, default: 0 },
+        totalWins: { type: Number, default: 0 },
+        totalLosses: { type: Number, default: 0 },
+        totalAnswers: { type: Number, default: 0 },
         correctAnswers: { type: Number, default: 0 },
-        gamesPlayed:    { type: Number, default: 0 },
-        categories:     { type: mongoose.Schema.Types.Mixed, default: {} },
+        gamesPlayed: { type: Number, default: 0 },
+        categories: { type: mongoose.Schema.Types.Mixed, default: {} },
     },
-    friends:        [{ type: String }],                   // array of user UUIDs
+    friends: [{ type: String }],                   // array of user UUIDs
     friendRequests: [{ type: String }],
-    bio:            { type: String, default: '' },
-    createdAt:      { type: Number, default: Date.now },
+    bio: { type: String, default: '' },
+    matchHistory: { type: Array, default: [] },         // last 50 game records
+    eloHistory: { type: Array, default: [] },         // timestamped elo snapshots
+    notifications: { type: Array, default: [] },         // recent notifications
+    createdAt: { type: Number, default: Date.now },
 }, { _id: false, versionKey: false });
 
 module.exports = mongoose.model('User', userSchema);

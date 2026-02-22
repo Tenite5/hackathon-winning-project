@@ -85,4 +85,53 @@ router.post('/profile/update-settings', requireAuth, (req, res) => {
     res.json({ user: sanitizeUser(req.user) });
 });
 
+/**
+ * GET /profile/match-history
+ * Returns the authenticated user's match history.
+ */
+router.get('/profile/match-history', requireAuth, (req, res) => {
+    res.json({ matches: req.user.matchHistory || [] });
+});
+
+/**
+ * GET /profile/elo-history
+ * Returns the authenticated user's ELO history for charting.
+ */
+router.get('/profile/elo-history', requireAuth, (req, res) => {
+    res.json({ history: req.user.eloHistory || [] });
+});
+
+/**
+ * GET /profile/notifications
+ * Returns the user's notifications.
+ */
+router.get('/profile/notifications', requireAuth, (req, res) => {
+    res.json({ notifications: req.user.notifications || [] });
+});
+
+/**
+ * POST /profile/notifications/read
+ * Mark all notifications as read.
+ */
+router.post('/profile/notifications/read', requireAuth, (req, res) => {
+    if (req.user.notifications) {
+        req.user.notifications.forEach(n => n.read = true);
+        db.saveUser(req.user.id);
+    }
+    res.json({ ok: true });
+});
+
+/**
+ * DELETE /profile/notifications/:index
+ * Remove a notification by index.
+ */
+router.delete('/profile/notifications/:index', requireAuth, (req, res) => {
+    const idx = parseInt(req.params.index);
+    if (req.user.notifications && idx >= 0 && idx < req.user.notifications.length) {
+        req.user.notifications.splice(idx, 1);
+        db.saveUser(req.user.id);
+    }
+    res.json({ ok: true });
+});
+
 module.exports = router;

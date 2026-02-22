@@ -17,7 +17,11 @@
             if (btn.dataset.panel === 'friends') QV.loadFriends();
             if (btn.dataset.panel === 'browser') QV.loadLobbies();
             if (btn.dataset.panel === 'tournament') QV.loadTournaments();
-            if (btn.dataset.panel === 'profile') QV.updateProfile();
+            if (btn.dataset.panel === 'profile') {
+                QV.updateProfile();
+                QV.loadMatchHistory();
+                QV.loadEloHistory();
+            }
             if (btn.dataset.panel === 'wronglog') QV.loadWrongQuestions();
             if (btn.dataset.panel === 'settings') QV.loadSettings();
         });
@@ -56,6 +60,7 @@
         QV.loadLobbies();
         QV.loadTournaments();
         QV.updateProfile();
+        if (QV.loadNotifications) QV.loadNotifications();
     }
 
     // Expose onAuthenticated so auth.js can call it

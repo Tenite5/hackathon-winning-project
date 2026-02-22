@@ -158,6 +158,69 @@ function proceedToNextQuestion(gameId, io) {
     }, delay);
 }
 
+/** Record match history and ELO snapshot for all players in a finished game. */
+function recordMatchHistory(game, eloUpdates = {}) {
+    if (!game || game.type === 'solo') return;
+
+    const sorted = [...game.players].sort((a, b) => b.score - a.score);
+    const isDraw = sorted.length > 1 && sorted[0].score === sorted[1].score;
+    const winnerId = isDraw ? null : sorted[0].userId;
+
+    game.players.forEach(p => {
+        const user = db.users.get(p.userId);
+        if (!user) return;
+
+        // Determine result
+        let result = 'draw';
+        if (!isDraw) result = p.userId === winnerId ? 'win' : 'loss';
+
+        // Opponents info
+        const opponents = game.players
+            .filter(op => op.userId !== p.userId)
+            .map(op => ({ userId: op.userId, username: op.username, score: op.score }));
+
+        const eloDelta = eloUpdates[p.userId] || 0;
+
+        const entry = {
+            gameId: game.id,
+            type: game.type,
+            topic: game.topic,
+            result,
+            myScore: p.score,
+            opponents,
+            eloAfter: user.elo,
+            eloChange: eloDelta,
+            timestamp: Date.now(),
+        };
+
+        if (!user.matchHistory) user.matchHistory = [];
+        user.matchHistory.unshift(entry);
+        if (user.matchHistory.length > 50) user.matchHistory = user.matchHistory.slice(0, 50);
+
+        // Snapshot ELO
+        if (!user.eloHistory) user.eloHistory = [];
+        user.eloHistory.push({ elo: user.elo, timestamp: Date.now() });
+        if (user.eloHistory.length > 100) user.eloHistory = user.eloHistory.slice(-100);
+
+        // Persistent Notification for ranked match ends
+        if (eloDelta !== 0) {
+            const { pushNotification, NOTIFICATION_TYPES } = require('./notifications');
+            const { app } = require('../app');
+            const io = app.get('io');
+            if (io) {
+                pushNotification(io, user.id, {
+                    type: NOTIFICATION_TYPES.MATCH_RESULT,
+                    title: `Match ${result === 'win' ? 'Victory' : 'Defeat'}!`,
+                    message: `Topic: ${game.topic}. ELO ${eloDelta > 0 ? '+' : ''}${eloDelta}. New Rating: ${user.elo}`,
+                    data: { gameId: game.id, eloChange: eloDelta }
+                });
+            }
+        }
+
+        db.saveUser(user.id);
+    });
+}
+
 /** End a game — determine winner, update stats/elo, emit game-over. */
 function endGame(gameId, io) {
     const game = db.games.get(gameId);
@@ -180,12 +243,17 @@ function endGame(gameId, io) {
         game.type === 'quick' || (game.type === 'custom' && game.ranked !== false)
     );
 
+    let eloUpdates = {};
+
     if (isRanked) {
         const winnerUser = db.users.get(winner.userId);
         const loserUser = db.users.get(sorted[1].userId);
         if (winnerUser && loserUser) {
             const { winnerNew, loserNew } = calculateElo(winnerUser.elo, loserUser.elo);
-            const eloDelta = winnerNew - winnerUser.elo;
+
+            eloUpdates[winnerUser.id] = winnerNew - winnerUser.elo;
+            eloUpdates[loserUser.id] = loserNew - loserUser.elo;
+
             winnerUser.elo = Math.max(0, winnerNew);
             loserUser.elo = Math.max(0, loserNew);
 
@@ -293,6 +361,9 @@ function endGame(gameId, io) {
         questions: game.questions,
         topic: game.topic,
     });
+
+    // Record match history for all players, including ELO changes if ranked
+    recordMatchHistory(game, eloUpdates);
 }
 
 /** Handle tournament bracket update after a match ends. */

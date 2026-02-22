@@ -11,10 +11,10 @@
 const mongoose = require('mongoose');
 
 // Mongoose models
-const UserModel         = require('./models/User');
-const SessionModel      = require('./models/Session');
+const UserModel = require('./models/User');
+const SessionModel = require('./models/Session');
 const MessageThreadModel = require('./models/Message');
-const WrongAnswerModel  = require('./models/WrongAnswer');
+const WrongAnswerModel = require('./models/WrongAnswer');
 
 const db = {
     // ── Persistent (loaded from MongoDB on init, saved on mutation) ──
@@ -58,6 +58,9 @@ const db = {
                 friends: u.friends || [],
                 friendRequests: u.friendRequests || [],
                 bio: u.bio || '',
+                matchHistory: u.matchHistory || [],
+                eloHistory: u.eloHistory || [],
+                notifications: u.notifications || [],
                 online: false,
                 socketId: null,
                 createdAt: u.createdAt,
@@ -109,6 +112,9 @@ const db = {
             friends: u.friends,
             friendRequests: u.friendRequests,
             bio: u.bio,
+            matchHistory: u.matchHistory || [],
+            eloHistory: u.eloHistory || [],
+            notifications: u.notifications || [],
             createdAt: u.createdAt,
         };
         UserModel.findByIdAndUpdate(u.id, doc, { upsert: true, returnDocument: 'after' })

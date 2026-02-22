@@ -57,6 +57,210 @@
     });
 
     // ═══════════════════════════════════════════════════════════════
+    // MATCH HISTORY
+    // ═══════════════════════════════════════════════════════════════
+    QV.loadMatchHistory = async function loadMatchHistory() {
+        try {
+            const data = await api('/profile/match-history');
+            renderMatchHistory(data.matches || []);
+        } catch (err) {
+            console.error('Match history error:', err);
+        }
+    };
+
+    function renderMatchHistory(matches) {
+        const list = $('match-history-list');
+        if (!matches.length) {
+            list.innerHTML = `
+                <div class="match-history-empty">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="9" y1="21" x2="9" y2="9"/>
+                    </svg>
+                    <p>No matches played yet. Start your first game!</p>
+                </div>
+            `;
+            return;
+        }
+
+        list.innerHTML = '';
+        matches.forEach(m => {
+            const row = document.createElement('div');
+            row.className = `mh-row mh-${m.result}`;
+
+            const resultEmoji = m.result === 'win' ? '🏆' : m.result === 'loss' ? '💀' : '🤝';
+            const resultLabel = m.result === 'win' ? 'Victory' : m.result === 'loss' ? 'Defeat' : 'Draw';
+            const opponentName = m.opponents.length > 0 ? m.opponents.map(o => escapeHtml(o.username)).join(', ') : 'Unknown';
+            const opponentScore = m.opponents.length === 1 ? m.opponents[0].score : '';
+
+            const eloStr = m.eloChange
+                ? `<span class="mh-elo ${m.eloChange > 0 ? 'positive' : 'negative'}">${m.eloChange > 0 ? '+' : ''}${m.eloChange}</span>`
+                : '';
+
+            const dateStr = new Date(m.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const timeStr = new Date(m.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            row.innerHTML = `
+                <div class="mh-result-badge">${resultEmoji}</div>
+                <div class="mh-details">
+                    <div class="mh-opponent">vs ${opponentName}</div>
+                    <div class="mh-meta">
+                        <span class="mh-topic">${escapeHtml(m.topic || 'General')}</span>
+                        <span class="mh-type">${m.type || 'quick'}</span>
+                    </div>
+                </div>
+                <div class="mh-scores">
+                    <span class="mh-my-score">${m.myScore}</span>
+                    ${opponentScore !== '' ? `<span class="mh-separator">-</span><span class="mh-opp-score">${opponentScore}</span>` : ''}
+                </div>
+                <div class="mh-right">
+                    <div class="mh-result-label ${m.result}">${resultLabel}</div>
+                    ${eloStr}
+                    <div class="mh-date">${dateStr} ${timeStr}</div>
+                </div>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ELO HISTORY CHART (Canvas)
+    // ═══════════════════════════════════════════════════════════════
+    QV.loadEloHistory = async function loadEloHistory() {
+        try {
+            const data = await api('/profile/elo-history');
+            renderEloChart(data.history || []);
+        } catch (err) {
+            console.error('ELO history error:', err);
+        }
+    };
+
+    function renderEloChart(history) {
+        const canvas = $('elo-chart');
+        const emptyMsg = $('elo-chart-empty');
+
+        if (!history.length || history.length < 2) {
+            canvas.style.display = 'none';
+            emptyMsg.classList.remove('hidden');
+            return;
+        }
+
+        canvas.style.display = 'block';
+        emptyMsg.classList.add('hidden');
+
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+
+        // Make canvas sharp on high-DPI
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = 200 * dpr;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = '200px';
+        ctx.scale(dpr, dpr);
+
+        const W = rect.width;
+        const H = 200;
+        const PAD = { top: 20, right: 20, bottom: 30, left: 50 };
+        const cW = W - PAD.left - PAD.right;
+        const cH = H - PAD.top - PAD.bottom;
+
+        const elos = history.map(h => h.elo);
+        const minElo = Math.min(...elos) - 20;
+        const maxElo = Math.max(...elos) + 20;
+        const eloRange = maxElo - minElo || 1;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid lines
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
+        ctx.lineWidth = 1;
+        const gridSteps = 4;
+        for (let i = 0; i <= gridSteps; i++) {
+            const y = PAD.top + (cH / gridSteps) * i;
+            ctx.beginPath();
+            ctx.moveTo(PAD.left, y);
+            ctx.lineTo(W - PAD.right, y);
+            ctx.stroke();
+
+            // Y-axis labels
+            const val = Math.round(maxElo - (eloRange / gridSteps) * i);
+            ctx.fillStyle = '#999';
+            ctx.font = '11px Inter, system-ui, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(val, PAD.left - 8, y + 4);
+        }
+
+        // Plot line
+        const points = history.map((h, i) => ({
+            x: PAD.left + (i / (history.length - 1)) * cW,
+            y: PAD.top + cH - ((h.elo - minElo) / eloRange) * cH,
+        }));
+
+        // Gradient fill under line
+        const grad = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
+        grad.addColorStop(0, 'rgba(79, 70, 229, 0.25)');
+        grad.addColorStop(1, 'rgba(79, 70, 229, 0.02)');
+
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, H - PAD.bottom);
+        points.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(points[points.length - 1].x, H - PAD.bottom);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Line
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
+        }
+        ctx.strokeStyle = '#4F46E5';
+        ctx.lineWidth = 2.5;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // Dots
+        points.forEach((p, i) => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#4F46E5';
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        });
+
+        // Current ELO label at last point
+        const last = points[points.length - 1];
+        ctx.fillStyle = '#4F46E5';
+        ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(elos[elos.length - 1], last.x, last.y - 10);
+
+        // X-axis labels (first and last date)
+        ctx.fillStyle = '#999';
+        ctx.font = '10px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(
+            new Date(history[0].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            PAD.left, H - 6
+        );
+        ctx.textAlign = 'right';
+        ctx.fillText(
+            new Date(history[history.length - 1].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            W - PAD.right, H - 6
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // PUBLIC PROFILE VIEWER
     // ═══════════════════════════════════════════════════════════════
     QV.openUserProfile = async function openUserProfile(userId) {

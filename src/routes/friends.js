@@ -10,6 +10,7 @@ const db = require('../db/store');
 const { requireAuth } = require('../middleware/auth');
 const { sanitizeUser } = require('../services/elo');
 const { sanitizeText } = require('../middleware/validate');
+const { pushNotification, NOTIFICATION_TYPES } = require('../services/notifications');
 
 const router = Router();
 
@@ -33,10 +34,18 @@ router.post('/friends/request', requireAuth, (req, res) => {
 
     target.friendRequests.push(user.id);
     db.saveUser(target.id);
-    // io notification is handled via the socket layer — we attach io to app in src/app.js
     const io = req.app.get('io');
     if (io && target.socketId) {
         io.to(target.socketId).emit('friend-request', { from: sanitizeUser(user) });
+    }
+    // Push persistent notification
+    if (io) {
+        pushNotification(io, target.id, {
+            type: NOTIFICATION_TYPES.FRIEND_REQUEST,
+            title: 'Friend Request',
+            message: `${user.username} sent you a friend request!`,
+            data: { userId: user.id, username: user.username },
+        });
     }
     res.json({ success: true });
 });
@@ -56,6 +65,15 @@ router.post('/friends/accept', requireAuth, (req, res) => {
         const io = req.app.get('io');
         if (io && other.socketId) {
             io.to(other.socketId).emit('friend-accepted', { user: sanitizeUser(user) });
+        }
+        // Push persistent notification
+        if (io) {
+            pushNotification(io, other.id, {
+                type: NOTIFICATION_TYPES.FRIEND_ACCEPTED,
+                title: 'Friend Accepted',
+                message: `${user.username} accepted your friend request!`,
+                data: { userId: user.id, username: user.username },
+            });
         }
     }
     db.saveUser(user.id);
