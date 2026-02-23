@@ -4019,6 +4019,202 @@ input::placeholder {
   color: #22C55E;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ELO HISTORY CHART
+   ═══════════════════════════════════════════════════════════════ */
+.profile-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+}
+
+.profile-section .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.profile-section .section-header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.elo-chart-container {
+  width: 100%;
+  position: relative;
+}
+
+.elo-chart-container canvas {
+  width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.elo-chart-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #999;
+  font-size: 0.85rem;
+  font-family: var(--font-display);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MATCH HISTORY
+   ═══════════════════════════════════════════════════════════════ */
+.match-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.match-history-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #999;
+  font-size: 0.85rem;
+  font-family: var(--font-display);
+}
+
+.match-history-empty svg {
+  margin-bottom: 0.5rem;
+}
+
+.mh-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: background 0.15s;
+}
+
+.mh-row:hover {
+  background: rgba(79, 70, 229, 0.03);
+}
+
+.mh-row:last-child {
+  border-bottom: none;
+}
+
+/* Result color hints */
+.mh-row.mh-win {
+  border-left: 3px solid #22C55E;
+}
+
+.mh-row.mh-loss {
+  border-left: 3px solid #EF4444;
+}
+
+.mh-row.mh-draw {
+  border-left: 3px solid #F59E0B;
+}
+
+.mh-result-badge {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+
+.mh-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.mh-opponent {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mh-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 2px;
+  align-items: center;
+}
+
+.mh-topic {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background: rgba(79, 70, 229, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-display);
+}
+
+.mh-type {
+  font-size: 0.65rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-mono);
+}
+
+.mh-scores {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.mh-my-score {
+  color: var(--accent-primary);
+}
+
+.mh-separator {
+  color: #ccc;
+  font-weight: 400;
+}
+
+.mh-opp-score {
+  color: var(--text-secondary);
+}
+
+.mh-right {
+  text-align: right;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.mh-result-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-display);
+}
+
+.mh-result-label.win {
+  color: #22C55E;
+}
+
+.mh-result-label.loss {
+  color: #EF4444;
+}
+
+.mh-result-label.draw {
+  color: #F59E0B;
+}
+
+.mh-elo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.mh-elo.positive {
+  color: #22C55E;
+}
+
 .mh-elo.negative {
   color: #EF4444;
 }
@@ -4028,5 +4224,157 @@ input::placeholder {
   color: #aaa;
   font-family: var(--font-mono);
   margin-top: 2px;
-} 
- 
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHALLENGE MODAL STYLES
+   ═══════════════════════════════════════════════════════════════ */
+.challenge-modal {
+  text-align: center;
+}
+
+.challenge-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.challenge-swords-icon {
+  font-size: 3rem;
+  animation: challenge-pulse 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(220, 38, 38, 0.3));
+}
+
+@keyframes challenge-pulse {
+
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  25% {
+    transform: scale(1.15) rotate(-5deg);
+  }
+
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+
+  75% {
+    transform: scale(1.15) rotate(-3deg);
+  }
+}
+
+.challenge-header h2 {
+  font-size: 1.6rem;
+  margin: 0;
+  background: linear-gradient(135deg, #DC2626, #E17055);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.challenge-body {
+  margin-bottom: 1rem;
+}
+
+.challenge-topic {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  padding: 0.5rem 1rem;
+  background: rgba(108, 92, 231, 0.08);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+.challenge-from-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.challenge-from-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #DC2626, #E17055);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.challenge-from-info strong {
+  font-size: 1.15rem;
+  font-family: var(--font-display);
+  display: block;
+}
+
+.challenge-from-elo {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Challenge Pending Indicator ─────────────────────────────── */
+.challenge-pending-icon {
+  display: inline-block;
+  font-size: 0.9rem;
+  animation: challenge-pending-bounce 1s ease-in-out infinite;
+  margin-left: 4px;
+}
+
+@keyframes challenge-pending-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.challenge-pending-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: #DC2626;
+  font-weight: 700;
+  margin-left: 0.5rem;
+  animation: fade-pulse 2s ease-in-out infinite;
+}
+
+@keyframes fade-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ── Tournament Settings Display ──────────────────────────────── */
+.tourney-settings {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.tournament-create .input-row-3col {
+  margin-bottom: 0.75rem;
+}

@@ -13,6 +13,32 @@ const { sanitizeUser } = require('../services/elo');
 const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText } = require('../middleware/validate');
 
+/** Cancel all outgoing challenges from a user and notify both sides. */
+function cancelOutgoingChallenges(io, userId) {
+    for (const [cId, ch] of db.challenges) {
+        if (ch.fromId === userId) {
+            db.challenges.delete(cId);
+            // Tell the recipient the challenge was withdrawn
+            const target = db.users.get(ch.toId);
+            if (target && target.socketId) {
+                io.to(target.socketId).emit('challenge-cancelled', { challengeId: cId });
+            }
+            // Also notify the sender
+            const sender = db.users.get(ch.fromId);
+            if (sender && sender.socketId) {
+                io.to(sender.socketId).emit('challenge-expired', { challengeId: cId });
+            }
+        }
+    }
+}
+
+/** Get difficulty label based on average ELO. */
+function getDifficultyFromElo(avgElo) {
+    if (avgElo >= 1600) return 'hard';
+    if (avgElo >= 1200) return 'medium';
+    return 'easy';
+}
+
 module.exports = function (io, socket, getCurrentUser) {
 
     socket.on('queue-join', async () => {
@@ -21,6 +47,9 @@ module.exports = function (io, socket, getCurrentUser) {
         const now = Date.now();
         if (currentUser._lastQueueJoin && now - currentUser._lastQueueJoin < 3000) return;
         currentUser._lastQueueJoin = now;
+
+        // Cancel any outgoing challenges when entering queue
+        cancelOutgoingChallenges(io, currentUser.id);
 
         db.quickQueue = db.quickQueue.filter(q => q.userId !== currentUser.id);
         db.quickQueue.push({ userId: currentUser.id, socketId: socket.id, joinedAt: Date.now() });
@@ -35,12 +64,14 @@ module.exports = function (io, socket, getCurrentUser) {
             const user2 = db.users.get(p2.userId);
 
             const topic = QUICK_GAME_TOPICS[Math.floor(Math.random() * QUICK_GAME_TOPICS.length)];
+            const avgElo = Math.round(((user1.elo || 1000) + (user2.elo || 1000)) / 2);
+            const difficulty = getDifficultyFromElo(avgElo);
 
             io.to(p1.socketId).emit('queue-matched', { opponent: sanitizeUser(user2), topic });
             io.to(p2.socketId).emit('queue-matched', { opponent: sanitizeUser(user1), topic });
 
             try {
-                const questions = await generateQuestions(topic, 7);
+                const questions = await generateQuestions(topic, 7, difficulty);
                 const gameId = uuidv4();
 
                 const game = {
@@ -70,10 +101,8 @@ module.exports = function (io, socket, getCurrentUser) {
                 setTimeout(() => startGameQuestion(gameId, io), 2000);
             } catch (err) {
                 console.error('Queue matchmaking question generation failed:', err.message);
-                // Notify both players of the failure
                 io.to(p1.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
                 io.to(p2.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
-                // Re-add both players to the queue
                 db.quickQueue.unshift(p1, p2);
             }
         }
@@ -95,6 +124,9 @@ module.exports = function (io, socket, getCurrentUser) {
 
         const friend = db.users.get(friendId);
         if (!friend || !friend.online || !friend.socketId) return socket.emit('challenge-error', 'Friend is offline');
+
+        // Cancel any existing outgoing challenges first
+        cancelOutgoingChallenges(io, currentUser.id);
 
         const cleanTopic = sanitizeText(topic, 100) || 'General Knowledge';
         const challengeId = uuidv4();
@@ -118,8 +150,19 @@ module.exports = function (io, socket, getCurrentUser) {
             if (db.challenges.has(challengeId)) {
                 db.challenges.delete(challengeId);
                 socket.emit('challenge-expired', { challengeId });
+                // Also tell recipient
+                if (friend.socketId) {
+                    io.to(friend.socketId).emit('challenge-cancelled', { challengeId });
+                }
             }
         }, 60000);
+    });
+
+    // Sender cancels their own outgoing challenge
+    socket.on('challenge-cancel', () => {
+        const currentUser = getCurrentUser();
+        if (!currentUser) return;
+        cancelOutgoingChallenges(io, currentUser.id);
     });
 
     socket.on('challenge-accept', async ({ challengeId }) => {
@@ -182,3 +225,6 @@ module.exports = function (io, socket, getCurrentUser) {
         }
     });
 };
+
+// Export for use in disconnect handler
+module.exports.cancelOutgoingChallenges = cancelOutgoingChallenges;

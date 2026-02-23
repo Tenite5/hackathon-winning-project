@@ -9,14 +9,17 @@ const Groq = require('groq-sdk');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'YOUR_GROQ_API_KEY_HERE' });
 
-async function generateQuestions(topic, count = 5) {
+async function generateQuestions(topic, count = 5, difficulty = null) {
     try {
+        const difficultyHint = difficulty
+            ? ` All questions should be "${difficulty}" difficulty level.`
+            : '';
         const completion = await groq.chat.completions.create({
             model: 'llama-3.3-70b-versatile',
             messages: [
                 {
                     role: 'system',
-                    content: `You are a trivia question generator. Generate exactly ${count} trivia questions about the given topic. 
+                    content: `You are a trivia question generator. Generate exactly ${count} trivia questions about the given topic.${difficultyHint}
 Return ONLY a valid JSON array with no additional text, markdown, or code blocks. Each object must have:
 - "question": the question text
 - "options": array of exactly 4 answer strings
@@ -50,7 +53,7 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
             question: `Sample question ${i + 1} about ${topic}?`,
             options: ['Option A', 'Option B', 'Option C', 'Option D'],
             correct: 0,
-            difficulty: 'medium',
+            difficulty: difficulty || 'medium',
             explanation: 'This is a sample question.',
         }));
     }

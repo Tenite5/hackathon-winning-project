@@ -131,9 +131,14 @@ function startGameQuestion(gameId, io) {
 /** Advance to the next question after round summary. */
 function proceedToNextQuestion(gameId, io) {
     const game = db.games.get(gameId);
-    if (!game) return;
+    if (!game || game.status !== 'playing') return;
 
     const q = game.questions[game.currentQuestion];
+    if (!q) {
+        // Safety: if there's no question at this index, end the game
+        endGame(gameId, io);
+        return;
+    }
 
     io.to(gameId).emit('round-summary', {
         gameId,
@@ -225,7 +230,14 @@ function recordMatchHistory(game, eloUpdates = {}) {
 function endGame(gameId, io) {
     const game = db.games.get(gameId);
     if (!game) return;
+    if (game.status === 'finished') return; // Prevent double-end
     game.status = 'finished';
+
+    // Clear any running question timer
+    if (game.questionTimer) {
+        clearTimeout(game.questionTimer);
+        game.questionTimer = null;
+    }
 
     // Tournament match bookkeeping — record winner in bracket
     if (game.type === 'tournament' && game.tournamentId) {
@@ -286,6 +298,8 @@ function endGame(gameId, io) {
                 }
             });
 
+            const eloDelta = eloUpdates[winnerUser.id];
+
             io.to(gameId).emit('game-over', {
                 gameId,
                 winner: { userId: winner.userId, username: winner.username, score: winner.score },
@@ -300,7 +314,7 @@ function endGame(gameId, io) {
                         score: p.score,
                         answers: p.answers,
                         elo: u ? u.elo : 0,
-                        eloChange: p.userId === winner.userId ? eloDelta : -eloDelta,
+                        eloChange: eloUpdates[p.userId] || 0,
                     };
                 }),
                 questions: game.questions,

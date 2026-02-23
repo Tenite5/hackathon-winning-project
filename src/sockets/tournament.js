@@ -80,7 +80,7 @@ async function checkRoundCompletion(tournamentId, io) {
         if (match.winnerId) continue;
 
         try {
-            const questions = await generateQuestions(t.topic, 5);
+            const questions = await generateQuestions(t.topic, t.questionCount || 5);
             const gameId = uuidv4();
 
             const game = {
@@ -93,7 +93,7 @@ async function checkRoundCompletion(tournamentId, io) {
                 players: match.players.map(p => ({ ...p, score: 0, answers: [] })),
                 questions,
                 currentQuestion: 0,
-                timeLimit: 10,
+                timeLimit: t.timeLimit || 10,
                 questionStartTime: null,
                 status: 'playing',
                 chat: [],
@@ -156,7 +156,7 @@ async function startTournament(tournamentId, io) {
         if (match.winnerId) continue;
 
         try {
-            const questions = await generateQuestions(t.topic, 5);
+            const questions = await generateQuestions(t.topic, t.questionCount || 5);
             const gameId = uuidv4();
 
             const game = {
@@ -169,7 +169,7 @@ async function startTournament(tournamentId, io) {
                 players: match.players.map(p => ({ ...p, score: 0, answers: [] })),
                 questions,
                 currentQuestion: 0,
-                timeLimit: 10,
+                timeLimit: t.timeLimit || 10,
                 questionStartTime: null,
                 status: 'playing',
                 chat: [],
@@ -200,12 +200,14 @@ async function startTournament(tournamentId, io) {
 
 module.exports = function (io, socket, getCurrentUser) {
 
-    socket.on('create-tournament', ({ topic, maxPlayers }) => {
+    socket.on('create-tournament', ({ topic, maxPlayers, timeLimit, questionCount }) => {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
 
         const tId = uuidv4();
-        const max = [8, 16].includes(maxPlayers) ? maxPlayers : 8;
+        const max = [4, 8, 16].includes(maxPlayers) ? maxPlayers : 8;
+        const tLimit = validateInt(timeLimit, 5, 30, 10);
+        const qCount = validateInt(questionCount, 3, 15, 5);
 
         const tournament = {
             id: tId,
@@ -213,6 +215,8 @@ module.exports = function (io, socket, getCurrentUser) {
             hostId: currentUser.id,
             hostUsername: currentUser.username,
             maxPlayers: max,
+            timeLimit: tLimit,
+            questionCount: qCount,
             players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id }],
             brackets: [],
             currentRound: 0,

@@ -7,6 +7,32 @@
     'use strict';
     const { $, state, socket, showView, showPanel, toast, escapeHtml } = QV;
 
+    // ── Clear stale game UI ───────────────────────────────────
+    function clearGameState() {
+        $('game-question-text').textContent = 'Loading questions...';
+        $('game-options').innerHTML = '';
+        $('game-feedback').classList.add('hidden');
+        $('game-q-counter').textContent = '';
+        $('game-p1-name').textContent = '';
+        $('game-p1-score').textContent = '0';
+        $('game-p2-name').textContent = '';
+        $('game-p2-score').textContent = '0';
+        const fill = $('game-timer-fill');
+        if (fill) {
+            fill.style.width = '100%';
+            fill.className = 'game-timer-fill';
+        }
+        const roundOverlay = document.getElementById('round-results-overlay');
+        if (roundOverlay) roundOverlay.classList.add('hidden');
+        // Clear game chat
+        const chatMsgs = $('game-chat-messages');
+        if (chatMsgs) chatMsgs.innerHTML = '';
+        const chatPanel = $('game-chat-panel');
+        if (chatPanel) chatPanel.classList.add('hidden');
+        clearInterval(state.gameTimerInterval);
+    }
+    QV.clearGameState = clearGameState;
+
     // ── Quick Game ─────────────────────────────────────────────
     $('btn-quick-game').addEventListener('click', () => {
         if (state.isStartingGame) return;
@@ -24,10 +50,7 @@
 
     socket.on('queue-matched', ({ opponent, topic }) => {
         $('overlay-queue').classList.add('hidden');
-        $('game-question-text').textContent = 'Loading questions...';
-        $('game-options').innerHTML = '';
-        $('game-feedback').classList.add('hidden');
-        $('game-q-counter').textContent = '';
+        clearGameState();
         toast(`Matched with ${opponent.username}! Topic: ${topic}`, 'success');
     });
 
@@ -39,41 +62,41 @@
     // ── Solo Mode ──────────────────────────────────────────────
     $('btn-solo-mode').addEventListener('click', () => QV.showModal('modal-solo'));
 
+    // Preset/topic interaction for solo modal
+    $('solo-preset-select').addEventListener('change', function () {
+        if (this.value) $('solo-topic').value = '';
+    });
+    $('solo-topic').addEventListener('input', function () {
+        if (this.value.trim()) $('solo-preset-select').value = '';
+    });
+
     $('btn-start-solo').addEventListener('click', () => {
         if (state.isStartingGame) return;
         state.isStartingGame = true;
         $('btn-start-solo').disabled = true;
-        const topic = $('solo-topic').value.trim() || 'General Knowledge';
-        const questionCount = parseInt($('solo-questions').value) || 5;
-        const timeLimit = parseInt($('solo-time').value) || 10;
-        socket.emit('solo-start', { topic, questionCount, timeLimit });
-        QV.hideModal('modal-solo');
-        toast('Generating questions...', 'info');
+
+        const presetId = $('solo-preset-select').value;
+        if (presetId) {
+            // Use preset questions via solo
+            socket.emit('preset-start', { presetId });
+            QV.hideModal('modal-solo');
+            toast('Creating preset game...', 'info');
+        } else {
+            const topic = $('solo-topic').value.trim() || 'General Knowledge';
+            const questionCount = parseInt($('solo-questions').value) || 5;
+            const timeLimit = parseInt($('solo-time').value) || 10;
+            socket.emit('solo-start', { topic, questionCount, timeLimit });
+            QV.hideModal('modal-solo');
+            toast('Generating questions...', 'info');
+        }
+
         setTimeout(() => { state.isStartingGame = false; $('btn-start-solo').disabled = false; }, 5000);
     });
 
     socket.on('solo-generating', () => {
+        clearGameState();
         showView('view-game');
         $('game-question-text').textContent = 'AI is generating questions...';
-        $('game-options').innerHTML = '';
-        $('game-feedback').classList.add('hidden');
-        $('game-q-counter').textContent = '';
-    });
-
-    // ── Preset Game ────────────────────────────────────────────
-    $('btn-preset-game').addEventListener('click', () => QV.showModal('modal-preset'));
-
-    document.querySelectorAll('.preset-card').forEach(card => {
-        card.addEventListener('click', () => {
-            if (state.isStartingGame) return;
-            state.isStartingGame = true;
-            card.style.pointerEvents = 'none';
-            const presetId = card.dataset.preset;
-            socket.emit('preset-start', { presetId });
-            QV.hideModal('modal-preset');
-            toast('Creating preset lobby...', 'info');
-            setTimeout(() => { state.isStartingGame = false; card.style.pointerEvents = ''; }, 5000);
-        });
     });
 
     // ── Game Question ──────────────────────────────────────────

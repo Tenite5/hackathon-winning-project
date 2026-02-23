@@ -10,6 +10,7 @@ const { socketAuth } = require('../middleware/auth');
 const { sanitizeUser } = require('../services/elo');
 const { handleDisconnectFromGames } = require('../services/gameEngine');
 const { createSocketRateLimit } = require('../middleware/rateLimit');
+const { cancelOutgoingChallenges } = require('./matchmaking');
 
 // Handler modules
 const registerGameHandlers = require('./game');
@@ -78,6 +79,9 @@ module.exports = function setupSockets(io) {
                 currentUser.online = false;
                 currentUser.socketId = null;
                 db.quickQueue = db.quickQueue.filter(q => q.userId !== currentUser.id);
+
+                // Cancel any outgoing challenges
+                cancelOutgoingChallenges(io, currentUser.id);
 
                 broadcastOnlineCount(io);
 

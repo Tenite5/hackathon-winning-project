@@ -1,6 +1,6 @@
 /**
  * @file public/js/tournament.js
- * @description Tournament creation, join, list.
+ * @description Tournament creation with customization, join, list.
  */
 
 (function () {
@@ -16,7 +16,9 @@
     $('btn-create-tournament').addEventListener('click', () => {
         const topic = $('tournament-topic').value.trim() || 'General Knowledge';
         const maxPlayers = parseInt($('tournament-size').value) || 8;
-        socket.emit('create-tournament', { topic, maxPlayers });
+        const timeLimit = parseInt($('tournament-time').value) || 10;
+        const questionCount = parseInt($('tournament-questions').value) || 5;
+        socket.emit('create-tournament', { topic, maxPlayers, timeLimit, questionCount });
     });
 
     socket.on('tournament-created', (t) => {
@@ -45,6 +47,7 @@
                     <div class="tourney-item-info">
                         <h4>${escapeHtml(t.topic)}</h4>
                         <span>${t.status === 'waiting' ? 'Waiting for players' : `Round ${t.round}`}</span>
+                        <span class="tourney-settings text-muted">${t.questionCount || 5}Q · ${t.timeLimit || 10}s</span>
                     </div>
                     <div class="tourney-item-meta">
                         <span class="tourney-players">${t.playerCount}/${t.maxPlayers}</span>

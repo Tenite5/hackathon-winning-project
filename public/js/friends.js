@@ -1,6 +1,6 @@
 /**
  * @file public/js/friends.js
- * @description Friends list, add friend, challenge system.
+ * @description Friends list, add friend, challenge system with proper UI.
  */
 
 (function () {
@@ -75,21 +75,28 @@
 
             list.innerHTML = '';
             data.friends.forEach(friend => {
+                const isPending = state.pendingChallengeToId === friend.id;
                 const item = document.createElement('div');
                 item.className = 'friend-item';
                 item.innerHTML = `
                     <div class="friend-item-info" style="cursor:pointer;">
                         <div class="friend-avatar">${friend.username[0].toUpperCase()}</div>
                         <div>
-                            <div class="friend-name">${escapeHtml(friend.username)}</div>
+                            <div class="friend-name">
+                                ${escapeHtml(friend.username)}
+                                ${isPending ? '<span class="challenge-pending-icon" title="Challenge pending">⚔️</span>' : ''}
+                            </div>
                             <div class="friend-status">
                                 <span class="status-dot ${friend.online ? 'online' : 'offline'}"></span>
                                 ${friend.online ? 'Online' : 'Offline'}
+                                ${isPending ? '<span class="challenge-pending-label">Challenge sent...</span>' : ''}
                             </div>
                         </div>
                     </div>
                     <div class="friend-item-actions">
-                        <button class="btn btn-danger btn-sm challenge-btn" ${!friend.online ? 'disabled title="Friend is offline"' : ''}>⚔️ Challenge</button>
+                        <button class="btn ${isPending ? 'btn-ghost' : 'btn-danger'} btn-sm challenge-btn" ${!friend.online ? 'disabled title="Friend is offline"' : ''}>
+                            ${isPending ? '✕ Cancel' : '⚔️ Challenge'}
+                        </button>
                         <button class="btn btn-ghost btn-sm msg-btn">Message</button>
                     </div>
                 `;
@@ -97,9 +104,20 @@
                 item.querySelector('.msg-btn').addEventListener('click', () => QV.openDM(friend));
                 item.querySelector('.challenge-btn').addEventListener('click', () => {
                     if (!friend.online) return toast('Friend is offline', 'error');
-                    const topic = prompt('Enter a topic for the challenge:', 'General Knowledge');
-                    if (topic === null) return;
-                    socket.emit('challenge-friend', { friendId: friend.id, topic: topic || 'General Knowledge' });
+                    if (isPending) {
+                        // Cancel the challenge
+                        socket.emit('challenge-cancel');
+                        state.pendingChallengeToId = null;
+                        toast('Challenge cancelled.', 'info');
+                        QV.loadFriends();
+                        return;
+                    }
+                    // Open challenge modal
+                    state._challengeFriendId = friend.id;
+                    state._challengeFriendName = friend.username;
+                    $('challenge-send-friend-name').textContent = friend.username;
+                    $('challenge-send-topic').value = 'General Knowledge';
+                    showModal('modal-send-challenge');
                 });
                 list.appendChild(item);
             });
@@ -107,6 +125,20 @@
             console.error('Load friends error:', err);
         }
     };
+
+    // ── Send Challenge Modal ──────────────────────────────────
+    $('btn-send-challenge-confirm').addEventListener('click', () => {
+        const friendId = state._challengeFriendId;
+        if (!friendId) return;
+        const topic = $('challenge-send-topic').value.trim() || 'General Knowledge';
+        socket.emit('challenge-friend', { friendId, topic });
+        hideModal('modal-send-challenge');
+    });
+
+    $('btn-send-challenge-cancel').addEventListener('click', () => {
+        hideModal('modal-send-challenge');
+        state._challengeFriendId = null;
+    });
 
     // ── Friend Notifications ───────────────────────────────────
     socket.on('friend-request', ({ from }) => {
@@ -132,16 +164,36 @@
     // ═══════════════════════════════════════════════════════════════
     let pendingChallengeId = null;
 
-    socket.on('challenge-sent', ({ to }) => {
-        toast(`Challenge sent to ${to}! Waiting for response...`, 'info');
+    socket.on('challenge-sent', ({ challengeId, to }) => {
+        state.pendingChallengeToId = state._challengeFriendId || null;
+        state._challengeFriendId = null;
+        toast(`⚔️ Challenge sent to ${to}! Waiting for response...`, 'info');
+        QV.loadFriends();
     });
 
     socket.on('challenge-received', ({ challengeId, from, topic }) => {
         pendingChallengeId = challengeId;
-        $('challenge-text').textContent = `${from.username} (${from.elo} Elo) challenged you!`;
+        $('challenge-text').innerHTML = `
+            <div class="challenge-from-info">
+                <div class="challenge-from-avatar">${from.username[0].toUpperCase()}</div>
+                <div>
+                    <strong>${escapeHtml(from.username)}</strong>
+                    <span class="challenge-from-elo">${from.elo} Elo</span>
+                </div>
+            </div>
+        `;
         $('challenge-topic-text').textContent = `Topic: ${topic}`;
         showModal('modal-challenge');
         toast(`⚔️ ${from.username} wants to duel you!`, 'info');
+    });
+
+    // Challenge was cancelled/withdrawn by the sender
+    socket.on('challenge-cancelled', ({ challengeId }) => {
+        if (pendingChallengeId === challengeId) {
+            pendingChallengeId = null;
+            hideModal('modal-challenge');
+            toast('Challenge was withdrawn.', 'info');
+        }
     });
 
     $('btn-accept-challenge').addEventListener('click', () => {
@@ -162,16 +214,33 @@
 
     socket.on('challenge-accepted', ({ gameId, opponent, topic }) => {
         state.currentGameId = gameId;
+        state.pendingChallengeToId = null;
         toast(`Game starting with ${opponent.username}! Topic: ${topic}`, 'success');
+        QV.loadFriends();
     });
 
     socket.on('challenge-declined', ({ by }) => {
+        state.pendingChallengeToId = null;
         toast(`${by} declined your challenge.`, 'info');
+        QV.loadFriends();
     });
 
     socket.on('challenge-expired', () => {
+        state.pendingChallengeToId = null;
         toast('Your challenge expired.', 'info');
+        QV.loadFriends();
     });
 
     socket.on('challenge-error', (msg) => toast(msg, 'error'));
+
+    // Cancel outgoing challenge when user navigates away or starts another action
+    const origShowPanel = QV.showPanel;
+    QV.showPanel = function (panelId) {
+        // If leaving friends panel and there's a pending challenge, cancel it
+        if (state.pendingChallengeToId && QV.state.currentPanel === 'friends' && panelId !== 'friends') {
+            socket.emit('challenge-cancel');
+            state.pendingChallengeToId = null;
+        }
+        origShowPanel(panelId);
+    };
 })();

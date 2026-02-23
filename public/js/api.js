@@ -24,6 +24,7 @@ window.QV = window.QV || {};
         dmFriendId: null,
         lastGameData: null,
         isStartingGame: false,
+        pendingChallengeToId: null,
     };
 
     // ── Socket ─────────────────────────────────────────────────

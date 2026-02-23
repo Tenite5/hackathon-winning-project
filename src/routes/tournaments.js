@@ -19,6 +19,8 @@ router.get('/tournaments', (req, res) => {
             status: t.status,
             playerCount: t.players.length,
             maxPlayers: t.maxPlayers,
+            timeLimit: t.timeLimit || 10,
+            questionCount: t.questionCount || 5,
             round: t.currentRound,
             createdAt: t.createdAt,
         });

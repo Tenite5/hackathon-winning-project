@@ -10,7 +10,16 @@
     // ── Create Lobby ───────────────────────────────────────────
     $('btn-custom-game').addEventListener('click', () => showModal('modal-create-lobby'));
 
+    // Preset/topic interaction: if user picks a preset, clear topic; if user types topic, reset preset
+    $('lobby-preset-select').addEventListener('change', function () {
+        if (this.value) $('lobby-topic').value = '';
+    });
+    $('lobby-topic').addEventListener('input', function () {
+        if (this.value.trim()) $('lobby-preset-select').value = '';
+    });
+
     $('btn-create-lobby').addEventListener('click', () => {
+        const presetId = $('lobby-preset-select').value;
         const topic = $('lobby-topic').value.trim() || 'General Knowledge';
         const timeLimit = parseInt($('lobby-time').value) || 10;
         const questionCount = parseInt($('lobby-questions').value) || 5;
@@ -18,7 +27,12 @@
         const isPublic = $('lobby-public').checked;
         const ranked = $('lobby-ranked').checked;
 
-        socket.emit('create-lobby', { topic, isPublic, timeLimit, questionCount, maxPlayers, ranked });
+        if (presetId) {
+            // Use preset questions
+            socket.emit('preset-start', { presetId });
+        } else {
+            socket.emit('create-lobby', { topic, isPublic, timeLimit, questionCount, maxPlayers, ranked });
+        }
         hideModal('modal-create-lobby');
     });
 
@@ -50,11 +64,8 @@
     socket.on('lobby-game-start', ({ gameId }) => {
         state.currentGameId = gameId;
         state.currentLobbyId = null;
+        if (QV.clearGameState) QV.clearGameState();
         showView('view-game');
-        $('game-question-text').textContent = 'Loading questions...';
-        $('game-options').innerHTML = '';
-        $('game-feedback').classList.add('hidden');
-        $('game-q-counter').textContent = '';
         toast('Game starting!', 'info');
     });
 
