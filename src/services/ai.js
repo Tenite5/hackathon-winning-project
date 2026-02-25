@@ -15,7 +15,7 @@ async function generateQuestions(topic, count = 5, difficulty = null) {
             ? ` All questions should be "${difficulty}" difficulty level.`
             : '';
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-3.0-flash' });
 
         const systemPrompt = `You are a trivia question generator. Generate exactly ${count} trivia questions about the given topic.${difficultyHint}
 Return ONLY a valid JSON array with no additional text, markdown, or code blocks. Each object must have:
@@ -89,7 +89,7 @@ async function generateBio(user) {
 
         const userPrompt = `Write a bio for "${user.username}" with Elo ${user.elo}, ${stats.totalWins || 0} wins, ${stats.totalLosses || 0} losses.${subjectBreakdown}\nAll categories: ${statsStr || 'No category data yet'}. Total questions answered correctly: ${stats.correctAnswers || 0}/${stats.totalAnswers || 0}.`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-3.0-flash' });
 
         const result = await model.generateContent({
             contents: [
@@ -120,7 +120,7 @@ async function explainQuestion(question, options, correctIndex, yourAnswerIndex)
 
         const userPrompt = `Question: "${question}"\nOptions: ${options.map((o, i) => `${i === correctIndex ? '✓' : '✗'} ${o}`).join(', ')}\nCorrect answer: "${correctAnswer}"\nPlayer answered: "${yourAnswer}"\n\nExplain why the correct answer is right and why the player's answer was wrong.`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-3.0-flash' });
 
         const result = await model.generateContent({
             contents: [
