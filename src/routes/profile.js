@@ -21,12 +21,6 @@ router.get('/leaderboard', (req, res) => {
     res.json({ leaderboard: users });
 });
 
-router.get('/profile/:userId', (req, res) => {
-    const user = db.users.get(req.params.userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user: sanitizeUser(user) });
-});
-
 router.get('/profile-by-name/:username', (req, res) => {
     let user = null;
     for (const [, u] of db.users) {
@@ -132,6 +126,14 @@ router.delete('/profile/notifications/:index', requireAuth, (req, res) => {
         db.saveUser(req.user.id);
     }
     res.json({ ok: true });
+});
+
+// ⚠️ IMPORTANT: This wildcard route MUST come AFTER all specific /profile/* routes
+// otherwise Express will match "match-history", "elo-history", "notifications" as a :userId
+router.get('/profile/:userId', (req, res) => {
+    const user = db.users.get(req.params.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: sanitizeUser(user) });
 });
 
 module.exports = router;

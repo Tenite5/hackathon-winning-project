@@ -19,7 +19,7 @@ async function generateQuestions(topic, count = 5, difficulty = null) {
             ? ` All questions should be "${difficulty}" difficulty level.`
             : '';
 
-        const systemPrompt = `You are a question generator. Generate exactly ${count} questions about the given topic.${difficultyHint}
+        const systemPrompt = `You are a question generator. Generate exactly ${count} questions/problems about the inputted thing.${difficultyHint}
 Return ONLY a valid JSON array with no additional text, markdown, or code blocks. Each object must have:
 - "question": the question text
 - "options": array of exactly 4 answer strings
@@ -31,9 +31,9 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
 
         const response = await ai.models.generateContent({
             model: MODEL,
-            contents: `${systemPrompt}\n\nGenerate ${count} questions about: ${topic}`,
+            contents: `${systemPrompt}\n\nGenerate ${count} questions/problems about: ${topic}`,
             config: {
-                temperature: 0.8,
+                temperature: 0.6,
                 maxOutputTokens: 4096,
             },
         });
