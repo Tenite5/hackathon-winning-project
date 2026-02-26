@@ -1,21 +1,23 @@
 /**
  * @file services/ai.js
  * @description Google Gemini AI client — question generation, bio generation, and question explanation.
+ *              Uses the new @google/genai SDK with gemini-3-flash-preview model.
  */
 
 'use strict';
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// The new SDK uses a Client pattern — pass the API key on construction.
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+const MODEL = 'gemini-3-flash-preview';
 
 async function generateQuestions(topic, count = 5, difficulty = null) {
     try {
         const difficultyHint = difficulty
             ? ` All questions should be "${difficulty}" difficulty level.`
             : '';
-
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const systemPrompt = `You are a trivia question generator. Generate exactly ${count} trivia questions about the given topic.${difficultyHint}
 Return ONLY a valid JSON array with no additional text, markdown, or code blocks. Each object must have:
@@ -27,20 +29,16 @@ Return ONLY a valid JSON array with no additional text, markdown, or code blocks
 
 Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"difficulty":"medium","explanation":"..."}]`;
 
-        const result = await model.generateContent({
-            contents: [
-                {
-                    role: 'user',
-                    parts: [{ text: `${systemPrompt}\n\nGenerate ${count} trivia questions about: ${topic}` }],
-                },
-            ],
-            generationConfig: {
+        const response = await ai.models.generateContent({
+            model: MODEL,
+            contents: `${systemPrompt}\n\nGenerate ${count} trivia questions about: ${topic}`,
+            config: {
                 temperature: 0.8,
                 maxOutputTokens: 4096,
             },
         });
 
-        const raw = result.response.text().trim();
+        const raw = response.text.trim();
         let jsonStr = raw;
         const match = raw.match(/\[[\s\S]*\]/);
         if (match) jsonStr = match[0];
@@ -89,22 +87,16 @@ async function generateBio(user) {
 
         const userPrompt = `Write a bio for "${user.username}" with Elo ${user.elo}, ${stats.totalWins || 0} wins, ${stats.totalLosses || 0} losses.${subjectBreakdown}\nAll categories: ${statsStr || 'No category data yet'}. Total questions answered correctly: ${stats.correctAnswers || 0}/${stats.totalAnswers || 0}.`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
-        const result = await model.generateContent({
-            contents: [
-                {
-                    role: 'user',
-                    parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
-                },
-            ],
-            generationConfig: {
+        const response = await ai.models.generateContent({
+            model: MODEL,
+            contents: `${systemPrompt}\n\n${userPrompt}`,
+            config: {
                 temperature: 1.0,
                 maxOutputTokens: 150,
             },
         });
 
-        return result.response.text().trim();
+        return response.text.trim();
     } catch (err) {
         console.error('Bio generation error:', err.message);
         return `${user.username} is a mysterious competitor with untold trivia powers.`;
@@ -120,22 +112,16 @@ async function explainQuestion(question, options, correctIndex, yourAnswerIndex)
 
         const userPrompt = `Question: "${question}"\nOptions: ${options.map((o, i) => `${i === correctIndex ? '✓' : '✗'} ${o}`).join(', ')}\nCorrect answer: "${correctAnswer}"\nPlayer answered: "${yourAnswer}"\n\nExplain why the correct answer is right and why the player's answer was wrong.`;
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
-        const result = await model.generateContent({
-            contents: [
-                {
-                    role: 'user',
-                    parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
-                },
-            ],
-            generationConfig: {
+        const response = await ai.models.generateContent({
+            model: MODEL,
+            contents: `${systemPrompt}\n\n${userPrompt}`,
+            config: {
                 temperature: 0.7,
                 maxOutputTokens: 200,
             },
         });
 
-        return result.response.text().trim();
+        return response.text.trim();
     } catch (err) {
         console.error('Explain error:', err.message);
         return `The correct answer is "${options[correctIndex]}". Unfortunately I couldn't generate a detailed explanation right now. Try again later!`;
