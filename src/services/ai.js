@@ -19,7 +19,7 @@ async function generateQuestions(topic, count = 5, difficulty = null) {
             ? ` All questions should be "${difficulty}" difficulty level.`
             : '';
 
-        const systemPrompt = `You are a trivia question generator. Generate exactly ${count} trivia questions about the given topic.${difficultyHint}
+        const systemPrompt = `You are a question generator. Generate exactly ${count} questions about the given topic.${difficultyHint}
 Return ONLY a valid JSON array with no additional text, markdown, or code blocks. Each object must have:
 - "question": the question text
 - "options": array of exactly 4 answer strings
@@ -31,7 +31,7 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
 
         const response = await ai.models.generateContent({
             model: MODEL,
-            contents: `${systemPrompt}\n\nGenerate ${count} trivia questions about: ${topic}`,
+            contents: `${systemPrompt}\n\nGenerate ${count} questions about: ${topic}`,
             config: {
                 temperature: 0.8,
                 maxOutputTokens: 4096,
@@ -61,45 +61,62 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
 
 async function generateBio(user) {
     try {
-        const stats = user.stats;
+        const stats = user.stats || {};
         const cats = stats.categories || {};
         const catEntries = Object.entries(cats);
 
         let subjectBreakdown = '';
         if (catEntries.length > 0) {
-            const sorted = catEntries.sort((a, b) => {
-                const aWinRate = a[1].wins / (a[1].wins + a[1].losses || 1);
-                const bWinRate = b[1].wins / (b[1].wins + b[1].losses || 1);
+            const sorted = [...catEntries].sort((a, b) => {
+                const aTotal = (a[1].wins || 0) + (a[1].losses || 0);
+                const bTotal = (b[1].wins || 0) + (b[1].losses || 0);
+                const aWinRate = aTotal > 0 ? (a[1].wins || 0) / aTotal : 0;
+                const bWinRate = bTotal > 0 ? (b[1].wins || 0) / bTotal : 0;
                 return bWinRate - aWinRate;
             });
-            const strengths = sorted.filter(([, d]) => d.wins > d.losses).slice(0, 3)
-                .map(([cat, d]) => `${cat} (${d.wins}W/${d.losses}L, ${Math.round(d.accuracy * 100)}% acc)`).join(', ');
-            const weaknesses = sorted.filter(([, d]) => d.losses >= d.wins).slice(-3)
-                .map(([cat, d]) => `${cat} (${d.wins}W/${d.losses}L, ${Math.round(d.accuracy * 100)}% acc)`).join(', ');
-            subjectBreakdown = `\nBest subjects: ${strengths || 'None yet'}. Worst subjects: ${weaknesses || 'None yet'}.`;
+            const strengths = sorted.filter(([, d]) => (d.wins || 0) > (d.losses || 0)).slice(0, 3)
+                .map(([cat, d]) => `${cat} (${d.wins || 0}W/${d.losses || 0}L, ${Math.round((d.accuracy || 0) * 100)}% acc)`).join(', ');
+            const weaknesses = sorted.filter(([, d]) => (d.losses || 0) >= (d.wins || 0) && ((d.wins || 0) + (d.losses || 0)) > 0).slice(0, 3)
+                .map(([cat, d]) => `${cat} (${d.wins || 0}W/${d.losses || 0}L, ${Math.round((d.accuracy || 0) * 100)}% acc)`).join(', ');
+            if (strengths || weaknesses) {
+                subjectBreakdown = `\nBest subjects: ${strengths || 'None yet'}. Weakest subjects: ${weaknesses || 'None yet'}.`;
+            }
         }
 
         const statsStr = catEntries
-            .map(([cat, data]) => `${cat}: ${data.wins}W/${data.losses}L, ${Math.round(data.accuracy * 100)}% accuracy`)
+            .map(([cat, data]) => `${cat}: ${data.wins || 0}W/${data.losses || 0}L, ${Math.round((data.accuracy || 0) * 100)}% accuracy`)
             .join(', ');
 
-        const systemPrompt = `You write short, witty, roast/boast bios for trivia players. Focus heavily on their SPECIFIC subject strengths and weaknesses. If they dominate a subject, brag about it. If they're bad at a subject, roast them for it. Be funny, specific, and use casual internet language. STRICT LIMIT: 100 words maximum.`;
+        const totalWins = stats.totalWins || 0;
+        const totalLosses = stats.totalLosses || 0;
+        const totalGames = totalWins + totalLosses;
 
-        const userPrompt = `Write a bio for "${user.username}" with Elo ${user.elo}, ${stats.totalWins || 0} wins, ${stats.totalLosses || 0} losses.${subjectBreakdown}\nAll categories: ${statsStr || 'No category data yet'}. Total questions answered correctly: ${stats.correctAnswers || 0}/${stats.totalAnswers || 0}.`;
+        const systemPrompt = `You write short, witty, roast/boast player bios for a quiz game. Rules:
+- If the player has strong subjects, hype them up. If they have weak subjects, lovingly roast them.
+- If the player has very few or no games played, write a short "newcomer" bio instead of making up stats.
+- Be funny, specific, and use casual internet language.
+- Output ONLY the bio text, nothing else. No quotes, no labels, no prefixes.
+- STRICT LIMIT: 2-3 sentences, 80 words maximum.`;
+
+        const userPrompt = `Player: "${user.username}"
+Elo: ${user.elo}
+Record: ${totalWins}W / ${totalLosses}L (${totalGames} total games)
+Correct answers: ${stats.correctAnswers || 0} / ${stats.totalAnswers || 0}${subjectBreakdown}
+Category breakdown: ${statsStr || 'No category data yet'}`;
 
         const response = await ai.models.generateContent({
             model: MODEL,
             contents: `${systemPrompt}\n\n${userPrompt}`,
             config: {
-                temperature: 1.0,
-                maxOutputTokens: 150,
+                temperature: 0.9,
+                maxOutputTokens: 300,
             },
         });
 
         return response.text.trim();
     } catch (err) {
         console.error('Bio generation error:', err.message);
-        return `${user.username} is a mysterious competitor with untold trivia powers.`;
+        return `${user.username} is a mysterious competitor with untold powers.`;
     }
 }
 
@@ -107,17 +124,30 @@ async function explainQuestion(question, options, correctIndex, yourAnswerIndex)
     try {
         const yourAnswer = yourAnswerIndex >= 0 ? options[yourAnswerIndex] : 'No answer (timed out)';
         const correctAnswer = options[correctIndex];
+        const wasTimeout = yourAnswerIndex < 0;
 
-        const systemPrompt = `You are a friendly, knowledgeable tutor. A trivia player got a question wrong. Explain WHY the correct answer is right in a clear, educational, and slightly encouraging way. Also explain why the wrong answer they chose is incorrect. Keep it concise (2-4 sentences). Use simple language. Be helpful, not condescending.`;
+        const systemPrompt = `You are a friendly, knowledgeable tutor. A player got a question wrong in a quiz game. Your job:
+1. Briefly explain WHY the correct answer is right (1-2 sentences with a key fact).
+2. ${wasTimeout ? 'The player ran out of time, so just encourage them.' : 'Explain why their chosen answer is wrong (1 sentence).'}
+3. End with a short encouraging note.
 
-        const userPrompt = `Question: "${question}"\nOptions: ${options.map((o, i) => `${i === correctIndex ? '✓' : '✗'} ${o}`).join(', ')}\nCorrect answer: "${correctAnswer}"\nPlayer answered: "${yourAnswer}"\n\nExplain why the correct answer is right and why the player's answer was wrong.`;
+Rules:
+- Be concise: 3-4 sentences total.
+- Use simple, clear language.
+- Be warm and encouraging, never condescending.
+- Output ONLY the explanation text, no labels or formatting.`;
+
+        const userPrompt = `Question: "${question}"
+Answer choices: ${options.map((o, i) => `[${i}] ${o}`).join(' | ')}
+Correct answer: [${correctIndex}] "${correctAnswer}"
+Player's answer: ${wasTimeout ? 'Timed out (no answer)' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
 
         const response = await ai.models.generateContent({
             model: MODEL,
             contents: `${systemPrompt}\n\n${userPrompt}`,
             config: {
-                temperature: 0.7,
-                maxOutputTokens: 200,
+                temperature: 0.6,
+                maxOutputTokens: 400,
             },
         });
 
