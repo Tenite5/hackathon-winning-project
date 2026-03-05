@@ -81,6 +81,68 @@ window.QV = window.QV || {};
         return '#cd7f32';
     };
 
+    /** Return an inline SVG string for the given rank name */
+    QV.getRankIcon = function (rankName, size) {
+        size = size || 18;
+        const icons = {
+            'Bronze': `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#cd7f32" opacity="0.2"/>
+                <circle cx="12" cy="12" r="7" fill="#cd7f32" opacity="0.4"/>
+                <path d="M12 6l1.5 3.5L17 10l-2.5 2.5.5 3.5L12 14.5 9 16l.5-3.5L7 10l3.5-.5z" fill="#cd7f32"/>
+            </svg>`,
+            'Silver': `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#c0c0c0" opacity="0.2"/>
+                <circle cx="12" cy="12" r="7" fill="#c0c0c0" opacity="0.4"/>
+                <path d="M12 6l1.5 3.5L17 10l-2.5 2.5.5 3.5L12 14.5 9 16l.5-3.5L7 10l3.5-.5z" fill="#c0c0c0"/>
+            </svg>`,
+            'Gold': `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#ffd700" opacity="0.15"/>
+                <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z" fill="#ffd700" stroke="#e6c200" stroke-width="0.5"/>
+            </svg>`,
+            'Platinum': `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="plat-g" x1="0" y1="0" x2="24" y2="24"><stop offset="0%" stop-color="#e5e4e2"/><stop offset="100%" stop-color="#b8b8b8"/></linearGradient></defs>
+                <circle cx="12" cy="12" r="10" fill="url(#plat-g)" opacity="0.2"/>
+                <path d="M12 2l3 6.5h7l-5.5 4.5 2 7L12 15.5 5.5 20l2-7L2 8.5h7z" fill="url(#plat-g)" stroke="#b8b8b8" stroke-width="0.5"/>
+                <circle cx="12" cy="11" r="2" fill="#e5e4e2" opacity="0.6"/>
+            </svg>`,
+            'Diamond': `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="dia-g" x1="0" y1="0" x2="24" y2="24"><stop offset="0%" stop-color="#b9f2ff"/><stop offset="50%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#b9f2ff"/></linearGradient></defs>
+                <path d="M12 2L4 9l8 13 8-13z" fill="url(#dia-g)" opacity="0.3"/>
+                <path d="M12 2L4 9l8 13 8-13z" fill="none" stroke="url(#dia-g)" stroke-width="1.5"/>
+                <path d="M4 9h16M12 2l-3 7m3-7l3 7" stroke="#00d4ff" stroke-width="0.7" opacity="0.6"/>
+            </svg>`,
+            'Master': `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="mas-g" x1="0" y1="0" x2="24" y2="24"><stop offset="0%" stop-color="#9b59b6"/><stop offset="100%" stop-color="#6c3483"/></linearGradient></defs>
+                <circle cx="12" cy="12" r="10" fill="url(#mas-g)" opacity="0.15"/>
+                <path d="M5 18l3-10 4 6 4-6 3 10" stroke="url(#mas-g)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M12 2l1 4-1 1-1-1z" fill="#9b59b6"/>
+                <circle cx="12" cy="8" r="1.5" fill="#9b59b6" opacity="0.7"/>
+            </svg>`,
+            'Grandmaster': `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="gm-g" x1="0" y1="0" x2="24" y2="24"><stop offset="0%" stop-color="#e74c3c"/><stop offset="50%" stop-color="#ff6b6b"/><stop offset="100%" stop-color="#e74c3c"/></linearGradient></defs>
+                <circle cx="12" cy="12" r="11" fill="url(#gm-g)" opacity="0.12"/>
+                <path d="M12 3l-2 5H4l4.5 3.5L7 18l5-3.5L17 18l-1.5-6.5L20 8h-6z" fill="url(#gm-g)" stroke="#c0392b" stroke-width="0.5"/>
+                <circle cx="12" cy="10" r="2" fill="#fff" opacity="0.3"/>
+                <path d="M8 2.5l1 2M16 2.5l-1 2M12 1v2" stroke="#e74c3c" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+            </svg>`,
+        };
+        return icons[rankName] || icons['Bronze'];
+    };
+
+    // ── Answer deobfuscation (matches server XOR key) ──────────
+    const _OBF_KEY = 'QvZ!0_s3cR3t';
+    QV.deobfuscate = function (encoded) {
+        try {
+            const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+            const key = new TextEncoder().encode(_OBF_KEY);
+            const result = new Uint8Array(bytes.length);
+            for (let i = 0; i < bytes.length; i++) {
+                result[i] = bytes[i] ^ key[i % key.length];
+            }
+            return new TextDecoder().decode(result);
+        } catch { return encoded; }
+    };
+
     // ── View / Panel / Modal / Toast ───────────────────────────
     QV.showView = function (viewId) {
         QV.$$('.view').forEach(v => v.classList.remove('active'));
@@ -117,7 +179,8 @@ window.QV = window.QV || {};
 
     QV.updateNavUser = function () {
         QV.$('nav-username').textContent = QV.state.user.username;
-        QV.$('nav-elo').textContent = `⭐ ${QV.state.user.elo} Elo`;
+        const rank = QV.state.user.rank;
+        QV.$('nav-elo').innerHTML = `${rank ? QV.getRankIcon(rank.name, 14) : '⭐'} ${QV.state.user.elo} Elo`;
         // Show PFP or letter fallback
         const img = QV.$('nav-avatar-img');
         const letter = QV.$('nav-avatar-letter');

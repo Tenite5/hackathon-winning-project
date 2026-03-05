@@ -106,6 +106,12 @@
             state.currentQuestionId = data.questionId;
         }
 
+        // Decode obfuscated question data if encoded
+        if (data.encoded) {
+            data.question = QV.deobfuscate(data.question);
+            data.options = data.options.map(o => QV.deobfuscate(o));
+        }
+
         state.isStartingGame = false;
         state.currentGameId = data.gameId;
         state.gameTimeLimit = data.timeLimit;

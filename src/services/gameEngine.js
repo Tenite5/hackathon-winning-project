@@ -9,6 +9,42 @@ const db = require('../db/store');
 const { calculateElo, sanitizeUser } = require('./elo');
 const { generateBio } = require('./ai');
 
+/**
+ * Simple XOR-based obfuscation for question data sent over sockets.
+ * Prevents casual inspection of answers in browser devtools.
+ * NOT cryptographic security — just enough to stop inspect-menu cheating.
+ */
+const OBFUSCATION_KEY = 'QvZ!0_s3cR3t';
+
+function obfuscateString(str) {
+    const bytes = Buffer.from(str, 'utf8');
+    const key = Buffer.from(OBFUSCATION_KEY, 'utf8');
+    const result = Buffer.alloc(bytes.length);
+    for (let i = 0; i < bytes.length; i++) {
+        result[i] = bytes[i] ^ key[i % key.length];
+    }
+    return result.toString('base64');
+}
+
+/** Obfuscate question data before sending to clients */
+function obfuscateQuestion(q) {
+    return {
+        question: obfuscateString(q.question),
+        options: q.options.map(o => obfuscateString(o)),
+        difficulty: q.difficulty,
+    };
+}
+
+/** Strip sensitive fields from question for game-over review */
+function sanitizeQuestionForReview(q) {
+    return {
+        question: q.question,
+        options: q.options,
+        correct: q.correct,
+        difficulty: q.difficulty,
+    };
+}
+
 /** Record wrong answers for every player in a finished game. */
 function recordWrongAnswers(game) {
     if (!game) return;
@@ -39,7 +75,6 @@ function recordWrongAnswers(game) {
                 yourAnswer: myAnswer && myAnswer.answerIndex >= 0 ? q.options[myAnswer.answerIndex] : 'No answer (timed out)',
                 timedOut: !myAnswer || myAnswer.answerIndex < 0,
                 difficulty: q.difficulty || 'medium',
-                explanation: q.explanation || null,
                 playedAt: game.createdAt || Date.now(),
             });
         });
@@ -94,14 +129,17 @@ function startGameQuestion(gameId, io) {
     const questionId = `${gameId}_q${game.currentQuestion}_${Date.now()}`;
     game.currentQuestionId = questionId;
 
+    const obfuscated = obfuscateQuestion(q);
+
     io.to(gameId).emit('game-question', {
         gameId,
         questionId,
         questionIndex: game.currentQuestion,
         totalQuestions: game.questions.length,
-        question: q.question,
-        options: q.options,
-        difficulty: q.difficulty,
+        question: obfuscated.question,
+        options: obfuscated.options,
+        difficulty: obfuscated.difficulty,
+        encoded: true,
         timeLimit: game.timeLimit,
         playerCount: game.players.length,
         scores: game.players.map(p => ({ userId: p.userId, username: p.username, score: p.score })),
@@ -145,7 +183,6 @@ function proceedToNextQuestion(gameId, io) {
         questionIndex: game.currentQuestion,
         correctAnswer: q.correct,
         correctAnswerText: q.options[q.correct],
-        explanation: q.explanation || 'No explanation available.',
         playerCount: game.players.length,
         players: game.players.map(p => ({
             userId: p.userId,
@@ -317,7 +354,7 @@ function endGame(gameId, io) {
                         eloChange: eloUpdates[p.userId] || 0,
                     };
                 }),
-                questions: game.questions,
+                questions: game.questions.map(sanitizeQuestionForReview),
                 topic: game.topic,
             });
 
@@ -372,7 +409,7 @@ function endGame(gameId, io) {
             score: p.score,
             answers: p.answers,
         })),
-        questions: game.questions,
+        questions: game.questions.map(sanitizeQuestionForReview),
         topic: game.topic,
     });
 
@@ -546,7 +583,7 @@ function handleDisconnectFromGames(io, currentUser) {
                             eloChange: p.userId === winner.userId ? eloDelta : -eloDelta,
                         };
                     }),
-                    questions: game.questions,
+                    questions: game.questions.map(sanitizeQuestionForReview),
                     topic: game.topic,
                 });
                 continue;
@@ -559,7 +596,7 @@ function handleDisconnectFromGames(io, currentUser) {
                 reason: 'opponent-disconnect',
                 winner: { userId: winner.userId, username: winner.username, score: winner.score },
                 players: game.players,
-                questions: game.questions,
+                questions: game.questions.map(sanitizeQuestionForReview),
             });
         }
     }

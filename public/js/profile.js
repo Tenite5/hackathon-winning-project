@@ -28,7 +28,8 @@
         }
 
         $('profile-username').textContent = u.username;
-        $('profile-rank-icon').style.background = u.rank.color;
+        $('profile-rank-icon').innerHTML = QV.getRankIcon(u.rank.name, 18);
+        $('profile-rank-icon').style.background = 'none';
         $('profile-rank-name').textContent = u.rank.name;
         $('profile-elo-value').textContent = u.elo;
         $('profile-bio-text').textContent = u.bio || 'No bio yet.';
@@ -286,7 +287,8 @@
             }
 
             $('modal-profile-username').textContent = u.username;
-            $('modal-profile-rank-icon').style.background = u.rank.color;
+            $('modal-profile-rank-icon').innerHTML = QV.getRankIcon(u.rank.name, 18);
+            $('modal-profile-rank-icon').style.background = 'none';
             $('modal-profile-rank-name').textContent = u.rank.name;
             $('modal-profile-elo').textContent = u.elo;
             $('modal-profile-bio').textContent = u.bio || 'No bio yet.';
@@ -342,7 +344,7 @@
                         <span class="lb-username">${escapeHtml(user.username)}</span>
                     </div>
                     <span class="lb-elo">${user.elo}</span>
-                    <span class="lb-badge" style="background: ${user.rank.color}20; color: ${user.rank.color}">${user.rank.name}</span>
+                    <span class="lb-badge" style="background: ${user.rank.color}20; color: ${user.rank.color}">${QV.getRankIcon(user.rank.name, 14)} ${user.rank.name}</span>
                 `;
                 row.addEventListener('click', () => QV.openUserProfile(user.id));
                 table.appendChild(row);

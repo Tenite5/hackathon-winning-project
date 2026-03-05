@@ -25,9 +25,8 @@ Return ONLY a valid JSON array with no additional text, markdown, or code blocks
 - "options": array of exactly 4 answer strings
 - "correct": index (0-3) of the correct answer
 - "difficulty": "easy", "medium", or "hard"
-- "explanation": a 1-2 sentence explanation of why the correct answer is correct
 
-Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"difficulty":"medium","explanation":"..."}]`;
+Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"difficulty":"medium"}]`;
 
         const response = await ai.models.generateContent({
             model: MODEL,
@@ -44,8 +43,10 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
         if (match) jsonStr = match[0];
         const questions = JSON.parse(jsonStr);
         return questions.slice(0, count).map(q => ({
-            ...q,
-            explanation: q.explanation || 'No explanation available.',
+            question: q.question,
+            options: q.options,
+            correct: q.correct,
+            difficulty: q.difficulty || 'medium',
         }));
     } catch (err) {
         console.error('AI generation error:', err.message);
@@ -54,13 +55,16 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
             options: ['Option A', 'Option B', 'Option C', 'Option D'],
             correct: 0,
             difficulty: difficulty || 'medium',
-            explanation: 'This is a sample question.',
         }));
     }
 }
 
 async function generateBio(user) {
     try {
+        if (!user || !user.username) {
+            return 'A mysterious competitor with untold powers.';
+        }
+
         const stats = user.stats || {};
         const cats = stats.categories || {};
         const catEntries = Object.entries(cats);
@@ -91,15 +95,16 @@ async function generateBio(user) {
         const totalLosses = stats.totalLosses || 0;
         const totalGames = totalWins + totalLosses;
 
-        const systemPrompt = `You write short, witty, roast/boast player bios for a quiz game. Rules:
+        const systemPrompt = `You write short, witty, roast/boast player bios for a quiz game called QVIZIO. Rules:
 - If the player has strong subjects, hype them up. If they have weak subjects, lovingly roast them.
 - If the player has very few or no games played, write a short "newcomer" bio instead of making up stats.
 - Be funny, specific, and use casual internet language.
-- Output ONLY the bio text, nothing else. No quotes, no labels, no prefixes.
+- Output ONLY the bio text as plain text. No quotes around it, no labels, no prefixes like "Bio:" or "Here's".
+- Do NOT wrap the output in quotation marks.
 - STRICT LIMIT: 2-3 sentences, 80 words maximum.`;
 
         const userPrompt = `Player: "${user.username}"
-Elo: ${user.elo}
+Elo: ${user.elo || 1000}
 Record: ${totalWins}W / ${totalLosses}L (${totalGames} total games)
 Correct answers: ${stats.correctAnswers || 0} / ${stats.totalAnswers || 0}${subjectBreakdown}
 Category breakdown: ${statsStr || 'No category data yet'}`;
@@ -113,7 +118,14 @@ Category breakdown: ${statsStr || 'No category data yet'}`;
             },
         });
 
-        return response.text.trim();
+        let bio = (response.text || '').trim();
+        // Strip wrapping quotes if the AI added them
+        if ((bio.startsWith('"') && bio.endsWith('"')) || (bio.startsWith("'") && bio.endsWith("'"))) {
+            bio = bio.slice(1, -1).trim();
+        }
+        // Strip common prefixes the AI might add
+        bio = bio.replace(/^(bio:\s*|here'?s?\s*(the|your)?\s*bio:\s*)/i, '').trim();
+        return bio || `${user.username} is a mysterious competitor with untold powers.`;
     } catch (err) {
         console.error('Bio generation error:', err.message);
         return `${user.username} is a mysterious competitor with untold powers.`;
