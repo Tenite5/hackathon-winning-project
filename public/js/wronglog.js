@@ -49,6 +49,58 @@
             }
 
             list.innerHTML = '';
+
+            // Add "Explain All" batch button at the top if there are questions
+            if (questions.length > 1) {
+                const batchBar = document.createElement('div');
+                batchBar.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:0.75rem;';
+                batchBar.innerHTML = `<button class="btn btn-primary btn-sm" id="btn-explain-all">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
+                        <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Explain All (AI)
+                </button>`;
+                list.appendChild(batchBar);
+
+                batchBar.querySelector('#btn-explain-all').addEventListener('click', async function () {
+                    this.disabled = true;
+                    this.innerHTML = '<div class="spinner"></div> Explaining all...';
+
+                    // Take up to 10 most recent
+                    const batch = questions.slice(0, 10).map(q => ({
+                        question: q.question,
+                        options: q.options,
+                        correctIndex: q.correctIndex,
+                        yourAnswerIndex: q.yourAnswerIndex,
+                    }));
+
+                    try {
+                        const result = await api('/explain-questions-batch', {
+                            method: 'POST',
+                            body: { questions: batch },
+                        });
+
+                        const explanations = result.explanations || [];
+                        explanations.forEach((explanation, i) => {
+                            const area = $(`explain-area-${i}`);
+                            if (area) {
+                                area.innerHTML = `<div class="wrong-q-explanation"><span class="explain-icon">💡</span> ${escapeHtml(explanation)}</div>`;
+                            }
+                            const btn = list.querySelector(`[data-idx="${i}"]`);
+                            if (btn) {
+                                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Hide`;
+                            }
+                        });
+                        toast('All explanations loaded!', 'success');
+                    } catch (err) {
+                        toast('Batch explain failed. Try individual explains.', 'error');
+                    }
+
+                    this.disabled = false;
+                    this.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Explain All (AI)`;
+                });
+            }
+
             questions.forEach((q, idx) => {
                 const card = document.createElement('div');
                 card.className = 'wrong-q-card';

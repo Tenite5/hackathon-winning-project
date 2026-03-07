@@ -193,7 +193,7 @@ module.exports = function (io, socket, getCurrentUser) {
         setTimeout(() => startGameQuestion(gameId, io), 1500);
     });
 
-    // Preset Game Mode
+    // Preset Game Mode — starts as a solo game, not a public lobby
     socket.on('preset-start', ({ presetId }) => {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
@@ -223,32 +223,28 @@ module.exports = function (io, socket, getCurrentUser) {
 
         const timeLimit = presetId === 'hard-math' ? 120 : 30;
 
-        const lobbyId = uuidv4();
-        const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Create a solo game directly instead of a public lobby
+        const gameId = uuidv4();
 
-        const lobby = {
-            id: lobbyId,
-            inviteCode,
+        const game = {
+            id: gameId,
+            type: 'solo',
             topic: `📚 ${preset.name}`,
-            isPublic: true,
-            ranked: false,
-            hostId: currentUser.id,
-            hostUsername: currentUser.username,
-            maxPlayers: 8,
-            questionCount: 3,
+            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [] }],
+            questions,
+            currentQuestion: 0,
             timeLimit,
-            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: true }],
-            status: 'waiting',
+            questionStartTime: null,
+            status: 'playing',
+            chat: [],
             createdAt: Date.now(),
-            expiresAt: Date.now() + 10 * 60 * 1000,
-            presetId,
-            presetQuestions: questions,
         };
 
-        db.lobbies.set(lobbyId, lobby);
-        socket.join(lobbyId);
+        db.games.set(gameId, game);
+        socket.join(gameId);
 
-        socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
-        io.emit('lobbies-updated');
+        // Tell the client to go straight into the game
+        socket.emit('solo-game-start', { gameId });
+        setTimeout(() => startGameQuestion(gameId, io), 1500);
     });
 };

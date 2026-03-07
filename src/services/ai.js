@@ -113,8 +113,8 @@ Category breakdown: ${statsStr || 'No category data yet'}`;
             model: MODEL,
             contents: `${systemPrompt}\n\n${userPrompt}`,
             config: {
-                temperature: 0.9,
-                maxOutputTokens: 300,
+                temperature: 0.85,
+                maxOutputTokens: 600,
             },
         });
 
@@ -158,8 +158,8 @@ Player's answer: ${wasTimeout ? 'Timed out (no answer)' : `[${yourAnswerIndex}] 
             model: MODEL,
             contents: `${systemPrompt}\n\n${userPrompt}`,
             config: {
-                temperature: 0.6,
-                maxOutputTokens: 400,
+                temperature: 0.5,
+                maxOutputTokens: 500,
             },
         });
 
@@ -170,4 +170,53 @@ Player's answer: ${wasTimeout ? 'Timed out (no answer)' : `[${yourAnswerIndex}] 
     }
 }
 
-module.exports = { generateQuestions, generateBio, explainQuestion };
+// ── Batch explain multiple questions at once for the mistakes analyzer ──
+async function explainQuestionsBatch(questions) {
+    try {
+        if (!questions || questions.length === 0) return [];
+
+        // Limit batch size to 10
+        const batch = questions.slice(0, 10);
+
+        const questionsBlock = batch.map((q, i) => {
+            const yourAnswer = q.yourAnswerIndex >= 0 ? q.options[q.yourAnswerIndex] : 'No answer (timed out)';
+            const correctAnswer = q.options[q.correctIndex];
+            return `[Q${i + 1}] Question: "${q.question}"
+Options: ${q.options.map((o, j) => `[${j}] ${o}`).join(' | ')}
+Correct: [${q.correctIndex}] "${correctAnswer}"
+Player answered: ${q.yourAnswerIndex < 0 ? 'Timed out' : `[${q.yourAnswerIndex}] "${yourAnswer}"`}`;
+        }).join('\n\n');
+
+        const systemPrompt = `You are a friendly, knowledgeable tutor. A player got multiple questions wrong in a quiz game. For EACH question:
+1. Briefly explain WHY the correct answer is right (1-2 sentences).
+2. If the player chose a wrong answer, explain why it's wrong (1 sentence). If they timed out, encourage them.
+3. End each with a short encouraging note.
+
+Rules:
+- Be concise: 3-4 sentences per question.
+- Use simple, clear language. Be warm and encouraging.
+- Output as a JSON array of strings, one explanation per question, in order.
+- Output ONLY the JSON array, no markdown or code blocks.`;
+
+        const response = await ai.models.generateContent({
+            model: MODEL,
+            contents: `${systemPrompt}\n\n${questionsBlock}`,
+            config: {
+                temperature: 0.5,
+                maxOutputTokens: 3000,
+            },
+        });
+
+        const raw = response.text.trim();
+        let jsonStr = raw;
+        const match = raw.match(/\[[\s\S]*\]/);
+        if (match) jsonStr = match[0];
+        const explanations = JSON.parse(jsonStr);
+        return explanations.slice(0, batch.length);
+    } catch (err) {
+        console.error('Batch explain error:', err.message);
+        return questions.map(q => `The correct answer is "${q.options[q.correctIndex]}". Unfortunately I couldn't generate a detailed explanation right now.`);
+    }
+}
+
+module.exports = { generateQuestions, generateBio, explainQuestion, explainQuestionsBatch };

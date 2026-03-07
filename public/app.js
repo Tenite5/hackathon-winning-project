@@ -435,6 +435,17 @@
         $('game-q-counter').textContent = '';
     });
 
+    // Handle preset solo game starting directly (no lobby)
+    socket.on('solo-game-start', ({ gameId }) => {
+        state.currentGameId = gameId;
+        state.isStartingGame = false;
+        showView('view-game');
+        $('game-question-text').textContent = 'Loading questions...';
+        $('game-options').innerHTML = '';
+        $('game-feedback').classList.add('hidden');
+        toast('Game starting!', 'info');
+    });
+
     // ═══════════════════════════════════════════════════════════════
     // PRESET GAME
     // ═══════════════════════════════════════════════════════════════

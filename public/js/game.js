@@ -99,6 +99,15 @@
         $('game-question-text').textContent = 'AI is generating questions...';
     });
 
+    // Handle preset solo game starting directly (no lobby)
+    socket.on('solo-game-start', ({ gameId }) => {
+        state.currentGameId = gameId;
+        state.isStartingGame = false;
+        clearGameState();
+        showView('view-game');
+        toast('Game starting!', 'info');
+    });
+
     // ── Game Question ──────────────────────────────────────────
     socket.on('game-question', (data) => {
         if (data.questionId) {
