@@ -1,17 +1,20 @@
 /**
  * @file services/ai.js
- * @description Google Gemini AI client — question generation, bio generation, and question explanation.
- *              Uses the new @google/genai SDK with gemini-3-flash-preview model.
+ * @description AI clients — Gemini for question generation, Groq for bio + explanation.
  */
 
 'use strict';
 
 const { GoogleGenAI } = require('@google/genai');
+const Groq = require('groq-sdk');
 
-// The new SDK uses a Client pattern — pass the API key on construction.
+// Gemini — used only for question generation
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const GEMINI_MODEL = 'gemini-3-flash-preview';
 
-const MODEL = 'gemini-3-flash-preview';
+// Groq — used for bio generation and mistake explanations (fast inference)
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function generateQuestions(topic, count = 5, difficulty = null) {
     try {
@@ -29,7 +32,7 @@ Return ONLY a valid JSON array with no additional text, markdown, or code blocks
 Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"difficulty":"medium"}]`;
 
         const response = await ai.models.generateContent({
-            model: MODEL,
+            model: GEMINI_MODEL,
             contents: `${systemPrompt}\n\nGenerate ${count} questions/problems about: ${topic}`,
             config: {
                 temperature: 0.6,
@@ -101,7 +104,7 @@ async function generateBio(user) {
 - Be funny, specific, and use casual internet language.
 - Output ONLY the bio text as plain text. No quotes around it, no labels, no prefixes like "Bio:" or "Here's".
 - Do NOT wrap the output in quotation marks.
-- STRICT LIMIT: 2-3 sentences, 80 words maximum.`;
+- STRICT LIMIT: Maximum 40 words. Do NOT exceed 40 words under any circumstances.`;
 
         const userPrompt = `Player: "${user.username}"
 Elo: ${user.elo || 1000}
@@ -109,16 +112,17 @@ Record: ${totalWins}W / ${totalLosses}L (${totalGames} total games)
 Correct answers: ${stats.correctAnswers || 0} / ${stats.totalAnswers || 0}${subjectBreakdown}
 Category breakdown: ${statsStr || 'No category data yet'}`;
 
-        const response = await ai.models.generateContent({
-            model: MODEL,
-            contents: `${systemPrompt}\n\n${userPrompt}`,
-            config: {
-                temperature: 0.85,
-                maxOutputTokens: 600,
-            },
+        const response = await groq.chat.completions.create({
+            model: GROQ_MODEL,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.85,
+            max_tokens: 200,
         });
 
-        let bio = (response.text || '').trim();
+        let bio = (response.choices?.[0]?.message?.content || '').trim();
         // Strip wrapping quotes if the AI added them
         if ((bio.startsWith('"') && bio.endsWith('"')) || (bio.startsWith("'") && bio.endsWith("'"))) {
             bio = bio.slice(1, -1).trim();
@@ -138,85 +142,35 @@ async function explainQuestion(question, options, correctIndex, yourAnswerIndex)
         const correctAnswer = options[correctIndex];
         const wasTimeout = yourAnswerIndex < 0;
 
-        const systemPrompt = `You are a friendly, knowledgeable tutor. A player got a question wrong in a quiz game. Your job:
-1. Briefly explain WHY the correct answer is right (1-2 sentences with a key fact).
-2. ${wasTimeout ? 'The player ran out of time, so just encourage them.' : 'Explain why their chosen answer is wrong (1 sentence).'}
-3. End with a short encouraging note.
+        const systemPrompt = `You are a friendly tutor. A player got a quiz question wrong. Explain why the correct answer is right and why theirs was wrong.
 
 Rules:
-- Be concise: 3-4 sentences total.
-- Use simple, clear language.
-- Be warm and encouraging, never condescending.
+- STRICT LIMIT: Maximum 30 words. Do NOT exceed 30 words.
+- Be warm and encouraging.
 - Output ONLY the explanation text, no labels or formatting.`;
 
         const userPrompt = `Question: "${question}"
-Answer choices: ${options.map((o, i) => `[${i}] ${o}`).join(' | ')}
-Correct answer: [${correctIndex}] "${correctAnswer}"
-Player's answer: ${wasTimeout ? 'Timed out (no answer)' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
+Choices: ${options.map((o, i) => `[${i}] ${o}`).join(' | ')}
+Correct: [${correctIndex}] "${correctAnswer}"
+Player: ${wasTimeout ? 'Timed out' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
 
-        const response = await ai.models.generateContent({
-            model: MODEL,
-            contents: `${systemPrompt}\n\n${userPrompt}`,
-            config: {
-                temperature: 0.5,
-                maxOutputTokens: 500,
-            },
+        const response = await groq.chat.completions.create({
+            model: GROQ_MODEL,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.5,
+            max_tokens: 150,
         });
 
-        return response.text.trim();
+        return (response.choices?.[0]?.message?.content || '').trim();
     } catch (err) {
         console.error('Explain error:', err.message);
         return `The correct answer is "${options[correctIndex]}". Unfortunately I couldn't generate a detailed explanation right now. Try again later!`;
     }
 }
 
-// ── Batch explain multiple questions at once for the mistakes analyzer ──
-async function explainQuestionsBatch(questions) {
-    try {
-        if (!questions || questions.length === 0) return [];
 
-        // Limit batch size to 10
-        const batch = questions.slice(0, 10);
 
-        const questionsBlock = batch.map((q, i) => {
-            const yourAnswer = q.yourAnswerIndex >= 0 ? q.options[q.yourAnswerIndex] : 'No answer (timed out)';
-            const correctAnswer = q.options[q.correctIndex];
-            return `[Q${i + 1}] Question: "${q.question}"
-Options: ${q.options.map((o, j) => `[${j}] ${o}`).join(' | ')}
-Correct: [${q.correctIndex}] "${correctAnswer}"
-Player answered: ${q.yourAnswerIndex < 0 ? 'Timed out' : `[${q.yourAnswerIndex}] "${yourAnswer}"`}`;
-        }).join('\n\n');
-
-        const systemPrompt = `You are a friendly, knowledgeable tutor. A player got multiple questions wrong in a quiz game. For EACH question:
-1. Briefly explain WHY the correct answer is right (1-2 sentences).
-2. If the player chose a wrong answer, explain why it's wrong (1 sentence). If they timed out, encourage them.
-3. End each with a short encouraging note.
-
-Rules:
-- Be concise: 3-4 sentences per question.
-- Use simple, clear language. Be warm and encouraging.
-- Output as a JSON array of strings, one explanation per question, in order.
-- Output ONLY the JSON array, no markdown or code blocks.`;
-
-        const response = await ai.models.generateContent({
-            model: MODEL,
-            contents: `${systemPrompt}\n\n${questionsBlock}`,
-            config: {
-                temperature: 0.5,
-                maxOutputTokens: 3000,
-            },
-        });
-
-        const raw = response.text.trim();
-        let jsonStr = raw;
-        const match = raw.match(/\[[\s\S]*\]/);
-        if (match) jsonStr = match[0];
-        const explanations = JSON.parse(jsonStr);
-        return explanations.slice(0, batch.length);
-    } catch (err) {
-        console.error('Batch explain error:', err.message);
-        return questions.map(q => `The correct answer is "${q.options[q.correctIndex]}". Unfortunately I couldn't generate a detailed explanation right now.`);
-    }
-}
-
-module.exports = { generateQuestions, generateBio, explainQuestion, explainQuestionsBatch };
+module.exports = { generateQuestions, generateBio, explainQuestion };

@@ -22,19 +22,19 @@ QVIZIO is a **real-time competitive trivia game** with ELO ranking. Players can:
 
 ## Tech Stack
 
-| Layer    | Tech                                                             |
-| -------- | ---------------------------------------------------------------- |
-| Runtime  | Node.js 18+                                                      |
-| Server   | Express 5 + Socket.io 4                                          |
-| Database | MongoDB via Mongoose 9                                           |
-| Auth     | Firebase Auth (Google + Email/Password) → UUID session tokens    |
-| AI       | Google Gemini (`gemini-3-flash-preview`) via `@google/genai` SDK |
-| Client   | Vanilla JS SPA (no framework), single `index.html`               |
-| Security | Helmet, in-memory rate limiting, XOR question obfuscation        |
+| Layer    | Tech                                                                                                      |
+| -------- | --------------------------------------------------------------------------------------------------------- |
+| Runtime  | Node.js 18+                                                                                               |
+| Server   | Express 5 + Socket.io 4                                                                                   |
+| Database | MongoDB via Mongoose 9                                                                                    |
+| Auth     | Firebase Auth (Google + Email/Password) → UUID session tokens                                             |
+| AI       | Gemini (`gemini-3-flash-preview`) for questions; Groq (`llama-3.3-70b-versatile`) for bios + explanations |
+| Client   | Vanilla JS SPA (no framework), single `index.html`                                                        |
+| Security | Helmet, in-memory rate limiting, XOR question obfuscation                                                 |
 
 **Start command**: `node server.js` (or `npm start`)  
 **Port**: `process.env.PORT` or 3000  
-**Env vars needed**: `MONGODB_URI`, `GEMINI_API_KEY`, Firebase env vars (see `.env`)
+**Env vars needed**: `MONGODB_URI`, `GEMINI_API_KEY`, `GROQ_API_KEY`, Firebase env vars (see `.env`)
 
 ---
 
@@ -49,7 +49,7 @@ src/db/models/*.js         → Mongoose schemas (User, Session, Message, WrongAn
 src/middleware/auth.js      → Session auth (requireAuth middleware, socketAuth)
 src/middleware/rateLimit.js → In-memory rate limiters (Express + Socket)
 src/middleware/validate.js  → Input validation/sanitization helpers
-src/services/ai.js         → Gemini AI: questions, bios, explanations (single + batch)
+src/services/ai.js         → Gemini for questions, Groq for bios + explanations
 src/services/elo.js        → ELO calculation, rank lookup, user sanitization
 src/services/gameEngine.js → Core game loop: questions → answers → scoring → game-over
 src/services/notifications.js → Push notifications via socket + persist to user object
@@ -65,7 +65,7 @@ src/routes/friends.js      → Friend requests, accept/decline, friend list
 src/routes/messages.js     → Direct messages (friends only)
 src/routes/lobbies.js      → List public lobbies
 src/routes/tournaments.js  → List tournaments
-src/routes/questions.js    → Wrong-answer log, AI explain (single + batch)
+src/routes/questions.js    → Wrong-answer log, AI explain (single)
 ```
 
 ### Client-Side (`public/`)
@@ -86,7 +86,7 @@ public/js/notifications.js  → Notification bell panel
 public/js/particles.js      → Canvas particle background animation
 public/js/profile.js        → Profile panel, public profiles, leaderboard, ELO chart, settings
 public/js/tournament.js     → Tournament creation/join/list
-public/js/wronglog.js       → Wrong answers panel with AI explain (single + batch)
+public/js/wronglog.js       → Wrong answers panel with individual AI explain
 ```
 
 > **IMPORTANT**: `public/app.js` is an older monolithic file that partially duplicates `public/js/*.js` modules. Both are loaded — some features exist in both. When editing client features, **check both** `public/app.js` AND the relevant `public/js/*.js` module.
@@ -210,16 +210,16 @@ All `db.save*()` methods are **fire-and-forget** upserts — they call Mongoose 
 
 ---
 
-## AI Service (Gemini)
+## AI Services
 
-**Model**: `gemini-3-flash-preview`
+**Question Generation** — Google Gemini (`gemini-3-flash-preview`)
+**Bio + Explanations** — Groq (`llama-3.3-70b-versatile`) via `groq-sdk` — API key in `.env` (`GROQ_API_KEY`)
 
-| Function                                       | Purpose                       | Temp | Max Tokens |
-| ---------------------------------------------- | ----------------------------- | ---- | ---------- |
-| `generateQuestions(topic, count, difficulty?)` | Generate trivia questions     | 0.6  | 4096       |
-| `generateBio(user)`                            | Witty roast/boast player bio  | 0.85 | 600        |
-| `explainQuestion(...)`                         | Explain a single wrong answer | 0.5  | 500        |
-| `explainQuestionsBatch(questions)`             | Batch explain up to 10        | 0.5  | 3000       |
+| Function                                       | Provider | Purpose                       | Temp | Limit            |
+| ---------------------------------------------- | -------- | ----------------------------- | ---- | ---------------- |
+| `generateQuestions(topic, count, difficulty?)` | Gemini   | Generate trivia questions     | 0.6  | 4096 tokens      |
+| `generateBio(user)`                            | Groq     | Witty roast/boast player bio  | 0.85 | **40 words max** |
+| `explainQuestion(...)`                         | Groq     | Explain a single wrong answer | 0.5  | **30 words max** |
 
 All return parsed text/JSON. Fallbacks exist for all functions on error.
 
@@ -278,13 +278,12 @@ All endpoints are under `/api`. Rate limit: 120 req/min per IP.
 
 ### Game
 
-| Method | Path                       | Auth | Description                 |
-| ------ | -------------------------- | ---- | --------------------------- |
-| GET    | `/lobbies`                 | Yes  | Public waiting lobbies      |
-| GET    | `/tournaments`             | Yes  | All tournaments             |
-| GET    | `/question-log`            | Yes  | Wrong answers list          |
-| POST   | `/explain-question`        | Yes  | AI explain single question  |
-| POST   | `/explain-questions-batch` | Yes  | AI explain up to 10 at once |
+| Method | Path                | Auth | Description                |
+| ------ | ------------------- | ---- | -------------------------- |
+| GET    | `/lobbies`          | Yes  | Public waiting lobbies     |
+| GET    | `/tournaments`      | Yes  | All tournaments            |
+| GET    | `/question-log`     | Yes  | Wrong answers list         |
+| POST   | `/explain-question` | Yes  | AI explain single question |
 
 ---
 
@@ -480,8 +479,13 @@ All endpoints are under `/api`. Rate limit: 120 req/min per IP.
 ### March 7, 2026
 
 - **Fixed**: Preset games from solo practice no longer create public lobbies — they now create solo games directly and emit `solo-game-start` instead of `lobby-created`
-- **Fixed**: Bio generation increased `maxOutputTokens` (300 → 600) to prevent content cutoff
-- **Added**: `explainQuestionsBatch()` in AI service for batch question explanations
-- **Added**: `POST /api/explain-questions-batch` route for batch explaining up to 10 questions
-- **Added**: "Explain All" button in wronglog.js that uses batch endpoint (much faster than one-by-one)
 - **Added**: `solo-game-start` socket event handler on client (both `game.js` and `app.js`)
+- **Changed**: Bio generation now uses **Groq API** (`llama-3.3-70b-versatile`) instead of Gemini — much faster
+- **Changed**: Bio limit changed from token-based (600 tokens) to **40 words max** in prompt
+- **Changed**: Mistake explanations now use **Groq API** instead of Gemini — much faster
+- **Changed**: Explanation limit changed from token-based (500 tokens) to **30 words max** in prompt
+- **Removed**: `explainQuestionsBatch()` function and `POST /explain-questions-batch` route
+- **Removed**: "Explain All" batch button from wronglog.js (individual explains are now fast enough via Groq)
+- **Added**: `groq-sdk` dependency in package.json
+- **Fixed**: Moved Groq API key from hardcoded in `ai.js` to `.env` (`GROQ_API_KEY`) to avoid GitHub secret scanning blocks
+- **Added**: `groq-sdk` dependency in package.json
