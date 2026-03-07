@@ -98,13 +98,13 @@ async function generateBio(user) {
         const totalLosses = stats.totalLosses || 0;
         const totalGames = totalWins + totalLosses;
 
-        const systemPrompt = `You write short, witty, roast/boast player bios for a quiz game called QVIZIO. Rules:
-- If the player has strong subjects, hype them up. If they have weak subjects, lovingly roast them.
-- If the player has very few or no games played, write a short "newcomer" bio instead of making up stats.
-- Be funny, specific, and use casual internet language.
-- Output ONLY the bio text as plain text. No quotes around it, no labels, no prefixes like "Bio:" or "Here's".
-- Do NOT wrap the output in quotation marks.
-- STRICT LIMIT: Maximum 40 words. Do NOT exceed 40 words under any circumstances.`;
+        const systemPrompt = `You write unhinged, chaotic, wildly creative player bios for a quiz game called QVIZIO. Rules:
+- Be SAVAGE with roasts and HYPE with boasts. Go full internet brainrot energy.
+- Reference their actual stats — if they're cracked at a subject, worship them. If they're bad, absolutely destroy them (lovingly).
+- Use slang, memes, dramatic flair, and bold personality. Never be boring or generic.
+- If the player has very few or no games played, write a dramatic "mysterious newcomer" intro.
+- Output ONLY the bio text as plain text. No quotes, no labels, no prefixes.
+- STRICT LIMIT: Maximum 40 words.`;
 
         const userPrompt = `Player: "${user.username}"
 Elo: ${user.elo || 1000}
@@ -118,7 +118,7 @@ Category breakdown: ${statsStr || 'No category data yet'}`;
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
             ],
-            temperature: 0.85,
+            temperature: 1.1,
             max_tokens: 200,
         });
 
