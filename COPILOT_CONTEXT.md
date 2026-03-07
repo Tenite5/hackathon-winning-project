@@ -215,11 +215,11 @@ All `db.save*()` methods are **fire-and-forget** upserts — they call Mongoose 
 **Question Generation** — Google Gemini (`gemini-3-flash-preview`)
 **Bio + Explanations** — Groq (`llama-3.3-70b-versatile`) via `groq-sdk` — API key in `.env` (`GROQ_API_KEY`)
 
-| Function                                       | Provider | Purpose                         | Temp | Limit            |
-| ---------------------------------------------- | -------- | ------------------------------- | ---- | ---------------- |
-| `generateQuestions(topic, count, difficulty?)` | Gemini   | Generate trivia questions       | 0.6  | 4096 tokens      |
-| `generateBio(user)`                            | Groq     | Unhinged roast/boast player bio | 1.1  | **40 words max** |
-| `explainQuestion(...)`                         | Groq     | Explain a single wrong answer   | 0.5  | **30 words max** |
+| Function                                       | Provider | Purpose                       | Temp | Limit            |
+| ---------------------------------------------- | -------- | ----------------------------- | ---- | ---------------- |
+| `generateQuestions(topic, count, difficulty?)` | Gemini   | Generate trivia questions     | 0.6  | 4096 tokens      |
+| `generateBio(user)`                            | Groq     | Creative narrative player bio | 0.95 | **50-60 words**  |
+| `explainQuestion(...)`                         | Groq     | Explain a single wrong answer | 0.5  | **30 words max** |
 
 All return parsed text/JSON. Fallbacks exist for all functions on error.
 
