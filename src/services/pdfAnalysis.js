@@ -15,7 +15,7 @@ const os = require('os');
 const { randomUUID } = require('crypto');
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-3-flash-preview';
 
 // In-memory cache name map: pdfId -> gemini cache name (TTL managed by Gemini)
 const cacheMap = new Map();
@@ -164,7 +164,7 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
     } catch (err) {
         console.error('PDF analysis error:', err.message);
         console.error(err.stack);
-        return generateFallbackQuestions(count, fileName);
+        throw err;
     }
 }
 
@@ -173,7 +173,16 @@ function parseQuestions(rawText, count) {
     let jsonStr = raw;
     const match = raw.match(/\[[\s\S]*\]/);
     if (match) jsonStr = match[0];
-    const questions = JSON.parse(jsonStr);
+    let questions;
+    try {
+        questions = JSON.parse(jsonStr);
+    } catch (e) {
+        console.error('Failed to parse Gemini response as JSON:', raw.slice(0, 500));
+        throw new Error('AI returned invalid JSON');
+    }
+    if (!Array.isArray(questions) || questions.length === 0) {
+        throw new Error('AI returned empty or invalid questions');
+    }
     return questions.slice(0, count).map(q => ({
         question: q.question,
         options: q.options,

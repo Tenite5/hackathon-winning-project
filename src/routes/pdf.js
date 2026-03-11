@@ -100,7 +100,7 @@ router.post('/pdf/analyze', requireAuth, upload.single('file'), async (req, res)
         if (err.message && err.message.includes('Only PDF and image')) {
             return res.status(400).json({ error: err.message });
         }
-        res.status(500).json({ error: 'Failed to analyze file' });
+        res.status(500).json({ error: err.message || 'Failed to analyze file' });
     }
 });
 
