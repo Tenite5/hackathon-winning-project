@@ -80,9 +80,9 @@ router.post('/pdf/analyze', requireAuth, upload.single('file'), async (req, res)
             totalPages = 1;
         }
 
-        // Generate questions from the file
+        // Generate questions from the file (page range passed for extraction)
         const questions = await generateQuestionsFromFile(
-            buffer, mimetype, originalname, count, userPrompt
+            buffer, mimetype, originalname, count, userPrompt, null, pageFrom, pageTo
         );
 
         res.json({
@@ -226,7 +226,7 @@ router.post('/pdf/reuse/:id', requireAuth, async (req, res) => {
         const userPrompt = (req.body.userPrompt || '').trim().slice(0, 500);
 
         const questions = await generateQuestionsFromFile(
-            doc.fileData, doc.mimeType, doc.fileName, count, userPrompt, doc._id
+            doc.fileData, doc.mimeType, doc.fileName, count, userPrompt, doc._id, doc.pageFrom, doc.pageTo
         );
 
         res.json({

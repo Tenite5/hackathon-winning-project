@@ -1,35 +1,75 @@
 /**
  * @file services/pdfAnalysis.js
  * @description Gemini-powered PDF/image analysis — generates quiz questions from uploaded documents.
- *              Uses Gemini API file uploads + optional context caching for cost reduction.
+ *              Uses pdf-lib for page counting + extraction, Gemini 2.5 Flash for analysis.
+ *              Optional Gemini API context caching for cost reduction on reused PDFs.
  */
 
 'use strict';
 
 const { GoogleGenAI } = require('@google/genai');
+const { PDFDocument } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { randomUUID } = require('crypto');
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash-preview-05-20';
 
 // In-memory cache name map: pdfId -> gemini cache name (TTL managed by Gemini)
 const cacheMap = new Map();
 
 /**
- * Generate quiz questions from a PDF buffer or image buffer using Gemini.
- * @param {Buffer} fileBuffer   - The file data (PDF or image)
- * @param {string} mimeType     - e.g. 'application/pdf' or 'image/png'
- * @param {string} fileName     - Original file name
- * @param {number} count        - Number of questions to generate
- * @param {string} [userPrompt] - Optional extra instructions from user
- * @param {string} [pdfId]      - If provided, try to use/create a Gemini cache
- * @returns {Promise<Array>}    - Array of question objects
+ * Get page count from a PDF buffer using pdf-lib.
  */
-async function generateQuestionsFromFile(fileBuffer, mimeType, fileName, count = 5, userPrompt = '', pdfId = null) {
+async function getPdfPageCount(buffer) {
+    const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+    return pdfDoc.getPageCount();
+}
+
+/**
+ * Extract specific pages from a PDF buffer. Returns a new PDF buffer with only those pages.
+ * @param {Buffer} buffer   - Original PDF bytes
+ * @param {number} from     - 1-based start page
+ * @param {number} to       - 1-based end page (inclusive)
+ * @returns {Promise<Buffer>}
+ */
+async function extractPages(buffer, from, to) {
+    const srcDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+    const totalPages = srcDoc.getPageCount();
+
+    // Clamp range
+    const start = Math.max(0, from - 1);           // convert to 0-based
+    const end = Math.min(totalPages - 1, to - 1);  // convert to 0-based
+
+    const newDoc = await PDFDocument.create();
+    const indices = [];
+    for (let i = start; i <= end; i++) indices.push(i);
+
+    const copiedPages = await newDoc.copyPages(srcDoc, indices);
+    copiedPages.forEach(page => newDoc.addPage(page));
+
+    const pdfBytes = await newDoc.save();
+    return Buffer.from(pdfBytes);
+}
+
+/**
+ * Generate quiz questions from a PDF buffer or image buffer using Gemini.
+ * For PDFs with page ranges, only the selected pages are sent to Gemini.
+ */
+async function generateQuestionsFromFile(fileBuffer, mimeType, fileName, count = 5, userPrompt = '', pdfId = null, pageFrom = 0, pageTo = 0) {
     try {
+        // If PDF with a page range, extract only those pages
+        let bufferToSend = fileBuffer;
+        if (mimeType === 'application/pdf' && pageFrom > 0 && pageTo > 0) {
+            const totalPages = await getPdfPageCount(fileBuffer);
+            if (pageFrom <= totalPages && pageTo <= totalPages) {
+                bufferToSend = await extractPages(fileBuffer, pageFrom, pageTo);
+                console.log(`Extracted pages ${pageFrom}-${pageTo} from ${totalPages} total (${bufferToSend.length} bytes)`);
+            }
+        }
+
         const systemPrompt = `You are a question generator. Analyze the provided document/image thoroughly and generate exactly ${count} quiz questions based on its content.${userPrompt ? `\n\nAdditional instructions from the user: ${userPrompt}` : ''}
 
 Return ONLY a valid JSON array with no additional text, markdown, or code blocks. Each object must have:
@@ -60,17 +100,19 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
             }
         }
 
-        // Write buffer to temp file for upload
+        // Write buffer to temp file for Gemini upload
         const tmpDir = os.tmpdir();
         const tmpFile = path.join(tmpDir, `qvizio_${randomUUID()}${getExtension(mimeType)}`);
-        fs.writeFileSync(tmpFile, fileBuffer);
+        fs.writeFileSync(tmpFile, bufferToSend);
 
         try {
             // Upload file to Gemini
+            console.log(`Uploading to Gemini: ${fileName} (${bufferToSend.length} bytes, ${mimeType})`);
             const uploadedFile = await ai.files.upload({
                 file: tmpFile,
                 config: { mimeType },
             });
+            console.log(`Gemini file uploaded: ${uploadedFile.name}, uri: ${uploadedFile.uri}`);
 
             // Try creating a cache for reuse (only for PDFs, not small images)
             if (pdfId && mimeType === 'application/pdf') {
@@ -83,19 +125,20 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
                                 parts: [{ fileData: { fileUri: uploadedFile.uri, mimeType } }],
                             }],
                             displayName: `qvizio-pdf-${pdfId}`,
-                            ttl: '3600s', // 1 hour TTL
+                            ttl: '3600s',
                         },
                     });
                     if (cache.name) {
                         cacheMap.set(pdfId, cache.name);
+                        console.log(`Cache created: ${cache.name}`);
                     }
                 } catch (cacheErr) {
-                    // Caching is optional — continue without it
                     console.log('Cache creation skipped:', cacheErr.message);
                 }
             }
 
             // Generate content with the uploaded file
+            console.log(`Sending generateContent request to ${GEMINI_MODEL}...`);
             const response = await ai.models.generateContent({
                 model: GEMINI_MODEL,
                 contents: [
@@ -113,24 +156,16 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
                 },
             });
 
+            console.log('Gemini response received, parsing questions...');
             return parseQuestions(response.text, count);
         } finally {
-            // Clean up temp file
             try { fs.unlinkSync(tmpFile); } catch (_) { /* ignore */ }
         }
     } catch (err) {
         console.error('PDF analysis error:', err.message);
+        console.error(err.stack);
         return generateFallbackQuestions(count, fileName);
     }
-}
-
-/**
- * Get page count from a PDF buffer using pdf-parse.
- */
-async function getPdfPageCount(buffer) {
-    const pdfParse = require('pdf-parse');
-    const data = await pdfParse(buffer);
-    return data.numpages;
 }
 
 function parseQuestions(rawText, count) {
@@ -176,4 +211,4 @@ function evictCache(pdfId) {
     }
 }
 
-module.exports = { generateQuestionsFromFile, getPdfPageCount, evictCache };
+module.exports = { generateQuestionsFromFile, getPdfPageCount, extractPages, evictCache };
