@@ -4388,3 +4388,172 @@ input::placeholder {
 .tournament-create .input-row-3col {
   margin-bottom: 0.75rem;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   PDF / IMAGE MODE
+   ══════════════════════════════════════════════════════════════════ */
+
+.pdf-mode-actions {
+  margin-bottom: 1rem;
+}
+
+/* Dropzone */
+.pdf-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.3);
+  margin-bottom: 1rem;
+}
+
+.pdf-dropzone:hover,
+.pdf-dropzone.dragover {
+  border-color: var(--accent-primary);
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.pdf-dropzone p {
+  margin: 0.5rem 0 0;
+}
+
+/* File info strip */
+.pdf-file-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 184, 148, 0.08);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+}
+
+.pdf-file-name {
+  font-weight: 600;
+  word-break: break-all;
+}
+
+/* Page notice */
+.pdf-page-notice {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.pdf-page-notice.warning {
+  background: rgba(253, 203, 110, 0.15);
+  border: 1px solid rgba(253, 203, 110, 0.4);
+  color: #b57d10;
+}
+
+.pdf-page-notice.info {
+  background: rgba(0, 206, 201, 0.1);
+  border: 1px solid rgba(0, 206, 201, 0.3);
+  color: #00928e;
+}
+
+/* Game type toggle */
+.pdf-game-type {
+  margin: 1rem 0;
+}
+
+.pdf-game-type-btns {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.pdf-game-radio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pdf-game-radio input {
+  display: none;
+}
+
+.pdf-game-radio.active {
+  border-color: #00b894;
+  background: rgba(0, 184, 148, 0.08);
+  color: #00b894;
+}
+
+.pdf-game-radio:hover {
+  border-color: #00b894;
+}
+
+/* Saved PDFs list */
+.saved-pdfs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.saved-pdf-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.saved-pdf-icon {
+  flex-shrink: 0;
+  color: #00b894;
+}
+
+.saved-pdf-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.saved-pdf-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-pdf-meta {
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.saved-pdf-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn-danger-text {
+  color: var(--danger) !important;
+}
+
+.btn-danger-text:hover {
+  background: rgba(214, 48, 49, 0.08) !important;
+}
+
+@media (max-width: 600px) {
+  .saved-pdf-card {
+    flex-wrap: wrap;
+  }
+
+  .saved-pdf-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .pdf-game-type-btns {
+    flex-direction: column;
+  }
+}
