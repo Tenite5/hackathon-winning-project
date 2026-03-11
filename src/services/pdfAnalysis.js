@@ -70,15 +70,26 @@ async function generateQuestionsFromFile(fileBuffer, mimeType, fileName, count =
             }
         }
 
-        const systemPrompt = `You are a question generator. Analyze the provided document/image thoroughly and generate exactly ${count} quiz questions based on its content.${userPrompt ? `\n\nAdditional instructions from the user: ${userPrompt}` : ''}
+        const userInstructions = userPrompt ? `\n\nAdditional focus from the user: ${userPrompt}` : '';
 
-Return ONLY a valid JSON array with no additional text, markdown, or code blocks. Each object must have:
-- "question": the question text
-- "options": array of exactly 4 answer strings
+        const systemPrompt = `You are a strict quiz generator. Your ONLY job is to read the EXACT text, tables, diagrams, and figures in this document and create questions that test the specific content shown — NOT general knowledge about the topic.
+
+RULES (follow every one precisely):
+1. Every question must be answerable ONLY from information explicitly written or shown in this document. Do NOT use outside knowledge.
+2. Reference specific details from the document: exact numbers, names, dates, definitions, formulas, labelled steps, quoted phrases, or table values.
+3. Wrong answer options (distractors) must be plausible but verifiably wrong based on the document — use slightly altered versions of real values in the document (e.g. wrong number, swapped term, close-but-incorrect definition).
+4. Do NOT ask vague thematic questions like "What is the main topic?" or "What does this document discuss?".
+5. If the document has charts or tables, ask about specific cell values or relationships in them.
+6. If the document has numbered lists or steps, ask about specific items or their order.
+7. Generate exactly ${count} questions.${userInstructions}
+
+Return ONLY a valid JSON array — no markdown, no code fences, no extra text. Each object must have:
+- "question": a specific, document-grounded question
+- "options": exactly 4 answer strings
 - "correct": index (0-3) of the correct answer
 - "difficulty": "easy", "medium", or "hard"
 
-Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"difficulty":"medium"}]`;
+Example: [{"question":"According to the document, what is the boiling point of ethanol listed in Table 2?","options":["78.4°C","100°C","64.7°C","56.1°C"],"correct":0,"difficulty":"medium"}]`;
 
         // Try cached content path first
         if (pdfId && cacheMap.has(pdfId)) {
@@ -215,7 +226,7 @@ function getExtension(mime) {
 function evictCache(pdfId) {
     const cacheName = cacheMap.get(pdfId);
     if (cacheName) {
-        ai.caches.delete({ name: cacheName }).catch(() => {});
+        ai.caches.delete({ name: cacheName }).catch(() => { });
         cacheMap.delete(pdfId);
     }
 }
