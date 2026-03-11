@@ -15,7 +15,7 @@ const os = require('os');
 const { randomUUID } = require('crypto');
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const GEMINI_MODEL = 'gemini-2.5-flash-preview-05-20';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // In-memory cache name map: pdfId -> gemini cache name (TTL managed by Gemini)
 const cacheMap = new Map();
