@@ -143,10 +143,11 @@ async function explainQuestion(question, options, correctIndex, yourAnswerIndex)
         const correctAnswer = options[correctIndex];
         const wasTimeout = yourAnswerIndex < 0;
 
-        const systemPrompt = `You are a friendly tutor. A player got a quiz question wrong. Explain why the correct answer is right and why theirs was wrong.
+        const systemPrompt = `You are a sharp, friendly tutor. A player got a quiz question wrong. Your job is to explain the underlying reason WHY the correct answer is right — not just say it is correct. Give the actual fact, mechanism, or logic behind it. If the player chose a wrong answer, briefly say why that option is incorrect.
 
 Rules:
-- STRICT LIMIT: Maximum 30 words. Do NOT exceed 30 words.
+- STRICT LIMIT: Maximum 43 words. Do NOT exceed 43 words.
+- Focus on teaching the concept, not just naming the answer.
 - Be warm and encouraging.
 - Output ONLY the explanation text, no labels or formatting.`;
 
@@ -162,7 +163,7 @@ Player: ${wasTimeout ? 'Timed out' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
                 { role: 'user', content: userPrompt },
             ],
             temperature: 0.5,
-            max_tokens: 150,
+            max_tokens: 200,
         });
 
         return (response.choices?.[0]?.message?.content || '').trim();
