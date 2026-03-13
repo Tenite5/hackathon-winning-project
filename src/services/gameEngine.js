@@ -37,10 +37,12 @@ function obfuscateQuestion(q) {
 
 /** Strip sensitive fields from question for game-over review */
 function sanitizeQuestionForReview(q) {
+    const correct = (typeof q.correct === 'number' && q.correct >= 0 && q.correct < q.options.length)
+        ? q.correct : 0;
     return {
         question: q.question,
         options: q.options,
-        correct: q.correct,
+        correct,
         difficulty: q.difficulty,
     };
 }
@@ -145,25 +147,28 @@ function startGameQuestion(gameId, io) {
         scores: game.players.map(p => ({ userId: p.userId, username: p.username, score: p.score })),
     });
 
-    game.questionTimer = setTimeout(() => {
-        if (game.currentQuestionId !== questionId) return;
+    // timeLimit === 0 means infinite time (solo practice) — no auto-timeout
+    if (game.timeLimit > 0) {
+        game.questionTimer = setTimeout(() => {
+            if (game.currentQuestionId !== questionId) return;
 
-        game.players.forEach(p => {
-            if (p.answers[game.currentQuestion] === undefined) {
-                p.answers[game.currentQuestion] = { answerIndex: -1, isCorrect: false, points: 0, elapsed: game.timeLimit };
-                if (p.socketId) {
-                    io.to(p.socketId).emit('answer-result', {
-                        correct: false,
-                        points: 0,
-                        correctAnswer: q.correct,
-                        playerScore: p.score,
-                        timeout: true,
-                    });
+            game.players.forEach(p => {
+                if (p.answers[game.currentQuestion] === undefined) {
+                    p.answers[game.currentQuestion] = { answerIndex: -1, isCorrect: false, points: 0, elapsed: game.timeLimit };
+                    if (p.socketId) {
+                        io.to(p.socketId).emit('answer-result', {
+                            correct: false,
+                            points: 0,
+                            correctAnswer: q.correct,
+                            playerScore: p.score,
+                            timeout: true,
+                        });
+                    }
                 }
-            }
-        });
-        proceedToNextQuestion(gameId, io);
-    }, (game.timeLimit + 1) * 1000);
+            });
+            proceedToNextQuestion(gameId, io);
+        }, (game.timeLimit + 1) * 1000);
+    }
 }
 
 /** Advance to the next question after round summary. */
@@ -358,8 +363,8 @@ function endGame(gameId, io) {
                 topic: game.topic,
             });
 
-            if (winnerUser.stats.gamesPlayed % 3 === 0) generateBio(winnerUser).then(bio => { winnerUser.bio = bio; db.saveUser(winnerUser.id); });
-            if (loserUser.stats.gamesPlayed % 3 === 0) generateBio(loserUser).then(bio => { loserUser.bio = bio; db.saveUser(loserUser.id); });
+            if (winnerUser.stats.gamesPlayed % 3 === 0) generateBio(winnerUser).then(bio => { winnerUser.bio = bio; db.saveUser(winnerUser.id); }).catch(err => console.error('Bio regen error:', err.message));
+            if (loserUser.stats.gamesPlayed % 3 === 0) generateBio(loserUser).then(bio => { loserUser.bio = bio; db.saveUser(loserUser.id); }).catch(err => console.error('Bio regen error:', err.message));
 
             db.saveUser(winnerUser.id);
             db.saveUser(loserUser.id);
@@ -392,7 +397,7 @@ function endGame(gameId, io) {
                 u.stats.categories[cat].accuracy = u.stats.categories[cat].totalAnswered > 0
                     ? u.stats.categories[cat].correctAnswers / u.stats.categories[cat].totalAnswered
                     : 0;
-                if (u.stats.gamesPlayed % 3 === 0) generateBio(u).then(bio => { u.bio = bio; db.saveUser(u.id); });
+                if (u.stats.gamesPlayed % 3 === 0) generateBio(u).then(bio => { u.bio = bio; db.saveUser(u.id); }).catch(err => console.error('Bio regen error:', err.message));
                 db.saveUser(u.id);
             }
         });
@@ -474,7 +479,8 @@ function handleAnswer(io, socket, currentUser, gameId, answerIndex) {
 
     let points = 0;
     if (isCorrect) {
-        const speedBonus = Math.round(30 * Math.max(0, 1 - elapsed / timeLimit));
+        // No speed bonus in infinite-time mode — flat 100 points for correct
+        const speedBonus = timeLimit === 0 ? 30 : Math.round(30 * Math.max(0, 1 - elapsed / timeLimit));
         points = 70 + speedBonus;
     }
 

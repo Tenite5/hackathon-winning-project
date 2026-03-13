@@ -535,6 +535,15 @@
         clearInterval(state.gameTimerInterval);
         state.gameTimeLeft = limit;
         const fill = $('game-timer-fill');
+        const timerBar = fill ? fill.parentElement : null;
+
+        // Infinite time mode — hide the timer bar entirely
+        if (limit === 0) {
+            if (timerBar) timerBar.style.display = 'none';
+            return;
+        }
+
+        if (timerBar) timerBar.style.display = '';
         fill.style.width = '100%';
         fill.className = 'game-timer-fill';
 

@@ -72,21 +72,37 @@ async function generateQuestionsFromFile(fileBuffer, mimeType, fileName, count =
 
         const userInstructions = userPrompt ? `\n\nAdditional focus from the user: ${userPrompt}` : '';
 
-        const systemPrompt = `You are a quiz generator. You have been given a document. Use it as your primary source — read its text, tables, diagrams, and figures carefully, and base most questions on specific content from it. You may also generate additional related questions on the same topic if needed to reach the total count.
+        const systemPrompt = `You are an expert quiz generator. You have been given a document. Read its text, tables, diagrams, formulas, and figures carefully.
+
+First, determine the subject type of the document:
+
+**If the document is STEM (math, physics, chemistry, engineering, CS, etc.):**
+- Do NOT just ask "what is the formula for X?" — instead, create actual PROBLEMS that require applying the concepts.
+- Generate computational questions where the student must solve something: calculate a value, simplify an expression, find an unknown, predict an outcome, or apply a theorem step-by-step.
+- Use specific numbers from the document (constants, coefficients, example values) as inputs for new problems the student hasn't seen.
+- Vary difficulty: some straightforward single-step calculations, some multi-step problems that combine concepts from the document.
+- For example, if the document teaches logarithms: don't ask "What is the log rule for products?" — instead ask "Solve: log₂(32) + log₂(8) = ?" with numerical answer choices.
+
+**If the document is non-STEM (history, literature, law, social science, etc.):**
+- Ask questions that test real understanding — not just surface-level "what year did X happen?" but questions that connect causes to effects, compare events, or require inference from the context.
+- Reference specific details: exact names, dates, quoted phrases, statistics, treaty names, court decisions, or table values.
+- Mix direct factual recall with questions that require deriving meaning from what the text implies but doesn't state outright.
 
 RULES:
-2. Reference specific details from the document: exact numbers, names, dates, definitions, formulas, labelled steps, quoted phrases, or table values.
-3. Wrong answer options (distractors) must be plausible but clearly wrong — use slightly altered versions of real values (e.g. wrong number, swapped term, close-but-incorrect definition).
-4. Do NOT ask vague thematic questions like "What is the main topic?" or "What does this document discuss?".
-7. Generate exactly ${count} questions.${userInstructions}
+1. Base most questions on specific content from the document. You may generate additional related questions on the same topic if needed to reach the total count.
+2. Wrong answer options (distractors) must be plausible but clearly wrong — use slightly altered numbers, swapped terms, close-but-incorrect definitions, or common misconceptions.
+3. Do NOT ask vague meta-questions like "What is the main topic?", "What does this document discuss?", or "Which formula is used for X?".
+4. Every question must require the student to THINK — either solve, analyze, compare, or infer. No pure definition lookups.
+5. Generate exactly ${count} questions.${userInstructions}
 
 Return ONLY a valid JSON array — no markdown, no code fences, no extra text. Each object must have:
-- "question": a specific question grounded in the document or its topic
+- "question": a specific question grounded in the document content
 - "options": exactly 4 answer strings
 - "correct": index (0-3) of the correct answer
 - "difficulty": "easy", "medium", or "hard"
 
-Example: [{"question":"What is the boiling point of ethanol?","options":["78.4°C","100°C","64.7°C","56.1°C"],"correct":0,"difficulty":"medium"}]`;
+Example STEM: [{"question":"If log₃(x) = 4, what is x?","options":["12","27","81","64"],"correct":2,"difficulty":"medium"}]
+Example non-STEM: [{"question":"According to the treaty, which nation gained control of the Suez Canal in 1888?","options":["Britain","France","Ottoman Empire","Egypt"],"correct":0,"difficulty":"medium"}]`;
 
         // Try cached content path first
         if (pdfId && cacheMap.has(pdfId)) {

@@ -13,6 +13,19 @@ const { sanitizeUser } = require('../services/elo');
 const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText } = require('../middleware/validate');
 
+/** Prevent two simultaneous queue-join events from both starting a match. */
+let _queueMatching = false;
+
+/** Race a promise against a ms timeout. */
+function withTimeout(promise, ms) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+        ),
+    ]);
+}
+
 /** Cancel all outgoing challenges from a user and notify both sides. */
 function cancelOutgoingChallenges(io, userId) {
     for (const [cId, ch] of db.challenges) {
@@ -56,7 +69,8 @@ module.exports = function (io, socket, getCurrentUser) {
 
         socket.emit('queue-status', { position: db.quickQueue.length, waiting: true });
 
-        if (db.quickQueue.length >= 2) {
+        if (db.quickQueue.length >= 2 && !_queueMatching) {
+            _queueMatching = true;
             const p1 = db.quickQueue.shift();
             const p2 = db.quickQueue.shift();
 
@@ -71,7 +85,7 @@ module.exports = function (io, socket, getCurrentUser) {
             io.to(p2.socketId).emit('queue-matched', { opponent: sanitizeUser(user1), topic });
 
             try {
-                const questions = await generateQuestions(topic, 7, difficulty);
+                const questions = await withTimeout(generateQuestions(topic, 7, difficulty), 15000);
                 const gameId = uuidv4();
 
                 const game = {
@@ -104,6 +118,8 @@ module.exports = function (io, socket, getCurrentUser) {
                 io.to(p1.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
                 io.to(p2.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
                 db.quickQueue.unshift(p1, p2);
+            } finally {
+                _queueMatching = false;
             }
         }
     });
@@ -178,7 +194,18 @@ module.exports = function (io, socket, getCurrentUser) {
         if (!challenger || !challenger.socketId) return socket.emit('challenge-error', 'Challenger went offline');
 
         const topic = challenge.topic;
-        const questions = await generateQuestions(topic, 7);
+
+        let questions;
+        try {
+            questions = await withTimeout(generateQuestions(topic, 7), 15000);
+        } catch (err) {
+            console.error('Challenge question generation failed:', err.message);
+            socket.emit('challenge-error', 'Failed to generate questions. Please try again.');
+            const challengerSock = io.sockets.sockets.get(challenger.socketId);
+            if (challengerSock) challengerSock.emit('challenge-error', 'Opponent failed to start the game.');
+            return;
+        }
+
         const gameId = uuidv4();
 
         const game = {

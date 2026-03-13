@@ -16,7 +16,18 @@ const GEMINI_MODEL = 'gemini-3-flash-preview';
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
+/** Race a promise against a timeout — rejects if ms elapses first. */
+function withTimeout(promise, ms) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`AI request timed out after ${ms}ms`)), ms)
+        ),
+    ]);
+}
+
 async function generateQuestions(topic, count = 5, difficulty = null) {
+    let raw = null;
     try {
         const difficultyHint = difficulty
             ? ` All questions should be "${difficulty}" difficulty level.`
@@ -31,28 +42,39 @@ Return ONLY a valid JSON array with no additional text, markdown, or code blocks
 
 Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"difficulty":"medium"}]`;
 
-        const response = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            contents: `${systemPrompt}\n\nGenerate ${count} questions/problems about: ${topic}`,
-            config: {
-                temperature: 0.6,
-                maxOutputTokens: 4096,
-            },
-        });
+        const response = await withTimeout(
+            ai.models.generateContent({
+                model: GEMINI_MODEL,
+                contents: `${systemPrompt}\n\nGenerate ${count} questions/problems about: ${topic}`,
+                config: {
+                    temperature: 0.6,
+                    maxOutputTokens: 4096,
+                },
+            }),
+            15000
+        );
 
-        const raw = response.text.trim();
+        raw = response.text.trim();
         let jsonStr = raw;
         const match = raw.match(/\[[\s\S]*\]/);
         if (match) jsonStr = match[0];
         const questions = JSON.parse(jsonStr);
         return questions.slice(0, count).map(q => ({
-            question: q.question,
-            options: q.options,
-            correct: q.correct,
+            question: String(q.question || ''),
+            options: Array.isArray(q.options) && q.options.length === 4
+                ? q.options.map(String)
+                : ['Option A', 'Option B', 'Option C', 'Option D'],
+            correct: (typeof q.correct === 'number' && q.correct >= 0 && q.correct <= 3)
+                ? q.correct
+                : 0,
             difficulty: q.difficulty || 'medium',
         }));
     } catch (err) {
-        console.error('AI generation error:', err.message);
+        if (raw !== null) {
+            console.error('AI parse error:', err.message, '| Raw snippet:', raw.slice(0, 300));
+        } else {
+            console.error('AI generation error:', err.message);
+        }
         return Array.from({ length: count }, (_, i) => ({
             question: `Sample question ${i + 1} about ${topic}?`,
             options: ['Option A', 'Option B', 'Option C', 'Option D'],
@@ -139,9 +161,11 @@ Category breakdown: ${statsStr || 'No category data yet'}`;
 
 async function explainQuestion(question, options, correctIndex, yourAnswerIndex) {
     try {
-        const yourAnswer = yourAnswerIndex >= 0 ? options[yourAnswerIndex] : 'No answer (timed out)';
-        const correctAnswer = options[correctIndex];
+        const safeCorrectIndex = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
+        const yourAnswer = (yourAnswerIndex >= 0 && yourAnswerIndex < options.length) ? options[yourAnswerIndex] : 'No answer (timed out)';
+        const correctAnswer = options[safeCorrectIndex];
         const wasTimeout = yourAnswerIndex < 0;
+        correctIndex = safeCorrectIndex;
 
         const systemPrompt = `You are a sharp, friendly tutor. A player got a quiz question wrong. Your job is to explain the underlying reason WHY the correct answer is right — not just say it is correct. Give the actual fact, mechanism, or logic behind it. If the player chose a wrong answer, briefly say why that option is incorrect.
 
@@ -169,7 +193,8 @@ Player: ${wasTimeout ? 'Timed out' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
         return (response.choices?.[0]?.message?.content || '').trim();
     } catch (err) {
         console.error('Explain error:', err.message);
-        return `The correct answer is "${options[correctIndex]}". Unfortunately I couldn't generate a detailed explanation right now. Try again later!`;
+        const safeIdx = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
+        return `The correct answer is "${options[safeIdx]}". Unfortunately I couldn't generate a detailed explanation right now. Try again later!`;
     }
 }
 

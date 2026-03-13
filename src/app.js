@@ -33,6 +33,9 @@ const io = new Server(server, {
 // Make io accessible from route handlers via req.app.get('io')
 app.set('io', io);
 
+// Trust reverse proxy (nginx/Cloudflare) so req.ip and x-forwarded-for are correct
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet({
     contentSecurityPolicy: false,       // Disable CSP for now (Firebase SDK uses inline scripts)

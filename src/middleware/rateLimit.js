@@ -23,7 +23,7 @@ function createRateLimit({ windowMs = 60000, max = 30 } = {}) {
     }, windowMs);
 
     return (req, res, next) => {
-        const key = req.ip || req.connection.remoteAddress || 'unknown';
+        const key = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'unknown';
         const now = Date.now();
         const cutoff = now - windowMs;
         const timestamps = (hits.get(key) || []).filter(t => t > cutoff);

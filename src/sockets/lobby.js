@@ -166,7 +166,9 @@ module.exports = function (io, socket, getCurrentUser) {
 
         const cleanTopic = sanitizeText(topic, 100) || 'General Knowledge';
         const qCount = validateInt(questionCount, 3, 20, 5);
-        const tLimit = validateInt(timeLimit, 5, 30, 10);
+        // 0 = infinite time (solo only), otherwise clamp 5-30
+        const rawTime = parseInt(timeLimit, 10);
+        const tLimit = rawTime === 0 ? 0 : validateInt(timeLimit, 5, 30, 10);
 
         socket.emit('solo-generating', { topic: cleanTopic });
 
