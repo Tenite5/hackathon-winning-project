@@ -53,12 +53,12 @@ router.post('/pdf/analyze', requireAuth, upload.single('file'), async (req, res)
                 return res.status(400).json({ error: 'Could not read PDF. The file may be corrupt.' });
             }
 
-            // If > 100 pages, page range is required
-            if (totalPages > 100 && (!pageFrom || !pageTo)) {
+            // If > 102 pages, page range is required
+            if (totalPages > 102 && (!pageFrom || !pageTo)) {
                 return res.status(400).json({
                     error: 'page_range_required',
                     totalPages,
-                    message: `This PDF has ${totalPages} pages. Please specify a page range (max 100 pages at a time).`,
+                    message: `This PDF has ${totalPages} pages. Please specify a page range (max 102 pages at a time).`,
                 });
             }
 
@@ -66,8 +66,8 @@ router.post('/pdf/analyze', requireAuth, upload.single('file'), async (req, res)
             if (pageFrom && pageTo) {
                 pageFrom = Math.max(1, Math.min(pageFrom, totalPages));
                 pageTo = Math.max(pageFrom, Math.min(pageTo, totalPages));
-                if (pageTo - pageFrom + 1 > 100) {
-                    return res.status(400).json({ error: 'Maximum 100 pages can be processed at once.' });
+                if (pageTo - pageFrom + 1 > 102) {
+                    return res.status(400).json({ error: 'Maximum 102 pages can be processed at once.' });
                 }
             } else {
                 pageFrom = 1;

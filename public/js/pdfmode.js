@@ -65,8 +65,11 @@
         dropZone.style.display = 'none';
         $('btn-pdf-generate').disabled = false;
 
-        // Check page count for PDFs
+        // Check page count for PDFs — show page range UI immediately, update async
         if (file.type === 'application/pdf') {
+            $('pdf-step-pages').classList.remove('hidden');
+            $('pdf-page-notice').textContent = 'Checking page count...';
+            $('pdf-page-notice').className = 'pdf-page-notice info';
             checkPageCount(file);
         } else {
             totalPages = 1;
@@ -96,13 +99,13 @@
             const data = await res.json();
             totalPages = data.totalPages || 1;
 
-            if (totalPages > 100) {
+            if (totalPages > 102) {
                 $('pdf-step-pages').classList.remove('hidden');
-                $('pdf-page-notice').textContent = `This PDF has ${totalPages} pages. Please select a range (max 100 pages).`;
+                $('pdf-page-notice').textContent = `This PDF has ${totalPages} pages. Please select a range (max 102 pages).`;
                 $('pdf-page-notice').className = 'pdf-page-notice warning';
                 $('pdf-page-from').max = totalPages;
                 $('pdf-page-to').max = totalPages;
-                $('pdf-page-to').value = Math.min(100, totalPages);
+                $('pdf-page-to').value = Math.min(102, totalPages);
             } else if (totalPages > 1) {
                 $('pdf-step-pages').classList.remove('hidden');
                 $('pdf-page-notice').textContent = `PDF has ${totalPages} pages. Optionally select a page range.`;
@@ -115,6 +118,7 @@
             }
         } catch {
             totalPages = 1;
+            $('pdf-step-pages').classList.add('hidden');
         }
     }
 
@@ -172,7 +176,7 @@
                     $('pdf-page-notice').className = 'pdf-page-notice warning';
                     $('pdf-page-from').max = data.totalPages;
                     $('pdf-page-to').max = data.totalPages;
-                    $('pdf-page-to').value = Math.min(100, data.totalPages);
+                    $('pdf-page-to').value = Math.min(102, data.totalPages);
                     totalPages = data.totalPages;
                     throw new Error(data.message);
                 }
@@ -203,7 +207,8 @@
 
             // Step 3: Start game
             const gameType = document.querySelector('input[name="pdf-game-type"]:checked').value;
-            const timeLimit = parseInt($('pdf-time-limit').value) || 15;
+            const rawPdfTime = parseInt($('pdf-time-limit').value);
+            const timeLimit = isNaN(rawPdfTime) ? 15 : rawPdfTime;
             const topic = data.fileInfo.fileName.replace(/\.[^.]+$/, '');
 
             if (gameType === 'solo') {
@@ -216,6 +221,20 @@
                 QV.clearGameState();
                 showView('view-game');
                 $('game-question-text').textContent = 'Starting PDF quiz...';
+
+                // Safety: if no game-question arrives within 10s, bail out
+                const pdfTimeout = setTimeout(() => {
+                    if (!state.currentGameId) {
+                        toast('Failed to start PDF quiz. Please try again.', 'error');
+                        showView('view-dashboard');
+                        showPanel('pdfmode');
+                    }
+                }, 10000);
+                const origGameId = state.currentGameId;
+                const clearPdfTimeout = () => { clearTimeout(pdfTimeout); socket.off('game-question', clearPdfTimeout); socket.off('game-error', onPdfError); };
+                const onPdfError = (msg) => { clearTimeout(pdfTimeout); toast(typeof msg === 'string' ? msg : 'Failed to start PDF quiz', 'error'); showView('view-dashboard'); showPanel('pdfmode'); socket.off('game-question', clearPdfTimeout); };
+                socket.once('game-error', onPdfError);
+                socket.on('game-question', clearPdfTimeout);
             } else {
                 const maxPlayers = parseInt($('pdf-max-players').value) || 2;
                 const isPublic = $('pdf-lobby-public').checked;
@@ -348,7 +367,8 @@
             if (!res.ok) throw new Error(data.error || 'Failed');
 
             const gameType = document.querySelector('input[name="pdf-reuse-game-type"]:checked').value;
-            const timeLimit = parseInt($('pdf-reuse-time').value) || 15;
+            const rawReuseTime = parseInt($('pdf-reuse-time').value);
+            const timeLimit = isNaN(rawReuseTime) ? 15 : rawReuseTime;
             const topic = data.fileInfo.fileName.replace(/\.[^.]+$/, '');
 
             if (gameType === 'solo') {
@@ -361,6 +381,19 @@
                 QV.clearGameState();
                 showView('view-game');
                 $('game-question-text').textContent = 'Starting PDF quiz...';
+
+                // Safety: if no game-question arrives within 10s, bail out
+                const pdfTimeout = setTimeout(() => {
+                    if (!state.currentGameId) {
+                        toast('Failed to start PDF quiz. Please try again.', 'error');
+                        showView('view-dashboard');
+                        showPanel('pdfmode');
+                    }
+                }, 10000);
+                const clearPdfTimeout = () => { clearTimeout(pdfTimeout); socket.off('game-question', clearPdfTimeout); socket.off('game-error', onPdfError); };
+                const onPdfError = (msg) => { clearTimeout(pdfTimeout); toast(typeof msg === 'string' ? msg : 'Failed to start PDF quiz', 'error'); showView('view-dashboard'); showPanel('pdfmode'); socket.off('game-question', clearPdfTimeout); };
+                socket.once('game-error', onPdfError);
+                socket.on('game-question', clearPdfTimeout);
             } else {
                 const maxPlayers = parseInt($('pdf-reuse-max-players').value) || 2;
                 const isPublic = $('pdf-reuse-lobby-public').checked;

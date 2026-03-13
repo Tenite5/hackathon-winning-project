@@ -420,7 +420,8 @@
         $('btn-start-solo').disabled = true;
         const topic = $('solo-topic').value.trim() || 'General Knowledge';
         const questionCount = parseInt($('solo-questions').value) || 5;
-        const timeLimit = parseInt($('solo-time').value) || 10;
+        const rawTime = parseInt($('solo-time').value);
+        const timeLimit = isNaN(rawTime) ? 10 : rawTime;
         socket.emit('solo-start', { topic, questionCount, timeLimit });
         hideModal('modal-solo');
         toast('Generating questions...', 'info');

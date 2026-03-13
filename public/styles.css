@@ -4430,9 +4430,11 @@ input::placeholder {
   margin-bottom: 1rem;
 }
 
-.pdf-file-name {
+.pdf-file-name,
+#pdf-reuse-filename {
   font-weight: 600;
   word-break: break-all;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* Page notice */
@@ -4522,6 +4524,7 @@ input::placeholder {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 .saved-pdf-meta {

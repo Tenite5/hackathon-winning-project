@@ -262,7 +262,9 @@ module.exports = function (io, socket, getCurrentUser) {
             return socket.emit('game-error', 'No questions provided');
         }
 
-        const tLimit = validateInt(timeLimit, 5, 60, 15);
+        // 0 = infinite time (solo only), otherwise clamp 5-60
+        const rawPdfTime = parseInt(timeLimit, 10);
+        const tLimit = rawPdfTime === 0 ? 0 : validateInt(timeLimit, 5, 60, 15);
         const cleanTopic = sanitizeText(topic, 100) || 'PDF Quiz';
         const gameId = uuidv4();
 
