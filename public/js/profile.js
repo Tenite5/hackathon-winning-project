@@ -364,12 +364,15 @@
         $('settings-username').value = state.user.username;
         settingsAvatarData = null;
         const img = $('settings-avatar-img');
+        const zone = $('settings-avatar-zone');
         if (state.user.photoURL) {
             img.src = state.user.photoURL;
             img.style.display = 'block';
+            zone.classList.add('has-avatar');
         } else {
             img.src = '';
             img.style.display = 'none';
+            zone.classList.remove('has-avatar');
         }
         $('settings-error').classList.add('hidden');
         $('settings-status').classList.add('hidden');
@@ -402,6 +405,7 @@
                 const preview = $('settings-avatar-img');
                 preview.src = settingsAvatarData;
                 preview.style.display = 'block';
+                $('settings-avatar-zone').classList.add('has-avatar');
                 $('settings-error').classList.add('hidden');
             };
             img.src = e.target.result;
@@ -459,6 +463,7 @@
         const img = $('settings-avatar-img');
         img.src = '';
         img.style.display = 'none';
+        $('settings-avatar-zone').classList.remove('has-avatar');
     });
 
     // Save settings
