@@ -878,9 +878,9 @@
   <!-- ═══════════════════════════════════════════ -->
   <div id="overlay-queue" class="overlay hidden">
     <div class="overlay-content glass-card">
-      <div class="queue-spinner"></div>
+      <div class="queue-spinner" id="queue-spinner"></div>
       <h2>Finding Opponent...</h2>
-      <p class="text-muted">Sit tight. Matching you with a worthy rival.</p>
+      <p class="text-muted" id="queue-status-text">Sit tight. Matching you with a worthy rival.</p>
       <button class="btn btn-ghost" id="btn-cancel-queue">Cancel</button>
     </div>
   </div>
@@ -1207,55 +1207,100 @@
   <!-- GAME VIEW -->
   <!-- ═══════════════════════════════════════════ -->
   <div id="view-game" class="view">
-    <div class="game-container">
-      <!-- Header -->
-      <div class="game-header">
-        <div class="game-scoreboard" id="game-scoreboard">
-          <div class="game-player game-player-left">
-            <span class="game-player-name" id="game-p1-name"></span>
-            <span class="game-player-score" id="game-p1-score">0</span>
-          </div>
-          <div class="game-vs">
-            <span class="game-question-counter" id="game-q-counter"></span>
-          </div>
-          <div class="game-player game-player-right">
-            <span class="game-player-name" id="game-p2-name"></span>
-            <span class="game-player-score" id="game-p2-score">0</span>
-          </div>
-        </div>
-        <div class="game-timer-bar">
-          <div class="game-timer-fill" id="game-timer-fill"></div>
+    <div class="game-layout">
+
+      <!-- Players Sidebar (multiplayer only) -->
+      <div class="game-players-sidebar hidden" id="game-players-sidebar">
+        <div class="game-players-sidebar-inner">
+          <div class="sidebar-label">Players</div>
+          <div id="game-players-list"></div>
+          <button class="btn btn-ghost btn-sm sidebar-more-btn hidden" id="btn-sidebar-more">+ More</button>
         </div>
       </div>
 
-      <!-- Question -->
-      <div class="game-question-area">
-        <div class="game-topic-label" id="game-topic-label"></div>
-        <h2 class="game-question-text" id="game-question-text">Waiting for question...</h2>
-        <div class="game-options" id="game-options"></div>
-        <div class="game-feedback hidden" id="game-feedback"></div>
-      </div>
+      <!-- Main game area -->
+      <div class="game-container">
+        <!-- Header -->
+        <div class="game-header">
+          <div class="game-scoreboard" id="game-scoreboard">
+            <div class="game-player game-player-left">
+              <span class="game-player-name" id="game-p1-name"></span>
+              <span class="game-player-score" id="game-p1-score">0</span>
+            </div>
+            <div class="game-vs">
+              <span class="game-question-counter" id="game-q-counter"></span>
+            </div>
+            <div class="game-player game-player-right">
+              <span class="game-player-name" id="game-p2-name"></span>
+              <span class="game-player-score" id="game-p2-score">0</span>
+            </div>
+          </div>
+          <div class="game-timer-bar">
+            <div class="game-timer-fill" id="game-timer-fill"></div>
+          </div>
+        </div>
 
-      <!-- In-Game Chat Toggle -->
-      <button class="game-chat-toggle" id="game-chat-toggle">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-        </svg>
-      </button>
-      <div class="game-chat-panel hidden" id="game-chat-panel">
-        <div class="game-chat-messages" id="game-chat-messages"></div>
-        <div class="game-chat-input-row">
-          <input type="text" id="game-chat-input" placeholder="Chat..." maxlength="200" />
-          <button class="btn btn-primary btn-sm" id="btn-game-chat-send">Send</button>
+        <!-- Question -->
+        <div class="game-question-area">
+          <div class="game-topic-label" id="game-topic-label"></div>
+          <h2 class="game-question-text" id="game-question-text">Waiting for question...</h2>
+          <div class="game-options" id="game-options"></div>
+          <div class="game-feedback hidden" id="game-feedback"></div>
+        </div>
+
+        <!-- Leave Game Button -->
+        <div class="game-leave-row">
+          <button class="btn btn-danger btn-sm" id="btn-leave-game">Leave Game</button>
+        </div>
+
+        <!-- In-Game Chat Toggle -->
+        <button class="game-chat-toggle" id="game-chat-toggle">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </button>
+        <div class="game-chat-panel hidden" id="game-chat-panel">
+          <div class="game-chat-messages" id="game-chat-messages"></div>
+          <div class="game-chat-input-row">
+            <input type="text" id="game-chat-input" placeholder="Chat..." maxlength="200" />
+            <button class="btn btn-primary btn-sm" id="btn-game-chat-send">Send</button>
+          </div>
+        </div>
+
+        <!-- Round Results Overlay (for 3+ players) -->
+        <div id="round-results-overlay" class="round-results-overlay hidden">
+          <div class="round-results-card glass-card">
+            <h3>📊 Round Results</h3>
+            <div id="round-results-list" class="round-results-list"></div>
+          </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Round Results Overlay (for 3+ players) -->
-      <div id="round-results-overlay" class="round-results-overlay hidden">
-        <div class="round-results-card glass-card">
-          <h3>📊 Round Results</h3>
-          <div id="round-results-list" class="round-results-list"></div>
+  <!-- Player Info Popup (in-game) -->
+  <div id="modal-ingame-profile" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="modal-ingame-profile"></div>
+    <div class="modal-content glass-card ingame-profile-popup">
+      <div class="ingame-profile-header">
+        <div class="ingame-profile-avatar" id="igp-avatar">
+          <img id="igp-avatar-img" src="" alt="" class="hidden" />
+          <span id="igp-avatar-letter"></span>
         </div>
+        <div class="ingame-profile-info">
+          <div class="ingame-profile-name" id="igp-username"></div>
+          <div class="ingame-profile-rank" id="igp-rank"></div>
+          <div class="ingame-profile-elo" id="igp-elo"></div>
+        </div>
+      </div>
+      <div class="ingame-profile-stats">
+        <div class="igp-stat"><span id="igp-wins">0</span><span>Wins</span></div>
+        <div class="igp-stat"><span id="igp-losses">0</span><span>Losses</span></div>
+        <div class="igp-stat"><span id="igp-accuracy">0%</span><span>Accuracy</span></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-sm" id="btn-igp-add-friend">Add Friend</button>
+        <button class="btn btn-ghost btn-sm" data-close-modal="modal-ingame-profile">Close</button>
       </div>
     </div>
   </div>
@@ -1283,7 +1328,8 @@
         </div>
 
         <div class="game-over-actions">
-          <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+          <button class="btn btn-primary hidden" id="btn-rematch">Rematch</button>
+          <button class="btn btn-ghost hidden" id="btn-play-again">Play Again</button>
           <button class="btn btn-ghost" id="btn-back-dashboard">Back to Dashboard</button>
         </div>
       </div>
@@ -1377,6 +1423,7 @@
         </div>
       </div>
       <div class="modal-actions">
+        <button class="btn btn-primary btn-sm hidden" id="btn-modal-add-friend">Add Friend</button>
         <button class="btn btn-ghost" data-close-modal="modal-user-profile">Close</button>
       </div>
     </div>

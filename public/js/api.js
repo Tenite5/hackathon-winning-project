@@ -24,6 +24,8 @@ window.QV = window.QV || {};
         dmFriendId: null,
         lastGameData: null,
         isStartingGame: false,
+        leavingGame: false,
+        currentQuestionId: null,
         pendingChallengeToId: null,
     };
 

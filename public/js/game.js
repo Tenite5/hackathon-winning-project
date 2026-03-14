@@ -1,13 +1,24 @@
 /**
  * @file public/js/game.js
- * @description Game UI — question rendering, timer, answer result, game-over, play-again.
+ * @description Game UI — question rendering, timer, answer result, game-over, play-again/rematch.
  */
 
 (function () {
     'use strict';
     const { $, state, socket, showView, showPanel, toast, escapeHtml } = QV;
 
-    // ── Clear stale game UI ───────────────────────────────────
+    // ── ELO rank helper ────────────────────────────────────────────
+    function getRankLabel(elo) {
+        if (elo >= 2000) return { name: 'Grandmaster', color: '#e74c3c' };
+        if (elo >= 1800) return { name: 'Master', color: '#9b59b6' };
+        if (elo >= 1600) return { name: 'Diamond', color: '#74b9ff' };
+        if (elo >= 1400) return { name: 'Platinum', color: '#b2bec3' };
+        if (elo >= 1200) return { name: 'Gold', color: '#f1c40f' };
+        if (elo >= 1000) return { name: 'Silver', color: '#95a5a6' };
+        return { name: 'Bronze', color: '#cd7f32' };
+    }
+
+    // ── Clear stale game UI ───────────────────────────────────────
     function clearGameState() {
         $('game-question-text').textContent = 'Loading questions...';
         $('game-options').innerHTML = '';
@@ -24,51 +35,221 @@
         }
         const roundOverlay = document.getElementById('round-results-overlay');
         if (roundOverlay) roundOverlay.classList.add('hidden');
-        // Clear game chat
         const chatMsgs = $('game-chat-messages');
         if (chatMsgs) chatMsgs.innerHTML = '';
         const chatPanel = $('game-chat-panel');
         if (chatPanel) chatPanel.classList.add('hidden');
         clearInterval(state.gameTimerInterval);
+        // Hide players sidebar
+        const sidebar = $('game-players-sidebar');
+        if (sidebar) sidebar.classList.add('hidden');
     }
     QV.clearGameState = clearGameState;
 
+    // ── Render players sidebar ────────────────────────────────────
+    let _hiddenPlayers = [];
+
+    function renderPlayersSidebar(scores, gameType) {
+        const sidebar = $('game-players-sidebar');
+        const list = $('game-players-list');
+        const moreBtn = $('btn-sidebar-more');
+        if (!sidebar || !list) return;
+
+        // Only show for multiplayer games
+        if (!scores || scores.length < 2 || gameType === 'solo') {
+            sidebar.classList.add('hidden');
+            return;
+        }
+
+        sidebar.classList.remove('hidden');
+        list.innerHTML = '';
+        _hiddenPlayers = [];
+
+        const MAX_VISIBLE = 5;
+        const visible = scores.slice(0, MAX_VISIBLE);
+        const hidden = scores.slice(MAX_VISIBLE);
+        _hiddenPlayers = hidden;
+
+        visible.forEach(p => {
+            list.appendChild(createPlayerCard(p));
+        });
+
+        if (hidden.length > 0) {
+            moreBtn.classList.remove('hidden');
+            moreBtn.textContent = `+${hidden.length} More`;
+        } else {
+            moreBtn.classList.add('hidden');
+        }
+    }
+
+    function createPlayerCard(p) {
+        const isMe = state.user && p.userId === state.user.id;
+        const rank = getRankLabel(p.elo || 1000);
+        const card = document.createElement('div');
+        card.className = `sidebar-player-card${isMe ? ' is-me' : ''}`;
+        card.dataset.userId = p.userId;
+
+        const avatarBg = rank.color;
+        const letter = (p.username || '?')[0].toUpperCase();
+        const imgHtml = p.photoURL
+            ? `<img src="${escapeHtml(p.photoURL)}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'" /><span style="display:none">${letter}</span>`
+            : `<span>${letter}</span>`;
+
+        card.innerHTML = `
+            <div class="sidebar-player-avatar" style="background:${avatarBg}">${imgHtml}</div>
+            <div class="sidebar-player-details">
+                <div class="sidebar-player-name">${escapeHtml(p.username)}${isMe ? ' ★' : ''}</div>
+                <div class="sidebar-player-elo">${p.elo || 1000} • ${rank.name}</div>
+            </div>
+        `;
+
+        // Clicking a card (not self) opens the in-game profile popup
+        if (!isMe) {
+            card.addEventListener('click', () => openIngameProfile(p.userId));
+        }
+
+        return card;
+    }
+
+    // ── More button: show hidden players ─────────────────────────
+    $('btn-sidebar-more').addEventListener('click', () => {
+        const list = $('game-players-list');
+        _hiddenPlayers.forEach(p => list.appendChild(createPlayerCard(p)));
+        $('btn-sidebar-more').classList.add('hidden');
+        _hiddenPlayers = [];
+    });
+
+    // ── In-game profile popup ─────────────────────────────────────
+    let _igpUserId = null;
+
+    async function openIngameProfile(userId) {
+        _igpUserId = userId;
+        try {
+            const data = await QV.api(`/profile/${userId}`);
+            const u = data.user;
+            const rank = getRankLabel(u.elo || 0);
+
+            $('igp-avatar-letter').textContent = u.username[0].toUpperCase();
+            const img = $('igp-avatar-img');
+            if (u.photoURL) {
+                img.src = u.photoURL;
+                img.classList.remove('hidden');
+                $('igp-avatar-letter').style.display = 'none';
+            } else {
+                img.classList.add('hidden');
+                $('igp-avatar-letter').style.display = '';
+            }
+            $('igp-avatar').style.background = rank.color;
+
+            $('igp-username').textContent = u.username;
+            $('igp-rank').textContent = rank.name;
+            $('igp-elo').textContent = `${u.elo} ELO`;
+
+            const acc = u.stats.totalAnswers > 0
+                ? Math.round((u.stats.correctAnswers / u.stats.totalAnswers) * 100) : 0;
+            $('igp-wins').textContent = u.stats.totalWins || 0;
+            $('igp-losses').textContent = u.stats.totalLosses || 0;
+            $('igp-accuracy').textContent = acc + '%';
+
+            // Show/hide add friend button
+            const addBtn = $('btn-igp-add-friend');
+            if (state.user) {
+                const alreadyFriend = state.user.friends && state.user.friends.includes(userId);
+                if (alreadyFriend) {
+                    addBtn.textContent = 'Friends ✓';
+                    addBtn.disabled = true;
+                } else {
+                    addBtn.textContent = 'Add Friend';
+                    addBtn.disabled = false;
+                }
+            }
+
+            QV.showModal('modal-ingame-profile');
+        } catch (err) {
+            toast('Could not load profile.', 'error');
+        }
+    }
+
+    $('btn-igp-add-friend').addEventListener('click', async () => {
+        if (!_igpUserId) return;
+        try {
+            await QV.api(`/friends/request/${_igpUserId}`, { method: 'POST' });
+            toast('Friend request sent!', 'success');
+            $('btn-igp-add-friend').textContent = 'Sent ✓';
+            $('btn-igp-add-friend').disabled = true;
+        } catch (err) {
+            toast(err.message || 'Could not send request.', 'error');
+        }
+    });
+
     // ── Quick Game ─────────────────────────────────────────────
+    let _queueTimeout = null;
+
     $('btn-quick-game').addEventListener('click', () => {
         if (state.isStartingGame) return;
         state.isStartingGame = true;
         $('btn-quick-game').disabled = true;
         socket.emit('queue-join');
-        $('overlay-queue').classList.remove('hidden');
+        showQueueOverlay();
         setTimeout(() => { state.isStartingGame = false; $('btn-quick-game').disabled = false; }, 3000);
     });
 
+    function showQueueOverlay() {
+        $('overlay-queue').classList.remove('hidden');
+        $('queue-status-text').textContent = 'Sit tight. Matching you with a worthy rival.';
+        clearTimeout(_queueTimeout);
+        // Auto-cancel after 90 seconds to prevent getting stuck
+        _queueTimeout = setTimeout(() => {
+            if (!$('overlay-queue').classList.contains('hidden')) {
+                socket.emit('queue-leave');
+                hideQueueOverlay();
+                toast('No opponents found right now. Try again!', 'info');
+                state.isStartingGame = false;
+                $('btn-quick-game').disabled = false;
+            }
+        }, 90000);
+        // Show "still searching" after 20s
+        setTimeout(() => {
+            const overlay = $('overlay-queue');
+            if (overlay && !overlay.classList.contains('hidden')) {
+                $('queue-status-text').textContent = 'Still searching... Hang tight!';
+            }
+        }, 20000);
+    }
+
+    function hideQueueOverlay() {
+        $('overlay-queue').classList.add('hidden');
+        clearTimeout(_queueTimeout);
+        _queueTimeout = null;
+    }
+
     $('btn-cancel-queue').addEventListener('click', () => {
         socket.emit('queue-leave');
-        $('overlay-queue').classList.add('hidden');
+        hideQueueOverlay();
     });
 
     socket.on('queue-matched', ({ opponent, topic }) => {
-        $('overlay-queue').classList.add('hidden');
+        hideQueueOverlay();
         clearGameState();
         toast(`Matched with ${opponent.username}! Topic: ${topic}`, 'success');
     });
 
     socket.on('queue-error', ({ message }) => {
-        $('overlay-queue').classList.add('hidden');
+        hideQueueOverlay();
         toast(message || 'Matchmaking failed. Please try again.', 'error');
     });
 
     // ── Solo Mode ──────────────────────────────────────────────
     $('btn-solo-mode').addEventListener('click', () => QV.showModal('modal-solo'));
 
-    // Preset/topic interaction for solo modal
     $('solo-preset-select').addEventListener('change', function () {
         if (this.value) $('solo-topic').value = '';
     });
     $('solo-topic').addEventListener('input', function () {
         if (this.value.trim()) $('solo-preset-select').value = '';
     });
+
+    let _soloGenTimeout = null;
 
     $('btn-start-solo').addEventListener('click', () => {
         if (state.isStartingGame) return;
@@ -77,7 +258,6 @@
 
         const presetId = $('solo-preset-select').value;
         if (presetId) {
-            // Use preset questions via solo
             socket.emit('preset-start', { presetId });
             QV.hideModal('modal-solo');
             toast('Creating preset game...', 'info');
@@ -91,17 +271,31 @@
             toast('Generating questions...', 'info');
         }
 
+        // Safety timeout: if no game starts in 40s, go back to dashboard
+        _soloGenTimeout = setTimeout(() => {
+            if (state.isStartingGame) {
+                state.isStartingGame = false;
+                $('btn-start-solo').disabled = false;
+                if ($('view-game').classList.contains('active') || document.getElementById('view-game').style.display !== 'none') {
+                    showView('view-dashboard');
+                    showPanel('home');
+                    toast('Game generation timed out. Please try again.', 'error');
+                }
+            }
+        }, 40000);
+
         setTimeout(() => { state.isStartingGame = false; $('btn-start-solo').disabled = false; }, 5000);
     });
 
     socket.on('solo-generating', () => {
+        clearTimeout(_soloGenTimeout);
         clearGameState();
         showView('view-game');
         $('game-question-text').textContent = 'AI is generating questions...';
     });
 
-    // Handle preset solo game starting directly (no lobby)
     socket.on('solo-game-start', ({ gameId }) => {
+        clearTimeout(_soloGenTimeout);
         state.currentGameId = gameId;
         state.isStartingGame = false;
         clearGameState();
@@ -134,6 +328,9 @@
         state.gameTimeLeft = data.timeLimit;
 
         showView('view-game');
+
+        // Render players sidebar
+        renderPlayersSidebar(data.scores, data.gameType);
 
         const scoreboard = $('game-scoreboard');
         if (data.playerCount && data.playerCount > 2) {
@@ -180,7 +377,6 @@
         const fill = $('game-timer-fill');
         const timerBar = fill ? fill.parentElement : null;
 
-        // Infinite time mode — hide the timer bar entirely
         if (limit === 0) {
             if (timerBar) timerBar.style.display = 'none';
             return;
@@ -270,8 +466,31 @@
         }
     });
 
+    // ── Leave Game ─────────────────────────────────────────────
+    $('btn-leave-game').addEventListener('click', () => {
+        const gameId = state.currentGameId;
+        if (!gameId) {
+            showView('view-dashboard');
+            showPanel('home');
+            return;
+        }
+        if (!confirm('Leave game? In multiplayer this counts as a forfeit and you will lose ELO.')) return;
+
+        clearInterval(state.gameTimerInterval);
+        state.leavingGame = true;
+        state.currentGameId = null;
+        socket.emit('game-leave', { gameId });
+        clearGameState();
+        showView('view-dashboard');
+        showPanel('home');
+        toast('You left the game.', 'info');
+    });
+
     // ── Game Over ──────────────────────────────────────────────
     socket.on('game-over', (data) => {
+        // If the player left voluntarily, skip — app.js (loaded after) will clear the flag
+        if (state.leavingGame) return;
+
         clearInterval(state.gameTimerInterval);
         state.lastGameData = data;
         state.currentGameId = null;
@@ -308,7 +527,7 @@
             const card = document.createElement('div');
             card.className = `go-score-card ${data.winner && p.userId === data.winner.userId ? 'winner' : ''}`;
             card.innerHTML = `
-                <div class="go-score-name">${p.username}</div>
+                <div class="go-score-name">${escapeHtml(p.username)}</div>
                 <div class="go-score-value">${p.score}</div>
             `;
             scoresEl.appendChild(card);
@@ -322,8 +541,6 @@
                 const display = $('elo-change-display');
                 display.className = `elo-change ${me.eloChange > 0 ? 'positive' : 'negative'}`;
                 display.textContent = `Elo: ${me.elo} (${me.eloChange > 0 ? '+' : ''}${me.eloChange})`;
-            }
-            if (me) {
                 state.user.elo = me.elo;
                 QV.updateNavUser();
             }
@@ -355,24 +572,49 @@
             `;
             reviewEl.appendChild(item);
         });
+
+        // Show correct action buttons based on game type
+        const rematchBtn = $('btn-rematch');
+        const playAgainBtn = $('btn-play-again');
+        const isSolo = !data.players || data.players.length < 2 ||
+            (data.players.length === 2 && data.players.every(p => p.userId === state.user.id));
+
+        if (isSolo || (data.players && data.players.length === 1)) {
+            rematchBtn.classList.add('hidden');
+            playAgainBtn.classList.remove('hidden');
+        } else {
+            // Multiplayer: show rematch button
+            const opponent = (data.players || []).find(p => p.userId !== state.user.id);
+            if (opponent) {
+                rematchBtn.classList.remove('hidden');
+                rematchBtn.dataset.opponentId = opponent.userId;
+                rematchBtn.dataset.topic = data.topic || '';
+            } else {
+                rematchBtn.classList.add('hidden');
+            }
+            playAgainBtn.classList.add('hidden');
+        }
     });
 
-    $('btn-play-again').addEventListener('click', () => {
-        if (!state.lastGameData) {
+    // ── Rematch ────────────────────────────────────────────────
+    $('btn-rematch').addEventListener('click', () => {
+        const opponentId = $('btn-rematch').dataset.opponentId;
+        const topic = $('btn-rematch').dataset.topic;
+        if (!opponentId) {
             showView('view-dashboard');
             showPanel('home');
             return;
         }
-        const lastGame = state.lastGameData;
-        if (lastGame.topic) {
-            socket.emit('queue-join');
-            $('overlay-queue').classList.remove('hidden');
-            showView('view-dashboard');
-            showPanel('home');
-        } else {
-            showView('view-dashboard');
-            showPanel('home');
-        }
+        socket.emit('challenge-friend', { friendId: opponentId, topic: topic || 'General Knowledge' });
+        showView('view-dashboard');
+        showPanel('home');
+        toast('Rematch challenge sent!', 'info');
+    });
+
+    // ── Play Again (solo) ──────────────────────────────────────
+    $('btn-play-again').addEventListener('click', () => {
+        showView('view-dashboard');
+        showPanel('home');
     });
 
     $('btn-back-dashboard').addEventListener('click', () => {

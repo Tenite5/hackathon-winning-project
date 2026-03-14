@@ -636,120 +636,11 @@
         }
     });
 
-    // ── Game Over ──────────────────────────────────────────────
-    socket.on('game-over', (data) => {
-        clearInterval(state.gameTimerInterval);
-        state.lastGameData = data;
-        state.currentGameId = null;
-
-        showView('view-game-over');
-
-        const banner = $('game-over-banner');
-        const title = $('game-over-title');
-        const subtitle = $('game-over-subtitle');
-
-        banner.className = 'game-over-banner';
-
-        if (data.reason === 'opponent-disconnect') {
-            banner.classList.add('victory');
-            title.textContent = '🏆 Victory!';
-            subtitle.textContent = 'Your opponent disconnected.';
-        } else if (data.isDraw) {
-            banner.classList.add('draw');
-            title.textContent = '🤝 Draw!';
-            subtitle.textContent = 'Perfectly matched. Rematch?';
-        } else if (data.winner && data.winner.userId === state.user.id) {
-            banner.classList.add('victory');
-            title.textContent = '🏆 Victory!';
-            subtitle.textContent = 'You dominated that round!';
-        } else {
-            banner.classList.add('defeat');
-            title.textContent = '💀 Defeated';
-            subtitle.textContent = 'Better luck next time.';
-        }
-
-        // Scores
-        const scoresEl = $('game-over-scores');
-        scoresEl.innerHTML = '';
-        (data.players || []).forEach(p => {
-            const card = document.createElement('div');
-            card.className = `go-score-card ${data.winner && p.userId === data.winner.userId ? 'winner' : ''}`;
-            card.innerHTML = `
-        <div class="go-score-name">${p.username}</div>
-        <div class="go-score-value">${p.score}</div>
-      `;
-            scoresEl.appendChild(card);
-        });
-
-        // Elo change
-        const eloSection = $('game-over-elo');
-        if (data.eloDelta !== undefined) {
-            eloSection.classList.remove('hidden');
-            const me = data.players.find(p => p.userId === state.user.id);
-            if (me) {
-                const display = $('elo-change-display');
-                display.className = `elo-change ${me.eloChange > 0 ? 'positive' : 'negative'}`;
-                display.textContent = `Elo: ${me.elo} (${me.eloChange > 0 ? '+' : ''}${me.eloChange})`;
-            }
-            // Update local state
-            if (me) {
-                state.user.elo = me.elo;
-                updateNavUser();
-            }
-        } else {
-            eloSection.classList.add('hidden');
-        }
-
-        // Question review
-        const reviewEl = $('game-over-questions');
-        reviewEl.innerHTML = '';
-        (data.questions || []).forEach((q, idx) => {
-            const me = (data.players || []).find(p => p.userId === state.user.id);
-            const myAnswer = me && me.answers ? me.answers[idx] : null;
-
-            let status = 'review-timeout';
-            if (myAnswer && myAnswer.isCorrect) status = 'review-correct';
-            else if (myAnswer && myAnswer.answerIndex >= 0) status = 'review-wrong';
-
-            const item = document.createElement('div');
-            item.className = `review-item ${status}`;
-            item.innerHTML = `
-        <div class="review-question">${idx + 1}. ${q.question}</div>
-        <div class="review-answer">
-          ${myAnswer && myAnswer.answerIndex >= 0 && !myAnswer.isCorrect
-                    ? `<span class="review-your-answer">Your answer: ${q.options[myAnswer.answerIndex]}</span>` : ''}
-          ${myAnswer && myAnswer.isCorrect
-                    ? `<span class="review-correct-answer">✓ ${q.options[q.correct]}</span>`
-                    : `<span class="review-correct-answer">Correct: ${q.options[q.correct]}</span>`}
-        </div>
-      `;
-            reviewEl.appendChild(item);
-        });
-    });
-
-    $('btn-play-again').addEventListener('click', () => {
-        if (!state.lastGameData) {
-            showView('view-dashboard');
-            showPanel('home');
-            return;
-        }
-        const lastGame = state.lastGameData;
-        // Re-queue or re-start based on previous game type
-        if (lastGame.topic) {
-            // For quick games, re-enter the queue
-            socket.emit('queue-join');
-            $('overlay-queue').classList.remove('hidden');
-            showView('view-dashboard');
-            showPanel('home');
-        } else {
-            showView('view-dashboard');
-            showPanel('home');
-        }
-    });
-
-    $('btn-back-dashboard').addEventListener('click', () => {
-        showView('view-dashboard');
-        showPanel('home');
+    // ── Game Over (legacy handler — game.js handles UI; this clears leavingGame flag)
+    socket.on('game-over', () => {
+        // game.js (loaded first) already handled the UI.
+        // If the player left voluntarily, clear the flag here.
+        if (state.leavingGame) state.leavingGame = false;
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -1192,7 +1083,10 @@
     // ═══════════════════════════════════════════════════════════════
     // PUBLIC PROFILE VIEWER
     // ═══════════════════════════════════════════════════════════════
+    let _modalProfileUserId = null;
+
     async function openUserProfile(userId) {
+        _modalProfileUserId = userId;
         try {
             const data = await api(`/profile/${userId}`);
             const u = data.user;
@@ -1212,11 +1106,40 @@
                 : 0;
             $('modal-stat-accuracy').textContent = acc + '%';
 
+            // Show add-friend button (hide if viewing own profile or already friends)
+            const addFriendBtn = $('btn-modal-add-friend');
+            if (addFriendBtn && state.user && userId !== state.user.id) {
+                const alreadyFriend = state.user.friends && state.user.friends.includes(userId);
+                addFriendBtn.classList.remove('hidden');
+                addFriendBtn.disabled = alreadyFriend;
+                addFriendBtn.textContent = alreadyFriend ? 'Friends ✓' : 'Add Friend';
+            } else if (addFriendBtn) {
+                addFriendBtn.classList.add('hidden');
+            }
+
             showModal('modal-user-profile');
         } catch (err) {
             toast('Could not load profile: ' + err.message, 'error');
         }
     }
+
+    const btnModalAddFriend = $('btn-modal-add-friend');
+    if (btnModalAddFriend) {
+        btnModalAddFriend.addEventListener('click', async () => {
+            if (!_modalProfileUserId) return;
+            try {
+                await api(`/friends/request/${_modalProfileUserId}`, { method: 'POST' });
+                toast('Friend request sent!', 'success');
+                btnModalAddFriend.textContent = 'Sent ✓';
+                btnModalAddFriend.disabled = true;
+            } catch (err) {
+                toast(err.message || 'Could not send request.', 'error');
+            }
+        });
+    }
+
+    // Expose globally so other modules can open profile modals
+    QV.openUserProfile = openUserProfile;
 
     // ═══════════════════════════════════════════════════════════════
     // UTILITY

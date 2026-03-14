@@ -144,7 +144,11 @@ function startGameQuestion(gameId, io) {
         encoded: true,
         timeLimit: game.timeLimit,
         playerCount: game.players.length,
-        scores: game.players.map(p => ({ userId: p.userId, username: p.username, score: p.score })),
+        gameType: game.type,
+        scores: game.players.map(p => {
+            const u = db.users.get(p.userId);
+            return { userId: p.userId, username: p.username, score: p.score, elo: u ? u.elo : 1000, photoURL: u ? (u.photoURL || null) : null };
+        }),
     });
 
     // timeLimit === 0 means infinite time (solo practice) — no auto-timeout
@@ -608,11 +612,32 @@ function handleDisconnectFromGames(io, currentUser) {
     }
 }
 
+/** Handle a voluntary forfeit (leave game button). Ends game as a loss for the forfeiter. */
+function handleForfeit(io, socket, currentUser, gameId) {
+    if (!currentUser) return;
+    const game = db.games.get(gameId);
+    if (!game || game.status !== 'playing') return;
+    const player = game.players.find(p => p.userId === currentUser.id);
+    if (!player) return;
+
+    if (game.type === 'solo') {
+        game.status = 'finished';
+        clearTimeout(game.questionTimer);
+        return;
+    }
+
+    // Leave the socket room so the broadcast game-over doesn't loop back to the forfeiter
+    if (socket) socket.leave(gameId);
+
+    handleDisconnectFromGames(io, currentUser);
+}
+
 module.exports = {
     startGameQuestion,
     proceedToNextQuestion,
     endGame,
     handleAnswer,
     handleDisconnectFromGames,
+    handleForfeit,
     recordWrongAnswers,
 };
