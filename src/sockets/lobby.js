@@ -41,6 +41,11 @@ module.exports = function (io, socket, getCurrentUser) {
         db.lobbies.set(lobbyId, lobby);
         socket.join(lobbyId);
 
+        // Pre-generate questions in the background so they're ready when game starts
+        lobby._preGenPromise = generateQuestions(lobby.topic, lobby.questionCount)
+            .then(q => { lobby._preGenQuestions = q; })
+            .catch(err => { console.warn('Lobby pre-gen failed:', err.message); });
+
         socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
         io.emit('lobbies-updated');
     });
@@ -124,9 +129,16 @@ module.exports = function (io, socket, getCurrentUser) {
         lobby.status = 'playing';
         io.to(lobbyId).emit('lobby-generating', { topic: lobby.topic });
 
-        const questions = lobby.presetQuestions
-            ? lobby.presetQuestions
-            : await generateQuestions(lobby.topic, lobby.questionCount);
+        let questions;
+        if (lobby.presetQuestions) {
+            questions = lobby.presetQuestions;
+        } else {
+            // Await pre-generation if still in progress, then use result or fall back
+            if (lobby._preGenPromise) {
+                try { await lobby._preGenPromise; } catch (e) { /* handled below */ }
+            }
+            questions = lobby._preGenQuestions || await generateQuestions(lobby.topic, lobby.questionCount);
+        }
 
         const gameId = uuidv4();
         const game = {

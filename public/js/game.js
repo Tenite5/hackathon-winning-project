@@ -232,6 +232,10 @@
     socket.on('queue-matched', ({ opponent, topic }) => {
         hideQueueOverlay();
         clearGameState();
+        // Show loading overlay while questions are generated
+        $('generating-title').textContent = 'Generating Questions...';
+        $('generating-topic-text').textContent = `Topic: ${topic} · Opponent: ${opponent.username}`;
+        $('overlay-generating').classList.remove('hidden');
         toast(`Matched with ${opponent.username}! Topic: ${topic}`, 'success');
     });
 
@@ -323,12 +327,21 @@
             }
         }
 
+        // Hide loading overlay when game starts
+        $('overlay-generating').classList.add('hidden');
+
         state.isStartingGame = false;
         state.currentGameId = data.gameId;
         state.gameTimeLimit = data.timeLimit;
         state.gameTimeLeft = data.timeLimit;
 
         showView('view-game');
+
+        // Set room title at top of game
+        if (data.topic) {
+            $('game-room-title').textContent = data.topic;
+            $('game-room-title').style.display = '';
+        }
 
         // Render players sidebar
         renderPlayersSidebar(data.scores, data.gameType);

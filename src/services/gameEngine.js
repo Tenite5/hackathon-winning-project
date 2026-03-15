@@ -145,6 +145,7 @@ function startGameQuestion(gameId, io) {
         timeLimit: game.timeLimit,
         playerCount: game.players.length,
         gameType: game.type,
+        topic: game.topic,
         scores: game.players.map(p => {
             const u = db.users.get(p.userId);
             return { userId: p.userId, username: p.username, score: p.score, elo: u ? u.elo : 1000, photoURL: u ? (u.photoURL || null) : null };

@@ -886,6 +886,18 @@
   </div>
 
   <!-- ═══════════════════════════════════════════ -->
+  <!-- GENERATING QUESTIONS OVERLAY -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="overlay-generating" class="overlay hidden">
+    <div class="overlay-content glass-card">
+      <div class="queue-spinner"></div>
+      <h2 id="generating-title">Generating Questions...</h2>
+      <p class="text-muted" id="generating-topic-text"></p>
+      <p class="text-muted generating-sub">AI is crafting your questions. This takes a few seconds.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
   <!-- CREATE LOBBY MODAL -->
   <!-- ═══════════════════════════════════════════ -->
   <div id="modal-create-lobby" class="modal hidden">
@@ -1222,6 +1234,7 @@
       <div class="game-container">
         <!-- Header -->
         <div class="game-header">
+          <div class="game-room-title" id="game-room-title"></div>
           <div class="game-scoreboard" id="game-scoreboard">
             <div class="game-player game-player-left">
               <span class="game-player-name" id="game-p1-name"></span>

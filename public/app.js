@@ -302,6 +302,10 @@
         $('game-options').innerHTML = '';
         $('game-feedback').classList.add('hidden');
         $('game-q-counter').textContent = '';
+        // Show loading screen while AI generates questions
+        $('generating-title').textContent = 'Generating Questions...';
+        $('generating-topic-text').textContent = `Topic: ${topic} · Opponent: ${opponent.username}`;
+        $('overlay-generating').classList.remove('hidden');
         toast(`Matched with ${opponent.username}! Topic: ${topic}`, 'success');
     });
 
@@ -346,13 +350,18 @@
     socket.on('lobby-game-start', ({ gameId }) => {
         state.currentGameId = gameId;
         state.currentLobbyId = null;
-        showView('view-game');
         // Clear stale question/feedback from previous game (Firefox fix)
         $('game-question-text').textContent = 'Loading questions...';
         $('game-options').innerHTML = '';
         $('game-feedback').classList.add('hidden');
         $('game-q-counter').textContent = '';
         toast('Game starting!', 'info');
+    });
+
+    socket.on('lobby-generating', ({ topic }) => {
+        $('generating-title').textContent = 'Generating Questions...';
+        $('generating-topic-text').textContent = `Topic: ${topic}`;
+        $('overlay-generating').classList.remove('hidden');
     });
 
     function showLobbyView(lobby, code) {
@@ -475,6 +484,9 @@
             state.currentQuestionId = data.questionId;
         }
 
+        // Hide loading overlay when game actually starts
+        $('overlay-generating').classList.add('hidden');
+
         // Reset starting game lock when first question arrives
         state.isStartingGame = false;
 
@@ -483,6 +495,12 @@
         state.gameTimeLeft = data.timeLimit;
 
         showView('view-game');
+
+        // Set room title
+        if (data.topic) {
+            $('game-room-title').textContent = data.topic;
+            $('game-room-title').style.display = '';
+        }
 
         // Hide scoreboard for 3+ player games (results shown via overlay between rounds)
         const scoreboard = $('game-scoreboard');
