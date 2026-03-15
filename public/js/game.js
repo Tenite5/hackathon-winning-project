@@ -20,6 +20,7 @@
 
     // ── Clear stale game UI ───────────────────────────────────────
     function clearGameState() {
+        state.leavingGame = false;
         $('game-question-text').textContent = 'Loading questions...';
         $('game-options').innerHTML = '';
         $('game-feedback').classList.add('hidden');
@@ -271,7 +272,7 @@
             toast('Generating questions...', 'info');
         }
 
-        // Safety timeout: if no game starts in 40s, go back to dashboard
+        // Safety timeout: if no game starts in 90s, go back to dashboard
         _soloGenTimeout = setTimeout(() => {
             if (state.isStartingGame) {
                 state.isStartingGame = false;
@@ -282,7 +283,7 @@
                     toast('Game generation timed out. Please try again.', 'error');
                 }
             }
-        }, 40000);
+        }, 90000);
 
         setTimeout(() => { state.isStartingGame = false; $('btn-start-solo').disabled = false; }, 5000);
     });
@@ -488,8 +489,11 @@
 
     // ── Game Over ──────────────────────────────────────────────
     socket.on('game-over', (data) => {
-        // If the player left voluntarily, skip — app.js (loaded after) will clear the flag
-        if (state.leavingGame) return;
+        // If the player left voluntarily, skip rendering results
+        if (state.leavingGame) {
+            state.leavingGame = false;
+            return;
+        }
 
         clearInterval(state.gameTimerInterval);
         state.lastGameData = data;

@@ -122,6 +122,8 @@ module.exports = function (io, socket, getCurrentUser) {
         lobby._starting = true;
 
         lobby.status = 'playing';
+        io.to(lobbyId).emit('lobby-generating', { topic: lobby.topic });
+
         const questions = lobby.presetQuestions
             ? lobby.presetQuestions
             : await generateQuestions(lobby.topic, lobby.questionCount);

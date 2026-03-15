@@ -61,6 +61,13 @@
         }
     });
 
+    socket.on('lobby-generating', () => {
+        if (QV.clearGameState) QV.clearGameState();
+        showView('view-game');
+        const qt = $('game-question-text');
+        if (qt) qt.textContent = 'AI is generating questions...';
+    });
+
     socket.on('lobby-game-start', ({ gameId }) => {
         state.currentGameId = gameId;
         state.currentLobbyId = null;
