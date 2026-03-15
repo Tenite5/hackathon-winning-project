@@ -241,7 +241,15 @@
 
     socket.on('queue-error', ({ message }) => {
         hideQueueOverlay();
+        $('overlay-generating').classList.add('hidden');
         toast(message || 'Matchmaking failed. Please try again.', 'error');
+    });
+
+    socket.on('game-error', (message) => {
+        $('overlay-generating').classList.add('hidden');
+        state.isStartingGame = false;
+        $('btn-start-solo').disabled = false;
+        toast(typeof message === 'string' ? message : 'Something went wrong. Please try again.', 'error');
     });
 
     // ── Solo Mode ──────────────────────────────────────────────
@@ -362,9 +370,13 @@
         const roundOverlay = document.getElementById('round-results-overlay');
         if (roundOverlay) roundOverlay.classList.add('hidden');
 
+        // Track if multiplayer for "waiting for opponent" logic
+        state.isMultiplayer = data.playerCount > 1;
+
         $('game-q-counter').textContent = `Q${data.questionIndex + 1}/${data.totalQuestions}`;
         $('game-question-text').textContent = data.question;
         $('game-feedback').classList.add('hidden');
+        $('game-waiting-opponent').classList.add('hidden');
 
         const optionsEl = $('game-options');
         optionsEl.innerHTML = '';
@@ -441,6 +453,11 @@
                     opt.classList.add('wrong');
                 }
             });
+        }
+
+        // Show waiting indicator in multiplayer while the opponent answers
+        if (state.isMultiplayer && !timeout) {
+            $('game-waiting-opponent').classList.remove('hidden');
         }
     });
 

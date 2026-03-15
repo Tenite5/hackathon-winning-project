@@ -314,7 +314,16 @@
     // ═══════════════════════════════════════════════════════════════
     $('btn-custom-game').addEventListener('click', () => showModal('modal-create-lobby'));
 
+    // Clear preset when typing a topic, and vice versa
+    $('lobby-topic').addEventListener('input', function () {
+        if (this.value.trim()) $('lobby-preset-select').value = '';
+    });
+    $('lobby-preset-select').addEventListener('change', function () {
+        if (this.value) $('lobby-topic').value = '';
+    });
+
     $('btn-create-lobby').addEventListener('click', () => {
+        const presetId = $('lobby-preset-select').value || null;
         const topic = $('lobby-topic').value.trim() || 'General Knowledge';
         const timeLimit = parseInt($('lobby-time').value) || 10;
         const questionCount = parseInt($('lobby-questions').value) || 5;
@@ -322,7 +331,7 @@
         const isPublic = $('lobby-public').checked;
         const ranked = $('lobby-ranked').checked;
 
-        socket.emit('create-lobby', { topic, isPublic, timeLimit, questionCount, maxPlayers, ranked });
+        socket.emit('create-lobby', { topic, presetId, isPublic, timeLimit, questionCount, maxPlayers, ranked });
         hideModal('modal-create-lobby');
     });
 

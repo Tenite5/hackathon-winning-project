@@ -12,6 +12,7 @@ const { generateQuestions } = require('../services/ai');
 const { sanitizeUser } = require('../services/elo');
 const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText } = require('../middleware/validate');
+const { checkAIRateLimit } = require('../middleware/rateLimit');
 
 /** Prevent two simultaneous queue-join events from both starting a match. */
 let _queueMatching = false;
@@ -83,6 +84,20 @@ module.exports = function (io, socket, getCurrentUser) {
 
             io.to(p1.socketId).emit('queue-matched', { opponent: sanitizeUser(user2), topic });
             io.to(p2.socketId).emit('queue-matched', { opponent: sanitizeUser(user1), topic });
+
+            // Check AI rate limits for both players
+            const rl1 = checkAIRateLimit(p1.userId);
+            const rl2 = checkAIRateLimit(p2.userId);
+            if (rl1.limited || rl2.limited) {
+                const msg = rl1.limited && rl1.reason === 'global'
+                    ? 'Server is busy — too many games in progress. Try again in a few minutes.'
+                    : 'You\'ve generated too many games recently. Please wait a couple of minutes.';
+                io.to(p1.socketId).emit('queue-error', { message: msg });
+                io.to(p2.socketId).emit('queue-error', { message: msg });
+                db.quickQueue.unshift(p1, p2);
+                _queueMatching = false;
+                return;
+            }
 
             try {
                 const questions = await withTimeout(generateQuestions(topic, 7, difficulty), 15000);
@@ -194,6 +209,17 @@ module.exports = function (io, socket, getCurrentUser) {
         if (!challenger || !challenger.socketId) return socket.emit('challenge-error', 'Challenger went offline');
 
         const topic = challenge.topic;
+
+        // Check AI rate limits
+        const rlAcceptor = checkAIRateLimit(currentUser.id);
+        const rlChallenger = checkAIRateLimit(challenger.id);
+        if (rlAcceptor.limited || rlChallenger.limited) {
+            const msg = rlAcceptor.limited && rlAcceptor.reason === 'global'
+                ? 'Server is busy — too many games in progress. Try again in a few minutes.'
+                : 'Too many games generated recently. Please wait a couple of minutes.';
+            socket.emit('challenge-error', msg);
+            return;
+        }
 
         let questions;
         try {

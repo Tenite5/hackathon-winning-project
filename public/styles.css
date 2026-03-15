@@ -2552,6 +2552,20 @@ input::placeholder {
   color: #d97706;
 }
 
+.game-waiting-opponent {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+  animation: pulse-opacity 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-opacity {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
 /* ── Game Chat ─────────────────────────────────────────────── */
 .game-chat-toggle {
   position: fixed;

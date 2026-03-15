@@ -11,12 +11,35 @@ const { PRESET_QUESTIONS } = require('../config');
 const { generateQuestions } = require('../services/ai');
 const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText, validateInt } = require('../middleware/validate');
+const { checkAIRateLimit } = require('../middleware/rateLimit');
 
 module.exports = function (io, socket, getCurrentUser) {
 
-    socket.on('create-lobby', async ({ topic, isPublic, timeLimit, questionCount, maxPlayers, ranked }) => {
+    socket.on('create-lobby', async ({ topic, isPublic, timeLimit, questionCount, maxPlayers, ranked, presetId }) => {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
+
+        const qCount = validateInt(questionCount, 3, 20, 5);
+
+        // Resolve preset if selected
+        let resolvedPresetQuestions = null;
+        let resolvedTopic = sanitizeText(topic, 100) || 'General Knowledge';
+
+        if (presetId && PRESET_QUESTIONS[presetId]) {
+            const preset = PRESET_QUESTIONS[presetId];
+            const shuffled = [...preset.questions].sort(() => Math.random() - 0.5);
+            resolvedPresetQuestions = shuffled.slice(0, qCount);
+            resolvedTopic = `📚 ${preset.name}`;
+        } else {
+            // Check AI rate limit before kicking off pre-generation
+            const rl = checkAIRateLimit(currentUser.id);
+            if (rl.limited) {
+                const msg = rl.reason === 'global'
+                    ? 'Server is busy — too many games being generated right now. Try again in a few minutes.'
+                    : 'You\'ve generated too many games recently. Please wait a couple of minutes.';
+                return socket.emit('lobby-error', msg);
+            }
+        }
 
         const lobbyId = uuidv4();
         const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -24,13 +47,13 @@ module.exports = function (io, socket, getCurrentUser) {
         const lobby = {
             id: lobbyId,
             inviteCode,
-            topic: sanitizeText(topic, 100) || 'General Knowledge',
+            topic: resolvedTopic,
             isPublic: isPublic !== false,
             ranked: ranked !== false,
             hostId: currentUser.id,
             hostUsername: currentUser.username,
             maxPlayers: validateInt(maxPlayers, 2, 8, 2),
-            questionCount: validateInt(questionCount, 3, 20, 5),
+            questionCount: qCount,
             timeLimit: validateInt(timeLimit, 5, 30, 10),
             players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: true }],
             status: 'waiting',
@@ -38,13 +61,19 @@ module.exports = function (io, socket, getCurrentUser) {
             expiresAt: Date.now() + 10 * 60 * 1000,
         };
 
+        if (resolvedPresetQuestions) {
+            lobby.presetQuestions = resolvedPresetQuestions;
+        }
+
         db.lobbies.set(lobbyId, lobby);
         socket.join(lobbyId);
 
-        // Pre-generate questions in the background so they're ready when game starts
-        lobby._preGenPromise = generateQuestions(lobby.topic, lobby.questionCount)
-            .then(q => { lobby._preGenQuestions = q; })
-            .catch(err => { console.warn('Lobby pre-gen failed:', err.message); });
+        // Pre-generate questions in the background for AI lobbies (rate limit already checked above)
+        if (!lobby.presetQuestions) {
+            lobby._preGenPromise = generateQuestions(lobby.topic, lobby.questionCount)
+                .then(q => { lobby._preGenQuestions = q; })
+                .catch(err => { console.warn('Lobby pre-gen failed:', err.message); });
+        }
 
         socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
         io.emit('lobbies-updated');
@@ -183,6 +212,15 @@ module.exports = function (io, socket, getCurrentUser) {
         // 0 = infinite time (solo only), otherwise clamp 5-30
         const rawTime = parseInt(timeLimit, 10);
         const tLimit = rawTime === 0 ? 0 : validateInt(timeLimit, 5, 30, 10);
+
+        // Check AI rate limit
+        const rl = checkAIRateLimit(currentUser.id);
+        if (rl.limited) {
+            const msg = rl.reason === 'global'
+                ? 'Server is busy — too many games being generated right now. Try again in a few minutes.'
+                : 'You\'ve generated too many games recently. Please wait a couple of minutes.';
+            return socket.emit('game-error', msg);
+        }
 
         socket.emit('solo-generating', { topic: cleanTopic });
 
