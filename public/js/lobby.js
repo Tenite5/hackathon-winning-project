@@ -19,7 +19,7 @@
     });
 
     $('btn-create-lobby').addEventListener('click', () => {
-        const presetId = $('lobby-preset-select').value;
+        const presetId = $('lobby-preset-select').value || null;
         const topic = $('lobby-topic').value.trim() || 'General Knowledge';
         const timeLimit = parseInt($('lobby-time').value) || 10;
         const questionCount = parseInt($('lobby-questions').value) || 5;
@@ -27,12 +27,7 @@
         const isPublic = $('lobby-public').checked;
         const ranked = $('lobby-ranked').checked;
 
-        if (presetId) {
-            // Use preset questions
-            socket.emit('preset-start', { presetId });
-        } else {
-            socket.emit('create-lobby', { topic, isPublic, timeLimit, questionCount, maxPlayers, ranked });
-        }
+        socket.emit('create-lobby', { topic, presetId, isPublic, timeLimit, questionCount, maxPlayers, ranked });
         hideModal('modal-create-lobby');
     });
 

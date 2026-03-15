@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"btn-create-lobby\\\\|create-lobby\" c:/Users/temik/OneDrive/Desktop/hackathon-winning-project/public/app.js c:/Users/temik/OneDrive/Desktop/hackathon-winning-project/public/js/*.js)"
+    ]
+  }
+}
