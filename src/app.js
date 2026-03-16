@@ -21,6 +21,7 @@ const lobbiesRoutes = require('./routes/lobbies');
 const tournamentsRoutes = require('./routes/tournaments');
 const questionsRoutes = require('./routes/questions');
 const pdfRoutes = require('./routes/pdf');
+const subscriptionRoutes = require('./routes/subscription');
 
 const helmet = require('helmet');
 
@@ -35,6 +36,9 @@ app.set('io', io);
 
 // Trust reverse proxy (nginx/Cloudflare) so req.ip and x-forwarded-for are correct
 app.set('trust proxy', 1);
+
+// Raw body parser for Lemon Squeezy webhook (must be before express.json)
+app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
 
 // Middleware
 app.use(helmet({
@@ -56,6 +60,7 @@ app.use('/api', apiLimit, lobbiesRoutes);
 app.use('/api', apiLimit, tournamentsRoutes);
 app.use('/api', apiLimit, questionsRoutes);
 app.use('/api', apiLimit, pdfRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // SPA catch-all
 app.get('/{*path}', (req, res) => {

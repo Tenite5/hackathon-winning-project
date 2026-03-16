@@ -10,6 +10,8 @@ const db = require('../db/store');
 const { requireAuth } = require('../middleware/auth');
 const { sanitizeUser } = require('../services/elo');
 const { generateBio } = require('../services/ai');
+const { BIO_CHARACTERS } = require('../config');
+const { checkDailyLimit, incrementDailyLimit } = require('../middleware/dailyLimits');
 
 const router = Router();
 
@@ -34,8 +36,19 @@ router.get('/profile-by-name/:username', (req, res) => {
 });
 
 router.post('/profile/regenerate-bio', requireAuth, async (req, res) => {
-    const bio = await generateBio(req.user);
+    const rl = checkDailyLimit(req.user.id, req.user.isDiamondPro, 'bio');
+    if (rl.limited) {
+        return res.status(429).json({
+            error: 'bio_limit',
+            message: req.user.isDiamondPro
+                ? `You've used all 50 daily bio generations. Resets tomorrow.`
+                : `Free accounts get 2 bio generations per day (${rl.remaining} remaining). Upgrade to Diamond Pro for 50.`,
+        });
+    }
+    const character = req.user.isDiamondPro ? (req.user.bioCharacter || 'default') : 'default';
+    const bio = await generateBio(req.user, character);
     req.user.bio = bio;
+    incrementDailyLimit(req.user.id, 'bio');
     db.saveUser(req.user.id);
     res.json({ bio });
 });
@@ -64,6 +77,14 @@ router.post('/profile/update-settings', requireAuth, (req, res) => {
             }
         }
         req.user.username = clean;
+    }
+
+    // Update bio character (Diamond Pro only)
+    if (req.body.bioCharacter !== undefined && req.user.isDiamondPro) {
+        const validIds = BIO_CHARACTERS.map(c => c.id);
+        if (validIds.includes(req.body.bioCharacter)) {
+            req.user.bioCharacter = req.body.bioCharacter;
+        }
     }
 
     // Update avatar

@@ -174,9 +174,18 @@ const PRESET_QUESTIONS = {
     },
 };
 
+const BIO_CHARACTERS = [
+    { id: 'default',     label: 'Standard',         description: 'Funny, warm, hype-focused narrator' },
+    { id: 'british',     label: 'Critical Brit',     description: 'Critiques your stats in a very proper British manner' },
+    { id: 'vader',       label: 'Darth Vader',       description: 'Your academic career, from the dark side' },
+    { id: 'shakespeare', label: 'Shakespeare',       description: 'Thy quiz deeds told with dramatic Elizabethan flair' },
+    { id: 'ramsay',      label: 'Gordon Ramsay',     description: 'Raw, brutal, painfully honest kitchen feedback' },
+    { id: 'sherlock',    label: 'Sherlock Holmes',   description: 'Cold deductive analysis of your performance patterns' },
+];
+
 const QUICK_GAME_TOPICS = [
     'General Knowledge', 'Science', 'History', 'Geography',
     'Pop Culture', 'Technology', 'Sports', 'Movies', 'Music', 'Literature',
 ];
 
-module.exports = { RANKS, PRESET_QUESTIONS, QUICK_GAME_TOPICS };
+module.exports = { RANKS, PRESET_QUESTIONS, QUICK_GAME_TOPICS, BIO_CHARACTERS };

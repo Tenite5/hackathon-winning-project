@@ -333,6 +333,20 @@
             </svg>
             <span>Settings</span>
           </button>
+          <button class="sidebar-btn diamond-nav-btn" data-panel="diamond" id="nav-diamond">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="diamond-nav-icon">
+              <polygon points="12 2 22 9 18 21 6 21 2 9" fill="url(#diamondGrad)" stroke="none"/>
+              <polygon points="12 2 22 9 12 7" fill="rgba(255,255,255,0.25)" stroke="none"/>
+              <defs>
+                <linearGradient id="diamondGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#a855f7"/>
+                  <stop offset="50%" stop-color="#ec4899"/>
+                  <stop offset="100%" stop-color="#fbbf24"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span>Diamond</span>
+          </button>
         </nav>
       </aside>
 
@@ -738,6 +752,123 @@
           </div>
 
           <div id="settings-error" class="auth-error hidden"></div>
+
+          <!-- Bio Character — Diamond Pro Only -->
+          <div class="settings-section glass-card" id="bio-character-section">
+            <h3 class="settings-heading">
+              Bio Narrator
+              <span id="bio-char-lock" class="diamond-lock-badge" title="Diamond Pro feature" onclick="QV.showPanel('diamond')" style="cursor:pointer;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Diamond
+              </span>
+            </h3>
+            <p class="section-subtitle" style="margin-bottom:0.75rem;">Choose who writes your profile bio.</p>
+            <select id="settings-bio-character" class="qv-input" disabled title="Upgrade to Diamond Pro to unlock custom bio narrators">
+              <option value="default">Standard (Funny &amp; Warm)</option>
+              <option value="british">Critical Brit</option>
+              <option value="vader">Darth Vader</option>
+              <option value="shakespeare">Shakespeare</option>
+              <option value="ramsay">Gordon Ramsay</option>
+              <option value="sherlock">Sherlock Holmes</option>
+            </select>
+            <p class="text-muted" id="bio-char-hint" style="font-size:0.78rem;margin-top:0.4rem;">Upgrade to Diamond Pro to unlock custom bio narrators.</p>
+          </div>
+        </div>
+
+        <!-- DIAMOND PRO PANEL -->
+        <div id="panel-diamond" class="panel">
+          <div class="diamond-panel-hero">
+            <div class="diamond-hero-gem">
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" class="diamond-hero-svg">
+                <polygon points="12 2 22 9 18 21 6 21 2 9" fill="url(#heroGrad)" stroke="none"/>
+                <polygon points="12 2 22 9 12 7" fill="rgba(255,255,255,0.3)" stroke="none"/>
+                <polygon points="12 7 22 9 18 21 6 21 2 9 12 7" fill="rgba(0,0,0,0.08)" stroke="none"/>
+                <defs>
+                  <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#a855f7"/>
+                    <stop offset="50%" stop-color="#ec4899"/>
+                    <stop offset="100%" stop-color="#fbbf24"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <h1 class="diamond-hero-title">QVIZIO <span class="diamond-gradient-text">Diamond</span></h1>
+            <p class="diamond-hero-sub">The unfair academic advantage. Built for students who don't just want to pass — they want to dominate.</p>
+            <div id="diamond-cta-area">
+              <button class="btn diamond-upgrade-btn" id="btn-upgrade-diamond" onclick="QV.startDiamondCheckout()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+                  <polygon points="12 2 22 9 18 21 6 21 2 9" fill="white" stroke="none"/>
+                  <polygon points="12 2 22 9 12 7" fill="rgba(0,0,0,0.2)" stroke="none"/>
+                </svg>
+                Upgrade to Diamond Pro
+              </button>
+              <p class="diamond-cta-note">One-time or subscription. Cancel anytime.</p>
+            </div>
+            <div id="diamond-active-badge" class="diamond-active-badge hidden">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <polygon points="12 2 22 9 18 21 6 21 2 9" fill="url(#activeBadgeGrad)" stroke="none"/>
+                <defs><linearGradient id="activeBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient></defs>
+              </svg>
+              Diamond Pro Active ✦
+            </div>
+          </div>
+
+          <div class="diamond-features-grid">
+            <div class="diamond-feature-card">
+              <div class="diamond-feature-icon">📄</div>
+              <h3>20 Saved Documents</h3>
+              <p>Store your entire study library — PDFs, past papers, lecture notes — all in one place. Free users get 2.</p>
+            </div>
+            <div class="diamond-feature-card">
+              <div class="diamond-feature-icon">⚡</div>
+              <h3>10× Faster Game Start</h3>
+              <p>AI generates your questions the moment you create a lobby. No waiting. Your opponents are still loading — you're already ready.</p>
+            </div>
+            <div class="diamond-feature-card">
+              <div class="diamond-feature-icon">🧠</div>
+              <h3>Super Explain</h3>
+              <p>Go beyond "that's wrong." Super Explain breaks down the concept, gives you a memory hook, and explains why the trap answer was wrong. Powered by Gemini.</p>
+            </div>
+            <div class="diamond-feature-card">
+              <div class="diamond-feature-icon">🏆</div>
+              <h3>Host Tournaments</h3>
+              <p>Create 4, 8, or 16-player single-elimination tournaments. Be the one who builds the arena.</p>
+            </div>
+            <div class="diamond-feature-card">
+              <div class="diamond-feature-icon">🎯</div>
+              <h3>Priority Matchmaking</h3>
+              <p>Diamond players are matched together first — compete against opponents at your level and get matched faster.</p>
+            </div>
+            <div class="diamond-feature-card">
+              <div class="diamond-feature-icon">📚</div>
+              <h3>Full Preset Access</h3>
+              <p>Unlock 100% of preset question banks. Free users see 50%. Prep with every question available — nothing hidden.</p>
+            </div>
+            <div class="diamond-feature-card">
+              <div class="diamond-feature-icon">🎭</div>
+              <h3>Bio Narrators</h3>
+              <p>Let Darth Vader, Gordon Ramsay, Shakespeare, Sherlock Holmes, or a Critical British gentleman write your profile bio. Yes, really.</p>
+            </div>
+            <div class="diamond-feature-card">
+              <div class="diamond-feature-icon">♾️</div>
+              <h3>Near-Infinite Limits</h3>
+              <p>60 AI game generations, 50 bio re-rolls, 200 explanations, and 20 PDF analyses — every single day. Almost infinite. (But not quite.)</p>
+            </div>
+          </div>
+
+          <div class="diamond-limits-table">
+            <h3 class="diamond-limits-title">Daily Limits</h3>
+            <div class="diamond-limits-grid">
+              <div class="dl-header">Feature</div>
+              <div class="dl-header">Free</div>
+              <div class="dl-header dl-diamond">♦ Diamond</div>
+              <div>AI Game Generations</div><div>15 / day</div><div class="dl-diamond">60 / day</div>
+              <div>Wrong Answer Explanations</div><div>10 / day</div><div class="dl-diamond">200 / day</div>
+              <div>Bio Re-generations</div><div>2 / day</div><div class="dl-diamond">50 / day</div>
+              <div>PDF / Image Analyses</div><div>2 / day</div><div class="dl-diamond">20 / day</div>
+              <div>Saved Documents</div><div>2 total</div><div class="dl-diamond">20 total</div>
+            </div>
+          </div>
         </div>
       </main>
 
@@ -893,7 +1024,7 @@
       <div class="queue-spinner"></div>
       <h2 id="generating-title">Generating Questions...</h2>
       <p class="text-muted" id="generating-topic-text"></p>
-      <p class="text-muted generating-sub">AI is crafting your questions. This takes a few seconds.</p>
+      <p class="generating-tip" id="generating-tip-text"></p>
     </div>
   </div>
 

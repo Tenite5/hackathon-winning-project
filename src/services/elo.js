@@ -43,6 +43,8 @@ function sanitizeUser(user) {
         online: user.online,
         friends: user.friends,
         photoURL: user.photoURL || '',
+        isDiamondPro: user.isDiamondPro || false,
+        bioCharacter: user.bioCharacter || 'default',
     };
 }
 

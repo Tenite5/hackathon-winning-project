@@ -34,6 +34,17 @@
         $('profile-elo-value').textContent = u.elo;
         $('profile-bio-text').textContent = u.bio || 'No bio yet.';
 
+        // Diamond Pro badge & animated border
+        const avatarZone = $('profile-avatar-img') && $('profile-avatar-img').closest('.profile-avatar-wrap');
+        if (avatarZone) {
+            avatarZone.classList.toggle('diamond-pro-avatar', !!u.isDiamondPro);
+        }
+        const diamondBadgeEl = document.getElementById('profile-diamond-badge');
+        if (diamondBadgeEl) {
+            diamondBadgeEl.innerHTML = u.isDiamondPro ? QV.getDiamondProBadge(18) : '';
+            diamondBadgeEl.style.display = u.isDiamondPro ? 'inline-flex' : 'none';
+        }
+
         $('stat-wins').textContent = u.stats.totalWins || 0;
         $('stat-losses').textContent = u.stats.totalLosses || 0;
         $('stat-games').textContent = u.stats.gamesPlayed || 0;
@@ -341,7 +352,7 @@
                     <span class="lb-rank ${rankClass}">${idx + 1}</span>
                     <div class="lb-user">
                         <div class="lb-avatar" style="background: ${getRankColor(user.elo)}">${avatarContent}</div>
-                        <span class="lb-username">${escapeHtml(user.username)}</span>
+                        <span class="lb-username">${escapeHtml(user.username)}${user.isDiamondPro ? ' ' + QV.getDiamondProBadge(13) : ''}</span>
                     </div>
                     <span class="lb-elo">${user.elo}</span>
                     <span class="lb-badge" style="background: ${user.rank.color}20; color: ${user.rank.color}">${QV.getRankIcon(user.rank.name, 14)} ${user.rank.name}</span>
@@ -363,6 +374,33 @@
         if (!state.user) return;
         $('settings-username').value = state.user.username;
         settingsAvatarData = null;
+
+        // Bio character selector — enable only for Diamond Pro
+        const charSelect = document.getElementById('settings-bio-character');
+        const charLock = document.getElementById('bio-char-lock');
+        const charHint = document.getElementById('bio-char-hint');
+        if (charSelect) {
+            charSelect.disabled = !state.user.isDiamondPro;
+            if (state.user.isDiamondPro) {
+                charSelect.value = state.user.bioCharacter || 'default';
+                if (charLock) charLock.style.display = 'none';
+                if (charHint) charHint.style.display = 'none';
+            } else {
+                if (charLock) charLock.style.display = 'inline-flex';
+                if (charHint) charHint.style.display = '';
+            }
+        }
+
+        // Update Diamond panel CTA state
+        const ctaArea = document.getElementById('diamond-cta-area');
+        const activeBadge = document.getElementById('diamond-active-badge');
+        if (state.user.isDiamondPro) {
+            if (ctaArea) ctaArea.style.display = 'none';
+            if (activeBadge) activeBadge.classList.remove('hidden');
+        } else {
+            if (ctaArea) ctaArea.style.display = '';
+            if (activeBadge) activeBadge.classList.add('hidden');
+        }
         const img = $('settings-avatar-img');
         const zone = $('settings-avatar-zone');
         if (state.user.photoURL) {
@@ -481,6 +519,10 @@
         if (settingsAvatarData !== null) {
             body.photoURL = settingsAvatarData;
         }
+        const charSelect = document.getElementById('settings-bio-character');
+        if (charSelect && state.user.isDiamondPro) {
+            body.bioCharacter = charSelect.value;
+        }
 
         try {
             $('btn-save-settings').disabled = true;
@@ -504,4 +546,32 @@
         }
         $('btn-save-settings').disabled = false;
     });
+
+    // Check if returning from Diamond checkout
+    if (window.location.search.includes('diamond=activated')) {
+        // Remove query param from URL without reload
+        history.replaceState({}, '', window.location.pathname);
+        // Re-fetch subscription status after a short delay (webhook may still be processing)
+        setTimeout(async () => {
+            try {
+                const data = await fetch('/api/subscription/status', {
+                    headers: { 'Authorization': `Bearer ${state.token}` }
+                }).then(r => r.json());
+                if (data.isDiamondPro && state.user) {
+                    state.user.isDiamondPro = true;
+                    state.user.diamondSince = data.diamondSince;
+                    QV.updateNavUser();
+                    QV.updateProfile();
+                    QV.loadSettings();
+                    QV.showPanel('diamond');
+                    toast('🎉 Welcome to Diamond Pro! Your subscription is active.', 'success');
+                } else {
+                    QV.showPanel('diamond');
+                    toast('Payment received! Your Diamond Pro status will activate shortly.', 'info');
+                }
+            } catch (e) {
+                QV.showPanel('diamond');
+            }
+        }, 1500);
+    }
 })();

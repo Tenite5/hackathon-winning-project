@@ -61,6 +61,10 @@ const db = {
                 matchHistory: u.matchHistory || [],
                 eloHistory: u.eloHistory || [],
                 notifications: u.notifications || [],
+                isDiamondPro: !!u.isDiamondPro,
+                diamondSince: u.diamondSince || 0,
+                diamondOrderId: u.diamondOrderId || '',
+                bioCharacter: u.bioCharacter || 'default',
                 online: false,
                 socketId: null,
                 createdAt: u.createdAt,
@@ -115,6 +119,10 @@ const db = {
             matchHistory: u.matchHistory || [],
             eloHistory: u.eloHistory || [],
             notifications: u.notifications || [],
+            isDiamondPro: !!u.isDiamondPro,
+            diamondSince: u.diamondSince || 0,
+            diamondOrderId: u.diamondOrderId || '',
+            bioCharacter: u.bioCharacter || 'default',
             createdAt: u.createdAt,
         };
         UserModel.findByIdAndUpdate(u.id, doc, { upsert: true, returnDocument: 'after' })

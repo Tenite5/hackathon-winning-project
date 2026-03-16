@@ -84,7 +84,53 @@ Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"diff
     }
 }
 
-async function generateBio(user) {
+const BIO_CHARACTER_PROMPTS = {
+    default: `You write creative, funny player bios for a quiz game called QVIZIO. Rules:
+- Write 2-3 full sentences that tell a mini story or paint a vivid picture of the player.
+- Reference their actual stats and subjects naturally — weave them into the narrative, don't just list them.
+- If they're good at something, hype it with flair. If they're bad, roast them with love and humor.
+- Use varied vocabulary and vivid descriptions. NEVER use lazy one-word adjectives like "fire", "trash", "mid", "cracked". Instead, describe things creatively.
+- If the player has very few or no games played, invent a dramatic mysterious newcomer backstory.
+- Output ONLY the bio text. No quotes, no labels, no prefixes.
+- Aim for 50-60 words.`,
+
+    british: `You are a distinguished British gentleman of impeccable vocabulary who writes player bios for a quiz game called QVIZIO. Rules:
+- Critique or praise the player's stats in a proper, slightly condescending British manner — witty, dry, never rude.
+- Use words like "rather", "dreadfully", "one suspects", "frightfully", "I dare say".
+- Reference their actual stats and subjects with cutting eloquence.
+- Output ONLY the bio text. No quotes, no labels, no prefixes.
+- Aim for 50-60 words.`,
+
+    vader: `You are Darth Vader narrating the quiz career of a QVIZIO player. Rules:
+- Speak in Vader's voice — imposing, menacing, occasionally grudgingly impressed.
+- Reference the Force, the dark side, the Empire, and galactic conquest metaphorically in context of quiz performance.
+- Reference their actual stats naturally.
+- Output ONLY the bio text. No quotes, no labels, no prefixes.
+- Aim for 50-60 words.`,
+
+    shakespeare: `You are William Shakespeare writing a player bio for a quiz game called QVIZIO. Rules:
+- Write in a Shakespearean style — dramatic, archaic flair, poetic but readable.
+- Use "thee", "thy", "doth", "hath", "forsooth" naturally.
+- Reference their actual stats as part of the dramatic narrative.
+- Output ONLY the bio text. No quotes, no labels, no prefixes.
+- Aim for 50-60 words.`,
+
+    ramsay: `You are Gordon Ramsay rating a QVIZIO player's quiz performance as if it were a dish in your kitchen. Rules:
+- Be brutally honest, dramatic, and passionate — the Gordon Ramsay way.
+- Use kitchen metaphors ("raw talent", "overcooked", "finally something edible").
+- Reference their actual stats in your critique or praise.
+- Output ONLY the bio text. No quotes, no labels, no prefixes.
+- Aim for 50-60 words.`,
+
+    sherlock: `You are Sherlock Holmes deducing a QVIZIO player's academic and quiz character from their statistics. Rules:
+- Write in Sherlock's cold, precise, slightly theatrical deductive style.
+- Draw dramatic conclusions from their actual stats as if observing clues.
+- Reference subjects, win rates, accuracy as deductions.
+- Output ONLY the bio text. No quotes, no labels, no prefixes.
+- Aim for 50-60 words.`,
+};
+
+async function generateBio(user, character) {
     try {
         if (!user || !user.username) {
             return 'A mysterious competitor with untold powers.';
@@ -120,14 +166,7 @@ async function generateBio(user) {
         const totalLosses = stats.totalLosses || 0;
         const totalGames = totalWins + totalLosses;
 
-        const systemPrompt = `You write creative, funny player bios for a quiz game called QVIZIO. Rules:
-- Write 2-3 full sentences that tell a mini story or paint a vivid picture of the player.
-- Reference their actual stats and subjects naturally — weave them into the narrative, don't just list them.
-- If they're good at something, hype it with flair. If they're bad, roast them with love and humor.
-- Use varied vocabulary and vivid descriptions. NEVER use lazy one-word adjectives like "fire", "trash", "mid", "cracked". Instead, describe things creatively.
-- If the player has very few or no games played, invent a dramatic mysterious newcomer backstory.
-- Output ONLY the bio text. No quotes, no labels, no prefixes.
-- Aim for 50-60 words.`;
+        const systemPrompt = BIO_CHARACTER_PROMPTS[character] || BIO_CHARACTER_PROMPTS.default;
 
         const userPrompt = `Player: "${user.username}"
 Elo: ${user.elo || 1000}
@@ -200,4 +239,40 @@ Player: ${wasTimeout ? 'Timed out' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
 
 
 
-module.exports = { generateQuestions, generateBio, explainQuestion };
+async function superExplainQuestion(question, options, correctIndex, yourAnswerIndex) {
+    try {
+        const safeCorrectIndex = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
+        const yourAnswer = (yourAnswerIndex >= 0 && yourAnswerIndex < options.length) ? options[yourAnswerIndex] : 'No answer (timed out)';
+        const correctAnswer = options[safeCorrectIndex];
+        const wasTimeout = yourAnswerIndex < 0;
+
+        const prompt = `A student got a quiz question wrong. Give a rich, academic explanation of ~60 words. Include:
+1. WHY the correct answer is right (the underlying concept or mechanism)
+2. A memory hook to help them remember it
+3. Why the wrong answer seems plausible but isn't
+
+Question: "${question}"
+Choices: ${options.map((o, i) => `[${i}] ${o}`).join(' | ')}
+Correct: [${safeCorrectIndex}] "${correctAnswer}"
+Student answered: ${wasTimeout ? 'Timed out (no answer)' : `[${yourAnswerIndex}] "${yourAnswer}"`}
+
+Output ONLY the explanation. No labels, no formatting.`;
+
+        const response = await withTimeout(
+            ai.models.generateContent({
+                model: GEMINI_MODEL,
+                contents: prompt,
+                config: { temperature: 0.4, maxOutputTokens: 300 },
+            }),
+            15000
+        );
+
+        return (response.text || '').trim();
+    } catch (err) {
+        console.error('Super explain error:', err.message);
+        const safeIdx = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
+        return `The correct answer is "${options[safeIdx]}". Super Explain is temporarily unavailable — try Simple Explain instead.`;
+    }
+}
+
+module.exports = { generateQuestions, generateBio, explainQuestion, superExplainQuestion };

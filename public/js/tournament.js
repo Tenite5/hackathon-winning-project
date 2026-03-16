@@ -14,11 +14,25 @@
 
     // ── Create tournament ──────────────────────────────────────
     $('btn-create-tournament').addEventListener('click', () => {
+        if (!state.user || !state.user.isDiamondPro) {
+            QV.showPanel('diamond');
+            toast('Hosting tournaments requires Diamond Pro.', 'info');
+            return;
+        }
         const topic = $('tournament-topic').value.trim() || 'General Knowledge';
         const maxPlayers = parseInt($('tournament-size').value) || 8;
         const timeLimit = parseInt($('tournament-time').value) || 10;
         const questionCount = parseInt($('tournament-questions').value) || 5;
         socket.emit('create-tournament', { topic, maxPlayers, timeLimit, questionCount });
+    });
+
+    socket.on('tournament-error', ({ message, requiresDiamond }) => {
+        if (requiresDiamond) {
+            QV.showPanel('diamond');
+            toast(message, 'info');
+        } else {
+            toast(message || 'Tournament error', 'error');
+        }
     });
 
     socket.on('tournament-created', (t) => {
@@ -68,7 +82,6 @@
     };
 
     socket.on('tournaments-updated', () => QV.loadTournaments());
-    socket.on('tournament-error', (msg) => toast(msg, 'error'));
 
     socket.on('tournament-round', ({ tournamentId, round, brackets }) => {
         toast(`Tournament Round ${round} starting!`, 'info');

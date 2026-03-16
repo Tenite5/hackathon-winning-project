@@ -96,10 +96,11 @@
             ? `<img src="${escapeHtml(p.photoURL)}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'" /><span style="display:none">${letter}</span>`
             : `<span>${letter}</span>`;
 
+        const diamondBadge = p.isDiamondPro ? (typeof QV !== 'undefined' && QV.getDiamondProBadge ? QV.getDiamondProBadge(11) : '♦') : '';
         card.innerHTML = `
             <div class="sidebar-player-avatar" style="background:${avatarBg}">${imgHtml}</div>
             <div class="sidebar-player-details">
-                <div class="sidebar-player-name">${escapeHtml(p.username)}${isMe ? ' ★' : ''}</div>
+                <div class="sidebar-player-name">${escapeHtml(p.username)}${isMe ? ' ★' : ''}${diamondBadge ? ' ' + diamondBadge : ''}</div>
                 <div class="sidebar-player-elo">${p.elo || 1000} • ${rank.name}</div>
             </div>
         `;
@@ -236,6 +237,7 @@
         $('generating-title').textContent = 'Generating Questions...';
         $('generating-topic-text').textContent = `Topic: ${topic} · Opponent: ${opponent.username}`;
         $('overlay-generating').classList.remove('hidden');
+        if (typeof QV !== 'undefined' && QV.startLoadingTips) QV.startLoadingTips();
         toast(`Matched with ${opponent.username}! Topic: ${topic}`, 'success');
     });
 
@@ -337,6 +339,7 @@
 
         // Hide loading overlay when game starts
         $('overlay-generating').classList.add('hidden');
+        if (typeof QV !== 'undefined' && QV.stopLoadingTips) QV.stopLoadingTips();
 
         state.isStartingGame = false;
         state.currentGameId = data.gameId;

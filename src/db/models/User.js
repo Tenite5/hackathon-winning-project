@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema({
     matchHistory: { type: Array, default: [] },         // last 50 game records
     eloHistory: { type: Array, default: [] },         // timestamped elo snapshots
     notifications: { type: Array, default: [] },         // recent notifications
+    isDiamondPro: { type: Boolean, default: false },
+    diamondSince: { type: Number, default: 0 },
+    diamondOrderId: { type: String, default: '' },
+    bioCharacter: { type: String, default: 'default' },
     createdAt: { type: Number, default: Date.now },
 }, { _id: false, versionKey: false });
 

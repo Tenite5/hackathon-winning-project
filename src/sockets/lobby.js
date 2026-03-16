@@ -12,6 +12,7 @@ const { generateQuestions } = require('../services/ai');
 const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText, validateInt } = require('../middleware/validate');
 const { checkAIRateLimit } = require('../middleware/rateLimit');
+const { checkDailyLimit, incrementDailyLimit } = require('../middleware/dailyLimits');
 
 module.exports = function (io, socket, getCurrentUser) {
 
@@ -28,9 +29,24 @@ module.exports = function (io, socket, getCurrentUser) {
         if (presetId && PRESET_QUESTIONS[presetId]) {
             const preset = PRESET_QUESTIONS[presetId];
             const shuffled = [...preset.questions].sort(() => Math.random() - 0.5);
-            resolvedPresetQuestions = shuffled.slice(0, qCount);
+            // Non-Diamond users get 50% of preset questions
+            const allQuestions = shuffled.slice(0, qCount);
+            if (!currentUser.isDiamondPro) {
+                const half = Math.ceil(allQuestions.length / 2);
+                resolvedPresetQuestions = allQuestions.slice(0, half);
+            } else {
+                resolvedPresetQuestions = allQuestions;
+            }
             resolvedTopic = `📚 ${preset.name}`;
         } else {
+            // Check daily AI gen limit
+            const dailyRl = checkDailyLimit(currentUser.id, currentUser.isDiamondPro, 'aiGen');
+            if (dailyRl.limited) {
+                const msg = currentUser.isDiamondPro
+                    ? 'You\'ve reached your 60 daily AI game generations. Resets tomorrow.'
+                    : `Free accounts get 15 AI game generations per day (${dailyRl.remaining} remaining). Upgrade to Diamond Pro for 60.`;
+                return socket.emit('lobby-error', msg);
+            }
             // Check AI rate limit before kicking off pre-generation
             const rl = checkAIRateLimit(currentUser.id);
             if (rl.limited) {
@@ -68,10 +84,10 @@ module.exports = function (io, socket, getCurrentUser) {
         db.lobbies.set(lobbyId, lobby);
         socket.join(lobbyId);
 
-        // Pre-generate questions in the background for AI lobbies (rate limit already checked above)
-        if (!lobby.presetQuestions) {
+        // Pre-generate questions in the background — Diamond hosts only (10x faster start)
+        if (!lobby.presetQuestions && currentUser.isDiamondPro) {
             lobby._preGenPromise = generateQuestions(lobby.topic, lobby.questionCount)
-                .then(q => { lobby._preGenQuestions = q; })
+                .then(q => { lobby._preGenQuestions = q; incrementDailyLimit(currentUser.id, 'aiGen'); })
                 .catch(err => { console.warn('Lobby pre-gen failed:', err.message); });
         }
 
@@ -162,11 +178,24 @@ module.exports = function (io, socket, getCurrentUser) {
         if (lobby.presetQuestions) {
             questions = lobby.presetQuestions;
         } else {
-            // Await pre-generation if still in progress, then use result or fall back
+            // For non-Diamond hosts: check daily limit at start time (they don't pre-generate)
+            if (!currentUser.isDiamondPro) {
+                const dailyRl = checkDailyLimit(currentUser.id, false, 'aiGen');
+                if (dailyRl.limited) {
+                    lobby._starting = false;
+                    lobby.status = 'waiting';
+                    return socket.emit('lobby-error', `Free accounts get 15 AI game generations per day (${dailyRl.remaining} remaining). Upgrade to Diamond Pro for 60.`);
+                }
+            }
+            // Await pre-generation if still in progress (Diamond hosts), then use result or fall back
             if (lobby._preGenPromise) {
                 try { await lobby._preGenPromise; } catch (e) { /* handled below */ }
             }
             questions = lobby._preGenQuestions || await generateQuestions(lobby.topic, lobby.questionCount);
+            // Increment daily counter for non-Diamond (Diamond already incremented in pre-gen)
+            if (!currentUser.isDiamondPro) {
+                incrementDailyLimit(currentUser.id, 'aiGen');
+            }
         }
 
         const gameId = uuidv4();
@@ -213,6 +242,15 @@ module.exports = function (io, socket, getCurrentUser) {
         const rawTime = parseInt(timeLimit, 10);
         const tLimit = rawTime === 0 ? 0 : validateInt(timeLimit, 5, 30, 10);
 
+        // Check daily AI gen limit
+        const dailySoloRl = checkDailyLimit(currentUser.id, currentUser.isDiamondPro, 'aiGen');
+        if (dailySoloRl.limited) {
+            const msg = currentUser.isDiamondPro
+                ? 'You\'ve reached your 60 daily AI game generations. Resets tomorrow.'
+                : `Free accounts get 15 AI game generations per day (${dailySoloRl.remaining} remaining). Upgrade to Diamond Pro for 60.`;
+            return socket.emit('game-error', msg);
+        }
+
         // Check AI rate limit
         const rl = checkAIRateLimit(currentUser.id);
         if (rl.limited) {
@@ -225,6 +263,7 @@ module.exports = function (io, socket, getCurrentUser) {
         socket.emit('solo-generating', { topic: cleanTopic });
 
         const questions = await generateQuestions(cleanTopic, qCount);
+        incrementDailyLimit(currentUser.id, 'aiGen');
         const gameId = uuidv4();
 
         const game = {
@@ -260,7 +299,9 @@ module.exports = function (io, socket, getCurrentUser) {
         if (!preset) return socket.emit('game-error', 'Invalid preset');
 
         const shuffled = [...preset.questions].sort(() => Math.random() - 0.5);
-        const picked = shuffled.slice(0, 3);
+        // Non-Diamond users get 50% of preset questions
+        const allPreset = currentUser.isDiamondPro ? shuffled : shuffled.slice(0, Math.ceil(shuffled.length / 2));
+        const picked = allPreset.slice(0, 3);
 
         const questions = picked.map(q => {
             const optionsCopy = [...q.options];

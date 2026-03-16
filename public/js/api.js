@@ -179,10 +179,99 @@ window.QV = window.QV || {};
         setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
     };
 
+    /** Chess.com-style filled diamond badge for Diamond Pro subscribers */
+    QV.getDiamondProBadge = function (size) {
+        size = size || 16;
+        return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" class="diamond-pro-badge-icon" title="Diamond Pro">
+            <polygon points="12 2 22 9 18 21 6 21 2 9" fill="url(#dpbGrad${size})" stroke="none"/>
+            <polygon points="12 2 22 9 12 7" fill="rgba(255,255,255,0.28)" stroke="none"/>
+            <defs>
+              <linearGradient id="dpbGrad${size}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#a855f7"/>
+                <stop offset="50%" stop-color="#ec4899"/>
+                <stop offset="100%" stop-color="#fbbf24"/>
+              </linearGradient>
+            </defs>
+          </svg>`;
+    };
+
+    /** Returns true if the current user is a Diamond Pro subscriber */
+    QV.isDiamondPro = function () {
+        return !!(QV.state.user && QV.state.user.isDiamondPro);
+    };
+
+    /** Navigate to Diamond panel (used by lock icons) */
+    QV.showDiamondPanel = function () {
+        QV.showPanel('diamond');
+    };
+
+    /** Kick off a Diamond Pro checkout */
+    QV.startDiamondCheckout = async function () {
+        const btn = document.getElementById('btn-upgrade-diamond');
+        if (btn) { btn.disabled = true; btn.textContent = 'Redirecting...'; }
+        try {
+            const res = await fetch('/api/subscription/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${QV.state.token}` },
+            });
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                QV.showToast(data.error || 'Could not start checkout. Try again.', 'error');
+                if (btn) { btn.disabled = false; btn.textContent = 'Upgrade to Diamond Pro'; }
+            }
+        } catch (e) {
+            QV.showToast('Network error. Please try again.', 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Upgrade to Diamond Pro'; }
+        }
+    };
+
+    // ── Loading Tips (shown during question generation) ─────────
+    const LOADING_TIPS = [
+        '💡 Did you know? Diamond Pro users can have Darth Vader write their profile bio.',
+        '📚 Reviewing wrong answers after each game improves retention by up to 40%.',
+        '⚡ Diamond users get questions 10× faster — AI starts the moment the lobby opens.',
+        '🧠 Super Explain breaks down the WHY, gives a memory hook, and dissects the wrong answer.',
+        '♦ Upgrade to Diamond for near-infinite daily limits. Almost infinite. (But not quite.)',
+        '🏆 Only Diamond Pro users can host Tournaments. Build the arena.',
+        '🎯 Spaced repetition is the most proven method to retain knowledge for exams.',
+        '📄 Diamond Pro users can save up to 20 PDFs and images — your whole study library in one place.',
+        '🔒 50% of preset questions are unlocked for free users. Diamond unlocks all of them.',
+        '💬 Gordon Ramsay will rate your academic performance as a dish. Diamond Pro only.',
+        '🎓 The best students don\'t just practice — they review what they got wrong.',
+        '⚔️ Quick 1v1 ranked games update your ELO. Climb the leaderboard one game at a time.',
+    ];
+    let _tipInterval = null;
+    let _tipIndex = 0;
+
+    QV.startLoadingTips = function () {
+        const el = document.getElementById('generating-tip-text');
+        if (!el) return;
+        _tipIndex = Math.floor(Math.random() * LOADING_TIPS.length);
+        el.textContent = LOADING_TIPS[_tipIndex];
+        el.classList.add('tip-visible');
+        _tipInterval = setInterval(() => {
+            el.classList.remove('tip-visible');
+            setTimeout(() => {
+                _tipIndex = (_tipIndex + 1) % LOADING_TIPS.length;
+                el.textContent = LOADING_TIPS[_tipIndex];
+                el.classList.add('tip-visible');
+            }, 400);
+        }, 3500);
+    };
+
+    QV.stopLoadingTips = function () {
+        if (_tipInterval) { clearInterval(_tipInterval); _tipInterval = null; }
+        const el = document.getElementById('generating-tip-text');
+        if (el) el.classList.remove('tip-visible');
+    };
+
     QV.updateNavUser = function () {
         QV.$('nav-username').textContent = QV.state.user.username;
         const rank = QV.state.user.rank;
-        QV.$('nav-elo').innerHTML = `${rank ? QV.getRankIcon(rank.name, 14) : '⭐'} ${QV.state.user.elo} Elo`;
+        const diamondBadge = QV.isDiamondPro() ? QV.getDiamondProBadge(14) : '';
+        QV.$('nav-elo').innerHTML = `${rank ? QV.getRankIcon(rank.name, 14) : '⭐'} ${QV.state.user.elo} Elo${diamondBadge ? ' ' + diamondBadge : ''}`;
         // Show PFP or letter fallback
         const img = QV.$('nav-avatar-img');
         const letter = QV.$('nav-avatar-letter');

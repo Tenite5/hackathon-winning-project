@@ -84,6 +84,7 @@
                         <div>
                             <div class="friend-name">
                                 ${escapeHtml(friend.username)}
+                                ${friend.isDiamondPro ? QV.getDiamondProBadge(12) : ''}
                                 ${isPending ? '<span class="challenge-pending-icon" title="Challenge pending">⚔️</span>' : ''}
                             </div>
                             <div class="friend-status">

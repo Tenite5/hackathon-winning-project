@@ -78,64 +78,70 @@
                     </div>
                     <div class="wrong-q-footer">
                         <span class="wrong-q-diff ${q.difficulty}">${q.difficulty}</span>
-                        <button class="btn-explain" data-idx="${idx}">
+                        <button class="btn-explain btn-simple-explain" data-idx="${idx}">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
-                            AI Explain
+                            Simple Explain 💡
+                        </button>
+                        <button class="btn-explain btn-super-explain${QV.isDiamondPro() ? '' : ' explain-locked'}" data-idx="${idx}" title="${QV.isDiamondPro() ? 'Deep AI explanation powered by Gemini' : 'Diamond Pro feature — click to upgrade'}">
+                            ${QV.isDiamondPro() ? '' : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> '}⚡ Super Explain
                         </button>
                     </div>
                     <div class="wrong-q-explanation-area" id="explain-area-${idx}"></div>
                 `;
 
-                // AI Explain button handler
-                const explainBtn = card.querySelector('.btn-explain');
+                // Simple Explain button handler
+                const explainBtn = card.querySelector('.btn-simple-explain');
                 explainBtn.addEventListener('click', async () => {
                     const area = $(`explain-area-${idx}`);
-
-                    // Toggle off if already showing
-                    if (area.innerHTML.trim()) {
+                    if (area.dataset.mode === 'simple' && area.innerHTML.trim()) {
                         area.innerHTML = '';
-                        explainBtn.innerHTML = `
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            AI Explain
-                        `;
+                        area.dataset.mode = '';
+                        explainBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Simple Explain 💡`;
                         return;
                     }
-
-                    // Loading state
                     explainBtn.disabled = true;
                     explainBtn.innerHTML = '<div class="spinner"></div> Thinking...';
-
                     try {
-                        const result = await api('/explain-question', {
-                            method: 'POST',
-                            body: {
-                                question: q.question,
-                                options: q.options,
-                                correctIndex: q.correctIndex,
-                                yourAnswerIndex: q.yourAnswerIndex,
-                            }
-                        });
-
-                        area.innerHTML = `
-                            <div class="wrong-q-explanation">
-                                <span class="explain-icon">💡</span> ${escapeHtml(result.explanation)}
-                            </div>
-                        `;
-                        explainBtn.innerHTML = `
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                            Hide
-                        `;
+                        const result = await api('/explain-question', { method: 'POST', body: { question: q.question, options: q.options, correctIndex: q.correctIndex, yourAnswerIndex: q.yourAnswerIndex } });
+                        area.innerHTML = `<div class="wrong-q-explanation"><span class="explain-icon">💡</span> ${escapeHtml(result.explanation)}</div>`;
+                        area.dataset.mode = 'simple';
+                        explainBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Hide`;
                     } catch (err) {
-                        area.innerHTML = `<div class="wrong-q-explanation"><span class="explain-icon">⚠️</span> Failed to generate explanation. Try again!</div>`;
+                        const msg = err.message || '';
+                        area.innerHTML = `<div class="wrong-q-explanation"><span class="explain-icon">⚠️</span> ${msg.includes('daily_limit') ? 'Daily explain limit reached. Upgrade to Diamond Pro for 200/day.' : 'Failed to generate explanation. Try again!'}</div>`;
+                        explainBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Simple Explain 💡`;
                     }
-
                     explainBtn.disabled = false;
+                });
+
+                // Super Explain button handler
+                const superBtn = card.querySelector('.btn-super-explain');
+                superBtn.addEventListener('click', async () => {
+                    if (!QV.isDiamondPro()) {
+                        QV.showPanel('diamond');
+                        return;
+                    }
+                    const area = $(`explain-area-${idx}`);
+                    if (area.dataset.mode === 'super' && area.innerHTML.trim()) {
+                        area.innerHTML = '';
+                        area.dataset.mode = '';
+                        superBtn.innerHTML = '⚡ Super Explain';
+                        return;
+                    }
+                    superBtn.disabled = true;
+                    superBtn.innerHTML = '<div class="spinner"></div> Analyzing...';
+                    try {
+                        const result = await api('/super-explain-question', { method: 'POST', body: { question: q.question, options: q.options, correctIndex: q.correctIndex, yourAnswerIndex: q.yourAnswerIndex } });
+                        area.innerHTML = `<div class="wrong-q-explanation super-explanation"><span class="explain-icon">⚡</span> ${escapeHtml(result.explanation)}</div>`;
+                        area.dataset.mode = 'super';
+                        superBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Hide`;
+                    } catch (err) {
+                        area.innerHTML = `<div class="wrong-q-explanation"><span class="explain-icon">⚠️</span> Super Explain failed or daily limit reached. Try again!</div>`;
+                        superBtn.innerHTML = '⚡ Super Explain';
+                    }
+                    superBtn.disabled = false;
                 });
 
                 list.appendChild(card);

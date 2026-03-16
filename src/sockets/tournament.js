@@ -204,6 +204,14 @@ module.exports = function (io, socket, getCurrentUser) {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
 
+        // Tournament hosting requires Diamond Pro
+        if (!currentUser.isDiamondPro) {
+            return socket.emit('tournament-error', {
+                message: 'Hosting tournaments is a Diamond Pro feature. Upgrade to unlock!',
+                requiresDiamond: true,
+            });
+        }
+
         const tId = uuidv4();
         const max = [4, 8, 16].includes(maxPlayers) ? maxPlayers : 8;
         const tLimit = validateInt(timeLimit, 5, 30, 10);

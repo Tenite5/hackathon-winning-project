@@ -4684,3 +4684,195 @@ input::placeholder {
     flex-direction: column;
   }
 }
+/* ═══════════════════════════════════════════════════════════════
+   DIAMOND PRO — Subscription Tier Styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Diamond Nav Button ──────────────────────────────────────── */
+.diamond-nav-btn { position: relative; }
+.diamond-nav-btn .diamond-nav-icon { filter: drop-shadow(0 0 4px rgba(168,85,247,0.5)); transition: filter 0.3s; }
+.diamond-nav-btn:hover .diamond-nav-icon { filter: drop-shadow(0 0 8px rgba(251,191,36,0.7)); }
+.diamond-nav-btn::after {
+  content: 'PRO';
+  position: absolute;
+  top: 4px; right: 4px;
+  font-size: 8px; font-weight: 700; letter-spacing: 0.05em;
+  background: linear-gradient(135deg, #a855f7, #fbbf24);
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+
+/* ── Diamond Pro Avatar Animated Border ─────────────────────── */
+.diamond-pro-avatar {
+  position: relative;
+  border-radius: 50%;
+}
+.diamond-pro-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  z-index: 0;
+  background: linear-gradient(135deg, #a855f7, #ec4899, #fbbf24, #a855f7);
+  background-size: 300% 300%;
+  animation: diamond-border-spin 3s linear infinite;
+}
+.diamond-pro-avatar > * { position: relative; z-index: 1; }
+@keyframes diamond-border-spin {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Diamond Pro Badge Icon ──────────────────────────────────── */
+.diamond-pro-badge-icon {
+  display: inline-block;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 3px rgba(168,85,247,0.4));
+}
+
+/* ── Lock Badge on Diamond Features ─────────────────────────── */
+.diamond-lock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #a855f7, #fbbf24);
+  color: #fff;
+  padding: 2px 7px 2px 5px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.diamond-lock-badge:hover { opacity: 0.85; }
+
+/* ── Super Explain Button ────────────────────────────────────── */
+.btn-super-explain {
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #fbbf24 100%);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.btn-super-explain:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-super-explain.explain-locked { opacity: 0.7; }
+.super-explanation { border-left: 3px solid #a855f7 !important; background: rgba(168,85,247,0.06) !important; }
+
+/* ── Loading Tips ────────────────────────────────────────────── */
+.generating-tip {
+  font-size: 0.82rem;
+  color: var(--text-muted, #888);
+  max-width: 320px;
+  text-align: center;
+  min-height: 2.4em;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  margin-top: 0.25rem;
+}
+.generating-tip.tip-visible { opacity: 1; }
+
+/* ── Diamond Panel ───────────────────────────────────────────── */
+.diamond-panel-hero {
+  text-align: center;
+  padding: 2.5rem 1.5rem 2rem;
+  background: linear-gradient(160deg, rgba(168,85,247,0.07) 0%, rgba(251,191,36,0.04) 100%);
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(168,85,247,0.15);
+}
+.diamond-hero-gem {
+  margin-bottom: 1rem;
+  display: flex; justify-content: center;
+}
+.diamond-hero-svg {
+  filter: drop-shadow(0 4px 16px rgba(168,85,247,0.5));
+  animation: gem-pulse 3s ease-in-out infinite;
+}
+@keyframes gem-pulse {
+  0%, 100% { filter: drop-shadow(0 4px 16px rgba(168,85,247,0.5)); }
+  50%       { filter: drop-shadow(0 4px 24px rgba(251,191,36,0.7)); }
+}
+.diamond-hero-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+.diamond-gradient-text {
+  background: linear-gradient(135deg, #a855f7, #ec4899, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.diamond-hero-sub {
+  font-size: 1rem;
+  color: var(--text-muted, #888);
+  max-width: 480px;
+  margin: 0 auto 1.5rem;
+  line-height: 1.6;
+}
+.diamond-upgrade-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, #a855f7, #ec4899, #fbbf24);
+  color: #fff; font-weight: 700; font-size: 1rem;
+  padding: 0.75rem 2rem; border-radius: 10px;
+  border: none; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(168,85,247,0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.diamond-upgrade-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(168,85,247,0.5); }
+.diamond-upgrade-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.diamond-cta-note { font-size: 0.75rem; color: var(--text-muted, #888); margin-top: 0.5rem; }
+.diamond-active-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(251,191,36,0.1));
+  border: 1.5px solid rgba(168,85,247,0.4);
+  color: #a855f7; font-weight: 700; font-size: 1rem;
+  padding: 0.6rem 1.5rem; border-radius: 10px;
+}
+.diamond-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.diamond-feature-card {
+  background: var(--card-bg, rgba(255,255,255,0.04));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.diamond-feature-card:hover { border-color: rgba(168,85,247,0.35); transform: translateY(-2px); }
+.diamond-feature-icon { font-size: 1.75rem; margin-bottom: 0.5rem; }
+.diamond-feature-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem; }
+.diamond-feature-card p { font-size: 0.82rem; color: var(--text-muted, #888); line-height: 1.5; margin: 0; }
+
+/* ── Diamond Limits Table ────────────────────────────────────── */
+.diamond-limits-table {
+  background: var(--card-bg, rgba(255,255,255,0.04));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+.diamond-limits-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+.diamond-limits-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+.dl-header { font-weight: 700; color: var(--text-muted, #888); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border, rgba(255,255,255,0.08)); padding-bottom: 0.35rem; }
+.dl-diamond { color: #a855f7; font-weight: 600; }
+

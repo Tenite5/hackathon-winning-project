@@ -12,6 +12,8 @@ const { requireAuth } = require('../middleware/auth');
 const { generateQuestionsFromFile, getPdfPageCount, evictCache } = require('../services/pdfAnalysis');
 const { validateInt } = require('../middleware/validate');
 const PdfModel = require('../db/models/Pdf');
+const db = require('../db/store');
+const { checkDailyLimit, incrementDailyLimit } = require('../middleware/dailyLimits');
 
 const router = express.Router();
 
@@ -36,6 +38,19 @@ router.post('/pdf/analyze', requireAuth, upload.single('file'), async (req, res)
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        // Daily PDF generation limit
+        const userId = req.user.id;
+        const user = db.users.get(userId);
+        const rl = checkDailyLimit(userId, user?.isDiamondPro, 'pdfGen');
+        if (rl.limited) {
+            return res.status(429).json({
+                error: 'daily_limit',
+                message: user?.isDiamondPro
+                    ? `You've reached your 20 daily PDF generations. Resets tomorrow.`
+                    : `Free accounts get 2 PDF generations per day. Upgrade to Diamond Pro for 20. (${rl.remaining} remaining)`,
+            });
         }
 
         const { buffer, mimetype, originalname } = req.file;
@@ -85,6 +100,8 @@ router.post('/pdf/analyze', requireAuth, upload.single('file'), async (req, res)
             buffer, mimetype, originalname, count, userPrompt, null, pageFrom, pageTo
         );
 
+        incrementDailyLimit(userId, 'pdfGen');
+
         res.json({
             questions,
             fileInfo: {
@@ -126,13 +143,17 @@ router.post('/pdf/save', requireAuth, upload.single('file'), async (req, res) =>
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
         const userId = req.user.id;
+        const saveUser = db.users.get(userId);
+        const saveLimit = saveUser?.isDiamondPro ? 20 : 2;
 
-        // Check limit: max 5 stored PDFs
+        // Check storage limit
         const existingCount = await PdfModel.countDocuments({ userId });
-        if (existingCount >= 5) {
+        if (existingCount >= saveLimit) {
             return res.status(400).json({
                 error: 'storage_limit',
-                message: 'You can store up to 5 PDFs. Delete one to make room.',
+                message: saveUser?.isDiamondPro
+                    ? `Diamond Pro allows up to 20 saved documents. Delete one to make room.`
+                    : `Free accounts can store up to 2 PDFs/images. Upgrade to Diamond Pro for 20 slots.`,
             });
         }
 
