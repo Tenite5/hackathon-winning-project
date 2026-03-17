@@ -72,9 +72,10 @@ const db = {
         }
         console.log(`   Loaded ${db.users.size} users`);
 
-        // Apply Temo override if he doesn't have diamond
+        // Apply overrides for special users
+        const DIAMOND_OVERRIDES = ['temo', 'palela', 'berikela'];
         for (const [, user] of db.users) {
-            if (user.username && user.username.toLowerCase() === 'temo' && !user.isDiamondPro) {
+            if (user.username && DIAMOND_OVERRIDES.includes(user.username.toLowerCase()) && !user.isDiamondPro) {
                 user.isDiamondPro = true;
                 user.elo = (user.elo || 1000) + 200;
                 db.saveUser(user.id);
