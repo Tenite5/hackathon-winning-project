@@ -72,6 +72,15 @@ const db = {
         }
         console.log(`   Loaded ${db.users.size} users`);
 
+        // Apply Temo override if he doesn't have diamond
+        for (const [, user] of db.users) {
+            if (user.username && user.username.toLowerCase() === 'temo' && !user.isDiamondPro) {
+                user.isDiamondPro = true;
+                user.elo = (user.elo || 1000) + 200;
+                db.saveUser(user.id);
+            }
+        }
+
         // Load sessions
         const sessions = await SessionModel.find().lean();
         for (const s of sessions) {
