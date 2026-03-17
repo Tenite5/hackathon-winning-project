@@ -312,34 +312,41 @@
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
+        // Chrome blocks third-party cookies which breaks signInWithPopup.
+        // Use redirect flow on Chrome (reliable), popup on other browsers (faster UX).
+        const isChrome = /Chrome\//.test(navigator.userAgent) && !/Edg\/|OPR\//.test(navigator.userAgent);
+
+        if (isChrome) {
+            btnSpan.textContent = 'Redirecting...';
+            try {
+                await auth.signInWithRedirect(provider);
+            } catch (redirectErr) {
+                btn.disabled = false;
+                btnSpan.textContent = 'Continue with Google';
+                showAuthError(redirectErr.message || 'Google sign-in failed. Please try again.');
+            }
+            return;
+        }
+
         try {
-            // Try popup first — faster UX
             const result = await auth.signInWithPopup(provider);
             await authenticateWithBackend(result.user);
         } catch (err) {
-            // Popup was dismissed by user — do nothing
             if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
                 btn.disabled = false;
                 btnSpan.textContent = 'Continue with Google';
                 return;
             }
 
-            // Popup blocked — fall back to redirect seamlessly
-            if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
-                btnSpan.textContent = 'Redirecting...';
-                try {
-                    await auth.signInWithRedirect(provider);
-                } catch (redirectErr) {
-                    btn.disabled = false;
-                    btnSpan.textContent = 'Continue with Google';
-                    showAuthError(redirectErr.message || 'Google sign-in failed. Please try again.');
-                }
-                return;
+            // Popup failed — fall back to redirect
+            btnSpan.textContent = 'Redirecting...';
+            try {
+                await auth.signInWithRedirect(provider);
+            } catch (redirectErr) {
+                btn.disabled = false;
+                btnSpan.textContent = 'Continue with Google';
+                showAuthError(redirectErr.message || 'Google sign-in failed. Please try again.');
             }
-
-            btn.disabled = false;
-            btnSpan.textContent = 'Continue with Google';
-            showAuthError(err.message || 'Google sign-in failed. Please try again.');
         }
     });
 
