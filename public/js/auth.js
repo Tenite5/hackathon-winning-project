@@ -49,8 +49,19 @@
                 await authenticateWithBackend(result.user);
             }
         } catch (err) {
-            if (err.code && err.code !== 'auth/no-auth-event') {
-                showAuthError(err.message || 'Google sign-in failed. Please try again.');
+            const btn = $('btn-google-login');
+            const btnSpan = btn ? btn.querySelector('span') : null;
+            if (btn) btn.disabled = false;
+            if (btnSpan) btnSpan.textContent = 'Continue with Google';
+
+            // Firebase auth error (redirect flow often throws no-auth-event if not a redirect, which we ignore)
+            if (err.code) {
+                if (err.code !== 'auth/no-auth-event') {
+                    showAuthError(err.message || 'Google sign-in failed. Please try again.');
+                }
+            } else {
+                // Backend verification error
+                showAuthError(err.message || 'Server authentication failed. Please check your network and try again.');
             }
         }
     }
@@ -312,41 +323,36 @@
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
-        // Chrome blocks third-party cookies which breaks signInWithPopup.
-        // Use redirect flow on Chrome (reliable), popup on other browsers (faster UX).
-        const isChrome = /Chrome\//.test(navigator.userAgent) && !/Edg\/|OPR\//.test(navigator.userAgent);
-
-        if (isChrome) {
-            btnSpan.textContent = 'Redirecting...';
-            try {
-                await auth.signInWithRedirect(provider);
-            } catch (redirectErr) {
-                btn.disabled = false;
-                btnSpan.textContent = 'Continue with Google';
-                showAuthError(redirectErr.message || 'Google sign-in failed. Please try again.');
-            }
-            return;
-        }
-
+        // Always try popup first, it's faster and more native.
         try {
             const result = await auth.signInWithPopup(provider);
             await authenticateWithBackend(result.user);
         } catch (err) {
+            btn.disabled = false;
+            btnSpan.textContent = 'Continue with Google';
+
+            // User closed popup
             if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-                btn.disabled = false;
-                btnSpan.textContent = 'Continue with Google';
                 return;
             }
 
-            // Popup failed — fall back to redirect
-            btnSpan.textContent = 'Redirecting...';
-            try {
-                await auth.signInWithRedirect(provider);
-            } catch (redirectErr) {
-                btn.disabled = false;
-                btnSpan.textContent = 'Continue with Google';
-                showAuthError(redirectErr.message || 'Google sign-in failed. Please try again.');
+            // If it's a firebase auth issue (like third-party cookies blocked), try the redirect flow fallback
+            if (err.code && err.code.startsWith('auth/')) {
+                btn.disabled = true;
+                btnSpan.textContent = 'Redirecting...';
+                try {
+                    await auth.signInWithRedirect(provider);
+                } catch (redirectErr) {
+                    btn.disabled = false;
+                    btnSpan.textContent = 'Continue with Google';
+                    showAuthError(redirectErr.message || 'Google sign-in failed. Please try again.');
+                }
+                return;
             }
+
+            // Otherwise, it was likely an error from our authenticateWithBackend.
+            // Show the actual error so the user isn't stuck silently failing.
+            showAuthError(err.message || 'Authentication failed. Please check your network and try again.');
         }
     });
 
