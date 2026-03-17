@@ -10,7 +10,6 @@
     let auth = null;
     let firebaseInitialized = false;
 
-    // ── Firebase Init (retryable — won't permanently fail) ──
     async function initFirebase() {
         if (firebaseInitialized) return;
         try {
@@ -21,19 +20,42 @@
             auth = firebase.auth();
             firebaseInitialized = true;
         } catch (err) {
-            console.error('Failed to load Firebase config:', err);
+            console.error('Firebase config error:', err);
             throw err;
         }
     }
 
-    // Start init eagerly (but failures are not permanent)
     initFirebase().catch(() => {});
 
-    // Wait for Firebase to be ready — retries if first attempt failed
     async function ensureFirebase() {
         if (firebaseInitialized) return;
         await initFirebase();
     }
+
+    // Handle redirect result on page load (Google redirect flow)
+    async function checkRedirectResult() {
+        try {
+            await ensureFirebase();
+        } catch {
+            return;
+        }
+        try {
+            const result = await auth.getRedirectResult();
+            if (result && result.user) {
+                const btn = $('btn-google-login');
+                const btnSpan = btn ? btn.querySelector('span') : null;
+                if (btn) btn.disabled = true;
+                if (btnSpan) btnSpan.textContent = 'Signing in...';
+                await authenticateWithBackend(result.user);
+            }
+        } catch (err) {
+            if (err.code && err.code !== 'auth/no-auth-event') {
+                showAuthError(err.message || 'Google sign-in failed. Please try again.');
+            }
+        }
+    }
+
+    checkRedirectResult();
 
     // ── Helpers ────────────────────────────────────────────────
     function showAuthError(msg) {
@@ -288,17 +310,35 @@
         }
 
         const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
         try {
+            // Try popup first — faster UX
             const result = await auth.signInWithPopup(provider);
             await authenticateWithBackend(result.user);
         } catch (err) {
-            btn.disabled = false;
-            btnSpan.textContent = 'Continue with Google';
-            if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
-            if (err.code === 'auth/popup-blocked') {
-                showAuthError('Popup was blocked by your browser. Please allow popups for this site and try again.');
+            // Popup was dismissed by user — do nothing
+            if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+                btn.disabled = false;
+                btnSpan.textContent = 'Continue with Google';
                 return;
             }
+
+            // Popup blocked — fall back to redirect seamlessly
+            if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
+                btnSpan.textContent = 'Redirecting...';
+                try {
+                    await auth.signInWithRedirect(provider);
+                } catch (redirectErr) {
+                    btn.disabled = false;
+                    btnSpan.textContent = 'Continue with Google';
+                    showAuthError(redirectErr.message || 'Google sign-in failed. Please try again.');
+                }
+                return;
+            }
+
+            btn.disabled = false;
+            btnSpan.textContent = 'Continue with Google';
             showAuthError(err.message || 'Google sign-in failed. Please try again.');
         }
     });
