@@ -41,6 +41,7 @@ app.set('trust proxy', 1);
 app.use(helmet({
     contentSecurityPolicy: false,       // Disable CSP for now (Firebase SDK uses inline scripts)
     crossOriginEmbedderPolicy: false,   // Allow loading Firebase/Google resources
+    crossOriginOpenerPolicy: false,     // Allow popups to communicate back to the main window (Fixes Firebase Google Login in Chrome/Opera)
 }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
