@@ -753,25 +753,108 @@
 
           <div id="settings-error" class="auth-error hidden"></div>
 
-          <!-- Bio Character — Diamond Pro Only -->
+          <!-- Bio Narrator -->
           <div class="settings-section glass-card" id="bio-character-section">
             <h3 class="settings-heading">
               Bio Narrator
-              <span id="bio-char-lock" class="diamond-lock-badge" title="Diamond Pro feature" onclick="QV.showPanel('diamond')" style="cursor:pointer;">
+              <span id="bio-char-lock" class="diamond-lock-badge" title="Diamond Pro feature" onclick="QV.showPanel('diamond')" style="cursor:pointer;display:none;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                 Diamond
               </span>
             </h3>
             <p class="section-subtitle" style="margin-bottom:0.75rem;">Choose who writes your profile bio.</p>
-            <select id="settings-bio-character" class="qv-input" disabled title="Upgrade to Diamond Pro to unlock custom bio narrators">
-              <option value="default">Standard (Funny &amp; Warm)</option>
-              <option value="british">Critical Brit</option>
-              <option value="vader">Darth Vader</option>
-              <option value="shakespeare">Shakespeare</option>
-              <option value="ramsay">Gordon Ramsay</option>
-              <option value="sherlock">Sherlock Holmes</option>
-            </select>
-            <p class="text-muted" id="bio-char-hint" style="font-size:0.78rem;margin-top:0.4rem;">Upgrade to Diamond Pro to unlock custom bio narrators.</p>
+            <!-- Hidden input stores the selected value -->
+            <input type="hidden" id="settings-bio-character" value="default">
+            <div class="bio-narrator-grid" id="bio-char-grid">
+              <!-- Standard -->
+              <button class="bio-narrator-card active" data-value="default" type="button" title="Standard — Funny &amp; Warm">
+                <div class="bnc-icon" style="color:#6C5CE7;">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                  </svg>
+                </div>
+                <div class="bnc-name">Standard</div>
+                <div class="bnc-desc">Funny &amp; Warm</div>
+              </button>
+              <!-- Critical Brit -->
+              <button class="bio-narrator-card" data-value="british" data-diamond="true" type="button" title="Critical Brit">
+                <div class="bnc-lock-badge" aria-label="Diamond Pro">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+                <div class="bnc-icon" style="color:#a78bfa;">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="5" y="17" width="14" height="2.5" rx="1.25"/>
+                    <rect x="7.5" y="11" width="9" height="6" rx="1"/>
+                    <rect x="9.5" y="4.5" width="5" height="6.5" rx="1"/>
+                  </svg>
+                </div>
+                <div class="bnc-name">Critical Brit</div>
+                <div class="bnc-desc">Withering review</div>
+              </button>
+              <!-- Darth Vader -->
+              <button class="bio-narrator-card" data-value="vader" data-diamond="true" type="button" title="Darth Vader">
+                <div class="bnc-lock-badge" aria-label="Diamond Pro">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+                <div class="bnc-icon" style="color:#64748b;">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                    <ellipse cx="12" cy="8.5" rx="5.5" ry="6"/>
+                    <rect x="7" y="13" width="10" height="2.5" rx="1"/>
+                    <rect x="8.5" y="15.5" width="7" height="4" rx="0.5"/>
+                    <rect x="9.5" y="10.5" width="5" height="1.5" rx="0.5" fill="rgba(0,0,0,0.35)"/>
+                  </svg>
+                </div>
+                <div class="bnc-name">Darth Vader</div>
+                <div class="bnc-desc">Dark side energy</div>
+              </button>
+              <!-- Shakespeare -->
+              <button class="bio-narrator-card" data-value="shakespeare" data-diamond="true" type="button" title="Shakespeare">
+                <div class="bnc-lock-badge" aria-label="Diamond Pro">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+                <div class="bnc-icon" style="color:#f59e0b;">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                    <path d="M4 20c3-4 6-9 9-14"/>
+                    <path d="M13 6c1.5-1.5 4-1.5 5 0s0 4-2 5"/>
+                    <path d="M4 20l1.5-3"/>
+                    <path d="M7 14l4 1"/>
+                  </svg>
+                </div>
+                <div class="bnc-name">Shakespeare</div>
+                <div class="bnc-desc">In verse &amp; prose</div>
+              </button>
+              <!-- Gordon Ramsay -->
+              <button class="bio-narrator-card" data-value="ramsay" data-diamond="true" type="button" title="Gordon Ramsay">
+                <div class="bnc-lock-badge" aria-label="Diamond Pro">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+                <div class="bnc-icon" style="color:#ef4444;">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="7" y="18.5" width="10" height="2" rx="1"/>
+                    <rect x="7.5" y="12" width="9" height="6.5" rx="1"/>
+                    <path d="M9 12c0-2.5 1-5 3-6 2 1 3 3.5 3 6H9z"/>
+                    <ellipse cx="12" cy="6.5" rx="3.5" ry="2" fill-opacity="0.6"/>
+                  </svg>
+                </div>
+                <div class="bnc-name">Gordon Ramsay</div>
+                <div class="bnc-desc">Brutal critique</div>
+              </button>
+              <!-- Sherlock Holmes -->
+              <button class="bio-narrator-card" data-value="sherlock" data-diamond="true" type="button" title="Sherlock Holmes">
+                <div class="bnc-lock-badge" aria-label="Diamond Pro">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+                <div class="bnc-icon" style="color:#22d3ee;">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                    <circle cx="10.5" cy="10.5" r="5.5"/>
+                    <path d="M15 15L21 21"/>
+                  </svg>
+                </div>
+                <div class="bnc-name">Sherlock</div>
+                <div class="bnc-desc">Deductive analysis</div>
+              </button>
+            </div>
+            <p class="text-muted" id="bio-char-hint" style="font-size:0.78rem;margin-top:0.6rem;display:none;">Upgrade to <strong>Diamond Pro</strong> to unlock custom bio narrators.</p>
           </div>
         </div>
 

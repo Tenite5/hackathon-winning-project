@@ -4751,6 +4751,86 @@ input::placeholder {
 }
 .diamond-lock-badge:hover { opacity: 0.85; }
 
+/* ── Bio Narrator Card Grid ─────────────────────────────────── */
+.bio-narrator-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+.bio-narrator-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 6px 9px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  text-align: center;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  width: 100%;
+}
+.bio-narrator-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+}
+.bio-narrator-card.active {
+  border-color: var(--accent-primary);
+  background: rgba(108,92,231,0.18);
+}
+.bio-narrator-card.bio-narrator-locked {
+  opacity: 0.72;
+}
+.bio-narrator-card.bio-narrator-locked:hover {
+  opacity: 0.92;
+  border-color: rgba(168,85,247,0.5);
+}
+.bnc-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bnc-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-top: 1px;
+}
+.bnc-desc {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+.bnc-lock-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #fbbf24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .bio-narrator-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* ── Super Explain Button ────────────────────────────────────── */
 .btn-super-explain {
   background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #fbbf24 100%);

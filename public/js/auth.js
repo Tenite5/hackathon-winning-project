@@ -179,21 +179,36 @@
     $('form-login').addEventListener('submit', async (e) => {
         e.preventDefault();
         $('auth-error').classList.add('hidden');
+        const btn = $('btn-login');
+        const btnSpan = btn.querySelector('span');
+        btn.disabled = true;
+        btnSpan.textContent = 'Signing in...';
+
         try {
             await ensureFirebase();
-        } catch { showAuthError('Could not connect. Please refresh.'); return; }
+        } catch {
+            showAuthError('Could not connect to auth service. Please refresh the page.');
+            btn.disabled = false; btnSpan.textContent = 'Sign In';
+            return;
+        }
 
         const email = $('login-email').value.trim();
         const password = $('login-password').value;
-        if (!email || !password) { showAuthError('Fill in all fields.'); return; }
+        if (!email || !password) {
+            showAuthError('Fill in all fields.');
+            btn.disabled = false; btnSpan.textContent = 'Sign In';
+            return;
+        }
 
         try {
             const result = await auth.signInWithEmailAndPassword(email, password);
             await authenticateWithBackend(result.user);
         } catch (err) {
+            btn.disabled = false;
+            btnSpan.textContent = 'Sign In';
             const msg = (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential')
                 ? 'Invalid email or password'
-                : err.message;
+                : (err.message || 'Sign in failed. Please try again.');
             showAuthError(msg);
         }
     });
@@ -202,14 +217,31 @@
     $('form-register').addEventListener('submit', async (e) => {
         e.preventDefault();
         $('auth-error').classList.add('hidden');
+        const btn = $('btn-register');
+        const btnSpan = btn.querySelector('span');
+        btn.disabled = true;
+        btnSpan.textContent = 'Creating account...';
+
         try {
             await ensureFirebase();
-        } catch { showAuthError('Could not connect. Please refresh.'); return; }
+        } catch {
+            showAuthError('Could not connect to auth service. Please refresh the page.');
+            btn.disabled = false; btnSpan.textContent = 'Create Account';
+            return;
+        }
 
         const email = $('register-email').value.trim();
         const password = $('register-password').value;
-        if (!email || !password) { showAuthError('Fill in all fields.'); return; }
-        if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+        if (!email || !password) {
+            showAuthError('Fill in all fields.');
+            btn.disabled = false; btnSpan.textContent = 'Create Account';
+            return;
+        }
+        if (password.length < 6) {
+            showAuthError('Password must be at least 6 characters.');
+            btn.disabled = false; btnSpan.textContent = 'Create Account';
+            return;
+        }
 
         try {
             const result = await auth.createUserWithEmailAndPassword(email, password);
@@ -217,9 +249,11 @@
             toast('Verification email sent! Check your inbox.', 'success');
             await authenticateWithBackend(result.user);
         } catch (err) {
+            btn.disabled = false;
+            btnSpan.textContent = 'Create Account';
             const msg = err.code === 'auth/email-already-in-use'
                 ? 'An account with this email already exists. Try logging in.'
-                : err.message;
+                : (err.message || 'Registration failed. Please try again.');
             showAuthError(msg);
         }
     });
@@ -241,15 +275,31 @@
     // ── Google Sign-In ─────────────────────────────────────────
     $('btn-google-login').addEventListener('click', async () => {
         $('auth-error').classList.add('hidden');
-        try { await ensureFirebase(); } catch { showAuthError('Could not connect. Please refresh.'); return; }
+        const btn = $('btn-google-login');
+        const btnSpan = btn.querySelector('span');
+        btn.disabled = true;
+        btnSpan.textContent = 'Connecting...';
+
+        try { await ensureFirebase(); } catch {
+            showAuthError('Could not connect to auth service. Please refresh the page.');
+            btn.disabled = false;
+            btnSpan.textContent = 'Continue with Google';
+            return;
+        }
 
         const provider = new firebase.auth.GoogleAuthProvider();
         try {
             const result = await auth.signInWithPopup(provider);
             await authenticateWithBackend(result.user);
         } catch (err) {
-            if (err.code === 'auth/popup-closed-by-user') return;
-            showAuthError(err.message || 'Google sign-in failed');
+            btn.disabled = false;
+            btnSpan.textContent = 'Continue with Google';
+            if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
+            if (err.code === 'auth/popup-blocked') {
+                showAuthError('Popup was blocked by your browser. Please allow popups for this site and try again.');
+                return;
+            }
+            showAuthError(err.message || 'Google sign-in failed. Please try again.');
         }
     });
 

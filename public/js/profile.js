@@ -375,19 +375,27 @@
         $('settings-username').value = state.user.username;
         settingsAvatarData = null;
 
-        // Bio character selector — enable only for Diamond Pro
-        const charSelect = document.getElementById('settings-bio-character');
+        // Bio narrator card grid — visible to all, locked for non-Diamond
+        const charInput = document.getElementById('settings-bio-character');
         const charLock = document.getElementById('bio-char-lock');
         const charHint = document.getElementById('bio-char-hint');
-        if (charSelect) {
-            charSelect.disabled = !state.user.isDiamondPro;
+        const bioGrid = document.getElementById('bio-char-grid');
+        if (bioGrid && charInput) {
+            const currentChar = state.user.bioCharacter || 'default';
+            charInput.value = currentChar;
+            // Sync active state on all cards
+            bioGrid.querySelectorAll('.bio-narrator-card').forEach(card => {
+                card.classList.toggle('active', card.dataset.value === currentChar);
+            });
             if (state.user.isDiamondPro) {
-                charSelect.value = state.user.bioCharacter || 'default';
                 if (charLock) charLock.style.display = 'none';
                 if (charHint) charHint.style.display = 'none';
+                bioGrid.querySelectorAll('.bnc-lock-badge').forEach(b => b.style.display = 'none');
+                bioGrid.querySelectorAll('.bio-narrator-card[data-diamond]').forEach(c => c.classList.remove('bio-narrator-locked'));
             } else {
-                if (charLock) charLock.style.display = 'inline-flex';
+                if (charLock) charLock.style.display = 'none'; // badge shown per-card instead
                 if (charHint) charHint.style.display = '';
+                bioGrid.querySelectorAll('.bio-narrator-card[data-diamond]').forEach(c => c.classList.add('bio-narrator-locked'));
             }
         }
 
@@ -495,6 +503,20 @@
         }
     });
 
+    // Bio narrator card clicks
+    document.getElementById('bio-char-grid').addEventListener('click', (e) => {
+        const card = e.target.closest('.bio-narrator-card');
+        if (!card) return;
+        const isDiamond = card.dataset.diamond === 'true';
+        if (isDiamond && !state.user.isDiamondPro) {
+            QV.showPanel('diamond');
+            return;
+        }
+        document.getElementById('settings-bio-character').value = card.dataset.value;
+        document.querySelectorAll('.bio-narrator-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+    });
+
     // Remove avatar
     $('btn-remove-avatar').addEventListener('click', () => {
         settingsAvatarData = '';
@@ -519,9 +541,9 @@
         if (settingsAvatarData !== null) {
             body.photoURL = settingsAvatarData;
         }
-        const charSelect = document.getElementById('settings-bio-character');
-        if (charSelect && state.user.isDiamondPro) {
-            body.bioCharacter = charSelect.value;
+        const charInput = document.getElementById('settings-bio-character');
+        if (charInput && state.user.isDiamondPro) {
+            body.bioCharacter = charInput.value;
         }
 
         try {
