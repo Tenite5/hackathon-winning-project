@@ -58,6 +58,52 @@
         QV.loadEloHistory();
     };
 
+    // Profile bio character dropdown — sync with user state and lock diamond options
+    const profileCharSelect = document.getElementById('profile-bio-character-select');
+    function syncProfileCharSelect() {
+        if (!profileCharSelect) return;
+        const isDiamond = state.user && state.user.isDiamondPro;
+        Array.from(profileCharSelect.options).forEach(opt => {
+            if (opt.dataset.diamond === 'true' && !isDiamond) {
+                opt.disabled = true;
+                opt.textContent = opt.textContent.replace(/ 🔒$/, '') + ' 🔒';
+            } else {
+                opt.disabled = false;
+                opt.textContent = opt.textContent.replace(/ 🔒$/, '');
+            }
+        });
+        profileCharSelect.value = (state.user && state.user.bioCharacter) || 'default';
+    }
+    const origUpdateProfile = QV.updateProfile;
+    QV.updateProfile = function () {
+        origUpdateProfile();
+        syncProfileCharSelect();
+    };
+
+    if (profileCharSelect) {
+        profileCharSelect.addEventListener('change', async () => {
+            const val = profileCharSelect.value;
+            if (!state.user.isDiamondPro && val !== 'default') {
+                profileCharSelect.value = state.user.bioCharacter || 'default';
+                QV.showPanel('diamond');
+                return;
+            }
+            try {
+                await api('/profile/update-settings', { method: 'POST', body: { bioCharacter: val } });
+                state.user.bioCharacter = val;
+                // Sync settings page hidden input
+                const settingsInput = document.getElementById('settings-bio-character');
+                if (settingsInput) settingsInput.value = val;
+                document.querySelectorAll('.bio-narrator-card').forEach(c => {
+                    c.classList.toggle('active', c.dataset.value === val);
+                });
+                toast('Narrator updated!', 'success');
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        });
+    }
+
     $('btn-regen-bio').addEventListener('click', async () => {
         $('btn-regen-bio').disabled = true;
         toast('Generating new bio...', 'info');

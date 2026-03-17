@@ -273,8 +273,30 @@
         }
     }
 
+    function populateHomePdfDropdown(pdfs) {
+        const sel = document.getElementById('home-pdf-saved-select');
+        const btn = document.getElementById('btn-home-pdf-reuse');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Saved PDFs --</option>';
+        pdfs.forEach(pdf => {
+            const opt = document.createElement('option');
+            opt.value = pdf.id;
+            opt.textContent = pdf.fileName;
+            sel.appendChild(opt);
+        });
+        sel.onchange = () => { if (btn) btn.disabled = !sel.value; };
+        if (btn) {
+            btn.onclick = () => {
+                if (!sel.value) return;
+                const pdf = pdfs.find(p => p.id === sel.value);
+                if (pdf) QV.reusePdf(pdf.id, pdf.fileName);
+            };
+        }
+    }
+
     function renderSavedPdfs(pdfs) {
         $('pdf-count-badge').textContent = pdfs.length;
+        populateHomePdfDropdown(pdfs);
 
         const container = $('saved-pdfs-list');
         if (!pdfs.length) {
@@ -424,6 +446,9 @@
         origShowPanel(panel);
         if (panel === 'pdfmode') loadSavedPdfs();
     };
+
+    // Initial load for home page dropdown
+    if (state.token) loadSavedPdfs();
 
     // ── Helpers ──────────────────────────────────────────────────
     function formatSize(bytes) {

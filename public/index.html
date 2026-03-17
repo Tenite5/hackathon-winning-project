@@ -315,7 +315,7 @@
               <line x1="16" y1="17" x2="8" y2="17" />
               <polyline points="10 9 9 9 8 9" />
             </svg>
-            <span>PDF Mode</span>
+            <span>Your PDFs</span>
           </button>
           <button class="sidebar-btn" data-panel="wronglog" id="nav-wronglog">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -401,19 +401,6 @@
               <button class="btn btn-warm" id="btn-solo-mode">Practice</button>
             </div>
 
-            <!-- Tournament Card -->
-            <div class="action-card glow-card" id="card-tournament-mode">
-              <div class="action-card-icon" style="--accent: #E17055;">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polygon
-                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-              </div>
-              <h3>Tournament</h3>
-              <p>Battle Royale bracket — last player standing wins it all!</p>
-              <button class="btn btn-danger" id="btn-tournament-mode">Enter</button>
-            </div>
-
             <!-- PDF/Image Mode Card -->
             <div class="action-card glow-card" id="card-pdf-mode">
               <div class="action-card-icon" style="--accent: #00b894;">
@@ -427,7 +414,13 @@
               <h3>PDF / Image Mode</h3>
               <p>Upload a PDF or image — AI reads it and creates quiz questions!</p>
               <button class="btn" id="btn-pdf-mode"
-                style="background: linear-gradient(135deg, #00b894, #00cec9);">Upload</button>
+                style="background: linear-gradient(135deg, #00b894, #00cec9);">Upload New</button>
+              <div class="home-pdf-reuse">
+                <select id="home-pdf-saved-select" class="qv-select qv-select-sm" style="width:100%;margin-top:0.5rem;">
+                  <option value="">-- Saved PDFs --</option>
+                </select>
+                <button class="btn btn-sm btn-ghost" id="btn-home-pdf-reuse" style="margin-top:0.35rem;" disabled>Reuse Selected</button>
+              </div>
             </div>
 
             <!-- Wrong Answers Card -->
@@ -507,13 +500,23 @@
           <div class="profile-bio glass-card" id="profile-bio-card">
             <div class="bio-header">
               <h3>AI Bio</h3>
-              <button class="btn btn-ghost btn-sm" id="btn-regen-bio">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="23 4 23 10 17 10" />
-                  <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
-                </svg>
-                Regenerate
-              </button>
+              <div class="bio-header-actions">
+                <select id="profile-bio-character-select" class="qv-select qv-select-sm" title="Choose bio narrator">
+                  <option value="default">Standard</option>
+                  <option value="british" data-diamond="true">Critical Brit</option>
+                  <option value="vader" data-diamond="true">Darth Vader</option>
+                  <option value="shakespeare" data-diamond="true">Shakespeare</option>
+                  <option value="ramsay" data-diamond="true">Gordon Ramsay</option>
+                  <option value="sherlock" data-diamond="true">Sherlock Holmes</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="btn-regen-bio">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                  </svg>
+                  Regenerate
+                </button>
+              </div>
             </div>
             <p id="profile-bio-text" class="bio-text"></p>
           </div>
@@ -717,37 +720,30 @@
         <!-- SETTINGS PANEL -->
         <div id="panel-settings" class="panel">
           <h2 class="section-title">Settings</h2>
-          <p class="section-subtitle">Update your profile and preferences.</p>
 
-          <div class="settings-section glass-card">
-            <h3 class="settings-heading">Profile Picture</h3>
+          <div class="settings-section glass-card settings-profile-row">
             <div class="settings-avatar-area">
               <div class="settings-avatar-preview" id="settings-avatar-zone">
                 <img id="settings-avatar-img" src="" alt="Avatar" />
                 <div class="settings-avatar-overlay">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
-                  <span>Click, drag, or paste</span>
                 </div>
                 <input type="file" id="settings-avatar-file" accept="image/*" class="hidden" />
               </div>
-              <button class="btn btn-ghost btn-sm" id="btn-remove-avatar">Remove Photo</button>
+              <button class="btn btn-ghost btn-xs" id="btn-remove-avatar">Remove</button>
             </div>
-          </div>
-
-          <div class="settings-section glass-card">
-            <h3 class="settings-heading">Display Name</h3>
-            <div class="settings-input-row">
-              <input type="text" id="settings-username" placeholder="Your display name" maxlength="20"
-                class="qv-input" />
+            <div class="settings-name-col">
+              <label class="settings-label">Display Name</label>
+              <input type="text" id="settings-username" placeholder="Your display name" maxlength="20" class="qv-input" />
             </div>
           </div>
 
           <div class="settings-actions">
-            <button class="btn btn-primary" id="btn-save-settings">Save Changes</button>
+            <button class="btn btn-primary btn-sm" id="btn-save-settings">Save Changes</button>
             <span id="settings-status" class="settings-status hidden"></span>
           </div>
 
@@ -876,16 +872,29 @@
               </svg>
             </div>
             <h1 class="diamond-hero-title">QVIZIO <span class="diamond-gradient-text">Diamond</span></h1>
-            <p class="diamond-hero-sub">The unfair academic advantage. Built for students who don't just want to pass — they want to dominate.</p>
-            <div id="diamond-cta-area">
+            <p class="diamond-hero-sub">Unlock a whole new level of education and exam preparation. Built for students who don't just want to pass — they want to dominate every subject.</p>
+
+            <div class="diamond-plan-card" id="diamond-cta-area">
+              <div class="diamond-plan-header">
+                <span class="diamond-plan-name">Diamond Pro</span>
+                <span class="diamond-plan-tag">LIFETIME</span>
+              </div>
+              <p class="diamond-plan-desc">One-time payment. Unlimited access forever. No subscriptions, no hidden fees.</p>
+              <ul class="diamond-plan-perks">
+                <li>All premium features unlocked</li>
+                <li>Super Explain with Gemini AI</li>
+                <li>20 saved documents &amp; 60 daily game generations</li>
+                <li>5 exclusive bio narrators</li>
+                <li>Priority matchmaking &amp; full preset access</li>
+              </ul>
               <div class="diamond-payment-btns">
                 <button class="btn diamond-upgrade-btn" id="btn-upgrade-paypal" onclick="QV.startDiamondCheckout('paypal')">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><polygon points="12 2 22 9 18 21 6 21 2 9" fill="white" stroke="none"/><polygon points="12 2 22 9 12 7" fill="rgba(0,0,0,0.2)" stroke="none"/></svg>
-                  PayPal / Card
+                  PayPal / Card — $4.99
                 </button>
                 <button class="btn diamond-upgrade-btn diamond-bog-btn" id="btn-upgrade-bog" onclick="QV.startDiamondCheckout('bog')">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><rect x="2" y="5" width="20" height="14" rx="2" fill="white" opacity="0.9"/><path d="M2 10h20" stroke="rgba(0,0,0,0.15)" stroke-width="2"/></svg>
-                  BOG Pay (GEL)
+                  BOG Pay — 10 GEL
                 </button>
               </div>
               <p class="diamond-cta-note">One-time payment. Credit &amp; debit cards accepted.</p>

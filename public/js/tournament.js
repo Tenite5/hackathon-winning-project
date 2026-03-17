@@ -8,7 +8,7 @@
     const { $, state, socket, showPanel, toast, escapeHtml, api } = QV;
 
     // ── Tournament mode button ─────────────────────────────────
-    $('btn-tournament-mode').addEventListener('click', () => {
+    if ($('btn-tournament-mode')) $('btn-tournament-mode').addEventListener('click', () => {
         showPanel('tournament');
     });
 

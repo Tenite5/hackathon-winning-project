@@ -51,7 +51,7 @@ async function getPayPalToken() {
 
 const BOG_OAUTH_URL = 'https://oauth2.bog.ge/auth/realms/bog/protocol/openid-connect/token';
 const BOG_API_BASE  = 'https://api.bog.ge';
-const DIAMOND_PRICE_GEL = process.env.DIAMOND_PRICE_GEL || '13.99';
+const DIAMOND_PRICE_GEL = process.env.DIAMOND_PRICE_GEL || '10';
 
 async function getBOGToken() {
     const credentials = Buffer.from(

@@ -289,4 +289,11 @@ window.QV = window.QV || {};
             letter.textContent = QV.state.user.username[0].toUpperCase();
         }
     };
+
+    // Click profile avatar → go to profile tab
+    const navAvatar = QV.$('nav-avatar');
+    if (navAvatar) {
+        navAvatar.style.cursor = 'pointer';
+        navAvatar.addEventListener('click', () => QV.showPanel('profile'));
+    }
 })();

@@ -209,7 +209,7 @@ async function explainQuestion(question, options, correctIndex, yourAnswerIndex)
         const systemPrompt = `You are a sharp, friendly tutor. A player got a quiz question wrong. Your job is to explain the underlying reason WHY the correct answer is right — not just say it is correct. Give the actual fact, mechanism, or logic behind it. If the player chose a wrong answer, briefly say why that option is incorrect.
 
 Rules:
-- STRICT LIMIT: Maximum 43 words. Do NOT exceed 43 words.
+- Keep it under 40 words. Shorter is better.
 - Focus on teaching the concept, not just naming the answer.
 - Be warm and encouraging.
 - Output ONLY the explanation text, no labels or formatting.`;
@@ -226,7 +226,6 @@ Player: ${wasTimeout ? 'Timed out' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
                 { role: 'user', content: userPrompt },
             ],
             temperature: 0.5,
-            max_tokens: 200,
         });
 
         return (response.choices?.[0]?.message?.content || '').trim();
@@ -246,7 +245,7 @@ async function superExplainQuestion(question, options, correctIndex, yourAnswerI
         const correctAnswer = options[safeCorrectIndex];
         const wasTimeout = yourAnswerIndex < 0;
 
-        const prompt = `A student got a quiz question wrong. Give a rich, academic explanation of ~60 words. Include:
+        const prompt = `A student got a quiz question wrong. Give a rich, academic explanation of about 80-120 words. Include:
 1. WHY the correct answer is right (the underlying concept or mechanism)
 2. A memory hook to help them remember it
 3. Why the wrong answer seems plausible but isn't
@@ -262,7 +261,7 @@ Output ONLY the explanation. No labels, no formatting.`;
             ai.models.generateContent({
                 model: GEMINI_MODEL,
                 contents: prompt,
-                config: { temperature: 0.4, maxOutputTokens: 300 },
+                config: { temperature: 0.4 },
             }),
             15000
         );

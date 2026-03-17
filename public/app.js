@@ -956,7 +956,7 @@
     // ═══════════════════════════════════════════════════════════════
     // TOURNAMENTS
     // ═══════════════════════════════════════════════════════════════
-    $('btn-tournament-mode').addEventListener('click', () => {
+    if ($('btn-tournament-mode')) $('btn-tournament-mode').addEventListener('click', () => {
         showPanel('tournament');
     });
 
