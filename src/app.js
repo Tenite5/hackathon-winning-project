@@ -37,9 +37,6 @@ app.set('io', io);
 // Trust reverse proxy (nginx/Cloudflare) so req.ip and x-forwarded-for are correct
 app.set('trust proxy', 1);
 
-// Raw body parser for Lemon Squeezy webhook (must be before express.json)
-app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
-
 // Middleware
 app.use(helmet({
     contentSecurityPolicy: false,       // Disable CSP for now (Firebase SDK uses inline scripts)

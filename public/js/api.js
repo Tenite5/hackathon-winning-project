@@ -205,25 +205,29 @@ window.QV = window.QV || {};
         QV.showPanel('diamond');
     };
 
-    /** Kick off a Diamond Pro checkout */
-    QV.startDiamondCheckout = async function () {
-        const btn = document.getElementById('btn-upgrade-diamond');
+    /** Kick off a Diamond Pro checkout via PayPal or BOG */
+    QV.startDiamondCheckout = async function (method) {
+        method = method || 'paypal';
+        const btnId = method === 'bog' ? 'btn-upgrade-bog' : 'btn-upgrade-paypal';
+        const btn = document.getElementById(btnId);
+        const originalText = btn ? btn.textContent.trim() : '';
         if (btn) { btn.disabled = true; btn.textContent = 'Redirecting...'; }
         try {
             const res = await fetch('/api/subscription/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${QV.state.token}` },
+                body: JSON.stringify({ method }),
             });
             const data = await res.json();
             if (data.url) {
                 window.location.href = data.url;
             } else {
                 QV.showToast(data.error || 'Could not start checkout. Try again.', 'error');
-                if (btn) { btn.disabled = false; btn.textContent = 'Upgrade to Diamond Pro'; }
+                if (btn) { btn.disabled = false; btn.textContent = originalText; }
             }
         } catch (e) {
             QV.showToast('Network error. Please try again.', 'error');
-            if (btn) { btn.disabled = false; btn.textContent = 'Upgrade to Diamond Pro'; }
+            if (btn) { btn.disabled = false; btn.textContent = originalText; }
         }
     };
 

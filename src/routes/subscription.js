@@ -1,24 +1,83 @@
 /**
  * @file routes/subscription.js
- * @description Lemon Squeezy subscription management — checkout + webhook + status.
+ * @description PayPal + BOG payment — checkout + capture + status.
+ *
+ * PayPal flow:
+ *  1. POST /checkout { method:'paypal' } → creates PayPal order → returns approval URL
+ *  2. User pays → PayPal redirects to GET /capture?token=ORDER_ID&PayerID=...
+ *  3. Server captures → activates Diamond Pro → redirects to app
+ *
+ * BOG (Bank of Georgia) flow:
+ *  1. POST /checkout { method:'bog' } → creates BOG order → returns redirect URL
+ *  2. User pays → BOG redirects to GET /capture/bog?order_id=BOG_ORDER_ID
+ *  3. Server verifies → activates Diamond Pro → redirects to app
  */
 
 'use strict';
 
-const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 const db = require('../db/store');
 const { requireAuth } = require('../middleware/auth');
 
-const LS_API_KEY      = process.env.LEMONSQUEEZY_API_KEY;
-const LS_STORE_ID     = process.env.LEMONSQUEEZY_STORE_ID;
-const LS_VARIANT_ID   = process.env.LEMONSQUEEZY_VARIANT_ID;
-const LS_WEBHOOK_SECRET = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+// ── PayPal ────────────────────────────────────────────────────────────────────
+
+const PAYPAL_BASE = process.env.PAYPAL_MODE === 'live'
+    ? 'https://api-m.paypal.com'
+    : 'https://api-m.sandbox.paypal.com';
+
+const DIAMOND_PRICE_USD = process.env.DIAMOND_PRICE_USD || process.env.DIAMOND_PRICE || '4.99';
+
+async function getPayPalToken() {
+    const credentials = Buffer.from(
+        `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    ).toString('base64');
+
+    const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'grant_type=client_credentials',
+    });
+
+    if (!res.ok) throw new Error(`PayPal auth failed: ${res.status}`);
+    const data = await res.json();
+    return data.access_token;
+}
+
+// ── BOG (Bank of Georgia) ────────────────────────────────────────────────────
+
+const BOG_OAUTH_URL = 'https://oauth2.bog.ge/auth/realms/bog/protocol/openid-connect/token';
+const BOG_API_BASE  = 'https://api.bog.ge';
+const DIAMOND_PRICE_GEL = process.env.DIAMOND_PRICE_GEL || '13.99';
+
+async function getBOGToken() {
+    const credentials = Buffer.from(
+        `${process.env.BOG_CLIENT_ID}:${process.env.BOG_CLIENT_SECRET}`
+    ).toString('base64');
+
+    const res = await fetch(BOG_OAUTH_URL, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'grant_type=client_credentials',
+    });
+
+    if (!res.ok) throw new Error(`BOG auth failed: ${res.status}`);
+    const data = await res.json();
+    return data.access_token;
+}
+
+// ── Routes ────────────────────────────────────────────────────────────────────
 
 /**
  * POST /api/subscription/checkout
- * Create a Lemon Squeezy checkout URL for the authenticated user.
+ * Body: { method: 'paypal' | 'bog' }
+ * Returns { url } — client redirects there.
  */
 router.post('/checkout', requireAuth, async (req, res) => {
     try {
@@ -29,53 +88,92 @@ router.post('/checkout', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'already_subscribed', message: 'You already have Diamond Pro!' });
         }
 
-        if (!LS_API_KEY || !LS_STORE_ID || !LS_VARIANT_ID) {
-            return res.status(503).json({ error: 'Payments are not configured yet. Check back soon!' });
+        const method = req.body?.method === 'bog' ? 'bog' : 'paypal';
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+        // ── PayPal ────────────────────────────────────────────────────────────
+        if (method === 'paypal') {
+            if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
+                return res.status(503).json({ error: 'PayPal payments are not configured yet.' });
+            }
+
+            const token = await getPayPalToken();
+
+            const response = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    intent: 'CAPTURE',
+                    purchase_units: [{
+                        custom_id: user.id,
+                        description: 'Diamond Pro — QVIZIO RANKED',
+                        amount: { currency_code: 'USD', value: DIAMOND_PRICE_USD },
+                    }],
+                    application_context: {
+                        brand_name: 'QVIZIO RANKED',
+                        user_action: 'PAY_NOW',
+                        landing_page: 'BILLING',
+                        return_url: `${baseUrl}/api/subscription/capture`,
+                        cancel_url: `${baseUrl}/`,
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                const err = await response.text();
+                console.error('PayPal create order error:', err);
+                return res.status(502).json({ error: 'Failed to create PayPal order. Please try again.' });
+            }
+
+            const order = await response.json();
+            const approvalUrl = order.links?.find(l => l.rel === 'approve')?.href;
+            if (!approvalUrl) return res.status(502).json({ error: 'No approval URL returned from PayPal.' });
+
+            return res.json({ url: approvalUrl });
         }
 
-        const body = {
-            data: {
-                type: 'checkouts',
-                attributes: {
-                    checkout_data: {
-                        custom: { userId: user.id },
-                        email: user.email || undefined,
-                        name: user.username || undefined,
-                    },
-                    product_options: {
-                        redirect_url: `${req.protocol}://${req.get('host')}/?diamond=activated`,
-                    },
-                },
-                relationships: {
-                    store: { data: { type: 'stores', id: String(LS_STORE_ID) } },
-                    variant: { data: { type: 'variants', id: String(LS_VARIANT_ID) } },
-                },
-            },
-        };
+        // ── BOG ───────────────────────────────────────────────────────────────
+        if (!process.env.BOG_CLIENT_ID || !process.env.BOG_CLIENT_SECRET) {
+            return res.status(503).json({ error: 'BOG payments are not configured yet.' });
+        }
 
-        const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
+        const bogToken = await getBOGToken();
+        // Encode userId in external_order_id so we can retrieve it on capture
+        const externalOrderId = `${user.id}_${Date.now()}`;
+
+        const bogResponse = await fetch(`${BOG_API_BASE}/payments/v1/ecommerce/orders`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${LS_API_KEY}`,
-                'Accept': 'application/vnd.api+json',
-                'Content-Type': 'application/vnd.api+json',
-            },
-            body: JSON.stringify(body),
+            headers: { 'Authorization': `Bearer ${bogToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                callback_url: `${baseUrl}/api/subscription/webhook/bog`,
+                external_order_id: externalOrderId,
+                purchase_units: {
+                    currency: 'GEL',
+                    total_amount: parseFloat(DIAMOND_PRICE_GEL),
+                },
+                redirect_urls: {
+                    fail: `${baseUrl}/?diamond=error`,
+                    success: `${baseUrl}/api/subscription/capture/bog`,
+                },
+                buyer: {
+                    full_name: user.username || undefined,
+                    email: user.email || undefined,
+                },
+            }),
         });
 
-        if (!response.ok) {
-            const err = await response.text();
-            console.error('LS checkout error:', err);
-            return res.status(502).json({ error: 'Failed to create checkout. Please try again.' });
+        if (!bogResponse.ok) {
+            const err = await bogResponse.text();
+            console.error('BOG create order error:', err);
+            return res.status(502).json({ error: 'Failed to create BOG order. Please try again.' });
         }
 
-        const data = await response.json();
-        const checkoutUrl = data?.data?.attributes?.url;
-        if (!checkoutUrl) {
-            return res.status(502).json({ error: 'No checkout URL returned from payment provider.' });
-        }
+        const bogOrder = await bogResponse.json();
+        const redirectUrl = bogOrder._links?.redirect?.href;
+        if (!redirectUrl) return res.status(502).json({ error: 'No redirect URL returned from BOG.' });
 
-        res.json({ url: checkoutUrl });
+        return res.json({ url: redirectUrl });
+
     } catch (err) {
         console.error('Checkout route error:', err.message);
         res.status(500).json({ error: 'Internal server error' });
@@ -83,60 +181,101 @@ router.post('/checkout', requireAuth, async (req, res) => {
 });
 
 /**
- * POST /api/subscription/webhook
- * Lemon Squeezy webhook — activates Diamond Pro on successful order.
- * Note: body must be raw (Buffer) — configured in app.js before express.json().
+ * GET /api/subscription/capture
+ * PayPal redirects here after approval. Captures payment and activates Diamond Pro.
  */
-router.post('/webhook', (req, res) => {
+router.get('/capture', async (req, res) => {
+    const { token: orderId, PayerID } = req.query;
+    if (!orderId || !PayerID) return res.redirect('/?diamond=error');
+
     try {
-        if (!LS_WEBHOOK_SECRET) {
-            console.warn('LS webhook received but LEMONSQUEEZY_WEBHOOK_SECRET is not set');
-            return res.sendStatus(200);
+        const token = await getPayPalToken();
+
+        const response = await fetch(`${PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        const capture = await response.json();
+
+        if (capture.status !== 'COMPLETED') {
+            console.warn('PayPal capture incomplete:', capture.status);
+            return res.redirect('/?diamond=error');
         }
 
-        const rawBody = req.body;
-        const signature = req.headers['x-signature'];
-        if (!signature) return res.sendStatus(400);
-
-        const expected = crypto
-            .createHmac('sha256', LS_WEBHOOK_SECRET)
-            .update(rawBody)
-            .digest('hex');
-
-        if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-            console.warn('LS webhook: invalid signature');
-            return res.sendStatus(401);
-        }
-
-        const payload = JSON.parse(rawBody.toString());
-        const eventName = payload?.meta?.event_name;
-        const status = payload?.data?.attributes?.status;
-        const userId = payload?.meta?.custom_data?.userId;
-        const orderId = String(payload?.data?.id || '');
-
-        if ((eventName === 'order_created') && status === 'paid' && userId) {
+        const userId = capture.purchase_units?.[0]?.custom_id;
+        if (userId) {
             const user = db.users.get(userId);
             if (user) {
                 user.isDiamondPro = true;
                 user.diamondSince = Date.now();
                 user.diamondOrderId = orderId;
                 db.saveUser(userId);
-                console.log(`✦ Diamond Pro activated for user: ${user.username} (${userId})`);
+                console.log(`✦ Diamond Pro activated via PayPal for user: ${user.username} (${userId})`);
             } else {
-                console.warn(`LS webhook: user not found for userId=${userId}`);
+                console.warn(`PayPal capture: user not found in memory for userId=${userId}`);
             }
         }
 
-        res.sendStatus(200);
+        res.redirect('/?diamond=activated');
     } catch (err) {
-        console.error('LS webhook error:', err.message);
-        res.sendStatus(200); // Always 200 to prevent LS retries
+        console.error('PayPal capture error:', err.message);
+        res.redirect('/?diamond=error');
+    }
+});
+
+/**
+ * GET /api/subscription/capture/bog
+ * BOG redirects here after payment. Verifies order and activates Diamond Pro.
+ */
+router.get('/capture/bog', async (req, res) => {
+    const { order_id } = req.query;
+    if (!order_id) return res.redirect('/?diamond=error');
+
+    try {
+        const token = await getBOGToken();
+
+        const response = await fetch(`${BOG_API_BASE}/payments/v1/ecommerce/orders/${order_id}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+            console.warn('BOG order fetch failed:', response.status);
+            return res.redirect('/?diamond=error');
+        }
+
+        const order = await response.json();
+
+        if (order.order_status?.key !== 'completed') {
+            console.warn('BOG order not completed:', order.order_status?.key);
+            return res.redirect('/?diamond=error');
+        }
+
+        // external_order_id format: "userId_timestamp"
+        const userId = (order.external_order_id || '').split('_')[0];
+
+        if (userId) {
+            const user = db.users.get(userId);
+            if (user) {
+                user.isDiamondPro = true;
+                user.diamondSince = Date.now();
+                user.diamondOrderId = `bog_${order_id}`;
+                db.saveUser(userId);
+                console.log(`✦ Diamond Pro activated via BOG for user: ${user.username} (${userId})`);
+            } else {
+                console.warn(`BOG capture: user not found in memory for userId=${userId}`);
+            }
+        }
+
+        res.redirect('/?diamond=activated');
+    } catch (err) {
+        console.error('BOG capture error:', err.message);
+        res.redirect('/?diamond=error');
     }
 });
 
 /**
  * GET /api/subscription/status
- * Re-check subscription status after returning from checkout.
  */
 router.get('/status', requireAuth, (req, res) => {
     const user = db.users.get(req.user.id);

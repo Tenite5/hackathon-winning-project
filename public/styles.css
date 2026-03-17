@@ -4832,6 +4832,9 @@ input::placeholder {
 }
 .diamond-upgrade-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(168,85,247,0.5); }
 .diamond-upgrade-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.diamond-bog-btn { background: linear-gradient(135deg, #e85d04, #f48c06); box-shadow: 0 4px 20px rgba(232,93,4,0.4); }
+.diamond-bog-btn:hover { box-shadow: 0 6px 28px rgba(232,93,4,0.5); }
+.diamond-payment-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
 .diamond-cta-note { font-size: 0.75rem; color: var(--text-muted, #888); margin-top: 0.5rem; }
 .diamond-active-badge {
   display: inline-flex; align-items: center; gap: 8px;

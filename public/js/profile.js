@@ -547,6 +547,13 @@
         $('btn-save-settings').disabled = false;
     });
 
+    // Check if returning from Diamond checkout with an error
+    if (window.location.search.includes('diamond=error')) {
+        history.replaceState({}, '', window.location.pathname);
+        QV.showPanel('diamond');
+        toast('Payment was not completed. Please try again.', 'error');
+    }
+
     // Check if returning from Diamond checkout
     if (window.location.search.includes('diamond=activated')) {
         // Remove query param from URL without reload
