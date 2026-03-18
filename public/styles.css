@@ -5216,62 +5216,70 @@ input::placeholder {
   --bg-tertiary: #1c1c32;
   --bg-card: rgba(28, 28, 50, 0.92);
   --bg-glass: rgba(22, 22, 42, 0.88);
-  --bg-hover: rgba(129, 140, 248, 0.1);
+  --bg-hover: rgba(140, 140, 200, 0.08);
 
-  --text-primary: #e8e8f0;
-  --text-secondary: #a0a0b8;
-  --text-muted: #6b6b85;
+  --text-primary: #dcdce8;
+  --text-secondary: #9a9ab4;
+  --text-muted: #5f5f78;
 
-  --accent-primary: #818cf8;
-  --accent-secondary: #22d3ee;
-  --accent-warm: #fbbf24;
-  --accent-danger: #f87171;
-  --accent-success: #34d399;
+  --accent-primary: #9a9ad4;
+  --accent-secondary: #6ec6d6;
+  --accent-warm: #d4a54a;
+  --accent-danger: #e07070;
+  --accent-success: #50b88a;
 
-  --gradient-main: linear-gradient(135deg, #818cf8 0%, #22d3ee 100%);
-  --gradient-warm: linear-gradient(135deg, #fbbf24 0%, #f87171 100%);
-  --gradient-danger: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
-  --gradient-success: linear-gradient(135deg, #34d399 0%, #22d3ee 100%);
+  --gradient-main: linear-gradient(135deg, #7c7cbf 0%, #6ec6d6 100%);
+  --gradient-warm: linear-gradient(135deg, #d4a54a 0%, #e07070 100%);
+  --gradient-danger: linear-gradient(135deg, #e07070 0%, #c55050 100%);
+  --gradient-success: linear-gradient(135deg, #50b88a 0%, #6ec6d6 100%);
 
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(129, 140, 248, 0.35);
+  --border-color: rgba(255, 255, 255, 0.07);
+  --border-glow: rgba(140, 140, 200, 0.25);
 
   --shadow-sm: 2px 3px 6px rgba(0, 0, 0, 0.35);
   --shadow-md: 2px 4px 10px rgba(0, 0, 0, 0.4);
   --shadow-lg: 3px 6px 20px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(129, 140, 248, 0.15);
+  --shadow-glow: 0 0 20px rgba(140, 140, 200, 0.1);
 
-  --line-blue: rgba(129, 140, 248, 0.12);
+  --line-blue: rgba(120, 120, 180, 0.12);
   --paper-bg: #0f0f1a;
   --sidebar-bg: #12122a;
-  --yellow-note: #3d3520;
-  --yellow-note-dark: #4a3f1a;
-  --tape-color: rgba(61, 53, 32, 0.65);
+  --yellow-note: #302a18;
+  --yellow-note-dark: #3a3218;
+  --tape-color: rgba(48, 42, 24, 0.65);
 }
 
 /* Dark body */
 [data-theme="dark"] body {
   background: #0f0f1a;
-  color: #e8e8f0;
+  color: #dcdce8;
 }
 
 /* Dark scrollbar */
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #3a3a5a;
+  background: #33335a;
 }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #5a5a7a;
+  background: #4a4a70;
 }
 
 /* Dark selection */
 [data-theme="dark"] ::selection {
-  background: #4338ca;
+  background: #4a4a80;
   color: #fff;
 }
 
 /* Dark particles */
 [data-theme="dark"] #particles-canvas {
-  opacity: 0.06;
+  opacity: 0.04;
+}
+
+/* ── Main content: keep notebook lines ─────────────────── */
+[data-theme="dark"] .main-content {
+  background-color: #0f0f1a;
+  background-image:
+    linear-gradient(rgba(120, 120, 180, 0.08) 1px, transparent 1px);
+  background-size: 100% 2rem;
 }
 
 /* Auth / Background lined areas */
@@ -5279,7 +5287,8 @@ input::placeholder {
 [data-theme="dark"] #view-profile-setup {
   background-color: #0f0f1a;
   background-image:
-    linear-gradient(rgba(129, 140, 248, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(120, 120, 180, 0.06) 1px, transparent 1px);
+  background-size: 100% 2rem;
 }
 
 /* Auth card */
@@ -5294,10 +5303,10 @@ input::placeholder {
   border-color: rgba(255, 255, 255, 0.06);
 }
 [data-theme="dark"] .auth-tab {
-  color: #6b6b85;
+  color: #5f5f78;
 }
 [data-theme="dark"] .auth-tab.active {
-  background: #818cf8;
+  background: #7c7cbf;
   color: white;
 }
 
@@ -5310,39 +5319,39 @@ input::placeholder {
 [data-theme="dark"] select {
   background: #1a1a30;
   border-color: rgba(255, 255, 255, 0.1);
-  color: #e8e8f0;
+  color: #dcdce8;
 }
 [data-theme="dark"] input::placeholder {
-  color: #5a5a75;
+  color: #4a4a65;
 }
 [data-theme="dark"] input:focus,
 [data-theme="dark"] select:focus {
-  border-color: #818cf8;
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+  border-color: #7c7cbf;
+  box-shadow: 0 0 0 3px rgba(124, 124, 191, 0.12);
 }
 
 /* Top Nav */
 [data-theme="dark"] .top-nav {
-  background: rgba(15, 15, 26, 0.92);
+  background: rgba(15, 15, 26, 0.94);
   border-bottom-color: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(16px);
 }
 [data-theme="dark"] .brand-text {
-  color: #c7d2fe;
+  color: #b8b8d8;
 }
 [data-theme="dark"] .nav-username {
-  color: #e8e8f0;
+  color: #dcdce8;
 }
 
 /* Logo */
 [data-theme="dark"] .logo-text {
-  color: #c7d2fe;
+  color: #b8b8d8;
 }
 [data-theme="dark"] .logo-icon svg rect {
-  fill: #818cf8;
+  fill: #7c7cbf;
 }
 [data-theme="dark"] .nav-brand svg rect {
-  fill: #818cf8;
+  fill: #7c7cbf;
 }
 
 /* Sidebar */
@@ -5351,63 +5360,201 @@ input::placeholder {
   border-right-color: rgba(255, 255, 255, 0.06);
 }
 [data-theme="dark"] .sidebar-btn {
-  color: #a0a0b8;
+  color: #9a9ab4;
 }
 [data-theme="dark"] .sidebar-btn:hover {
-  background: rgba(129, 140, 248, 0.08);
-  color: #c7d2fe;
+  background: rgba(140, 140, 200, 0.08);
+  color: #b8b8d8;
 }
 [data-theme="dark"] .sidebar-btn.active {
-  background: rgba(129, 140, 248, 0.15);
-  color: #818cf8;
+  background: rgba(140, 140, 200, 0.12);
+  color: #9a9ad4;
 }
 
-/* Chat sidebar */
+/* ── Chat sidebar ──────────────────────────────────────── */
 [data-theme="dark"] .chat-sidebar {
   background: #12122a;
   border-left-color: rgba(255, 255, 255, 0.06);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
 }
 [data-theme="dark"] .chat-header {
   border-bottom-color: rgba(255, 255, 255, 0.06);
+  background: rgba(18, 18, 42, 0.8);
+}
+[data-theme="dark"] .chat-messages {
+  background: #0f0f1a;
+}
+[data-theme="dark"] .chat-input-row {
+  background: #16162a;
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark"] .chat-input-row input {
+  background: #1a1a30;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #dcdce8;
+}
+[data-theme="dark"] .chat-input-row button {
+  background: #7c7cbf;
 }
 
 /* Btn ghost */
 [data-theme="dark"] .btn-ghost {
   background: #1c1c32;
-  color: #a0a0b8;
+  color: #9a9ab4;
   border-color: rgba(255, 255, 255, 0.08);
 }
 [data-theme="dark"] .btn-ghost:hover {
-  border-color: #818cf8;
-  color: #818cf8;
-  background: rgba(129, 140, 248, 0.08);
+  border-color: #7c7cbf;
+  color: #9a9ad4;
+  background: rgba(140, 140, 200, 0.08);
 }
 
 /* Glass card */
 [data-theme="dark"] .glass-card {
   background: rgba(28, 28, 50, 0.92);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.07);
 }
 
 /* Glow card */
 [data-theme="dark"] .glow-card {
   background: rgba(28, 28, 50, 0.92);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.07);
 }
 [data-theme="dark"] .glow-card:hover {
-  border-color: rgba(129, 140, 248, 0.35);
+  border-color: rgba(140, 140, 200, 0.25);
 }
 
-/* Main content area */
-[data-theme="dark"] .main-content {
-  background: #0f0f1a;
+/* ── Action cards (Home page) ──────────────────────────── */
+[data-theme="dark"] #card-quick-game {
+  background: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+[data-theme="dark"] #card-quick-game .action-card-icon {
+  background: rgba(59, 130, 246, 0.12);
+}
+[data-theme="dark"] #card-custom-game {
+  background: rgba(6, 182, 212, 0.06);
+  border-color: rgba(6, 182, 212, 0.15);
+}
+[data-theme="dark"] #card-custom-game .action-card-icon {
+  background: rgba(6, 182, 212, 0.12);
+}
+[data-theme="dark"] #card-preset-game {
+  background: rgba(22, 163, 74, 0.06);
+  border-color: rgba(22, 163, 74, 0.15);
+}
+[data-theme="dark"] #card-preset-game .action-card-icon {
+  background: rgba(22, 163, 74, 0.12);
+}
+[data-theme="dark"] #card-solo-mode {
+  background: rgba(202, 138, 4, 0.06);
+  border-color: rgba(202, 138, 4, 0.15);
+}
+[data-theme="dark"] #card-solo-mode .action-card-icon {
+  background: rgba(202, 138, 4, 0.12);
+}
+[data-theme="dark"] #card-tournament-mode {
+  background: rgba(147, 51, 234, 0.06);
+  border-color: rgba(147, 51, 234, 0.15);
+}
+[data-theme="dark"] #card-tournament-mode .action-card-icon {
+  background: rgba(147, 51, 234, 0.12);
+}
+[data-theme="dark"] #card-wrong-answers {
+  background: rgba(225, 29, 72, 0.06);
+  border-color: rgba(225, 29, 72, 0.15);
+}
+[data-theme="dark"] #card-wrong-answers .action-card-icon {
+  background: rgba(225, 29, 72, 0.12);
+}
+
+/* PDF / Image Mode card */
+[data-theme="dark"] #card-pdf-mode {
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.15);
+}
+
+/* ── Leaderboard rows ──────────────────────────────────── */
+[data-theme="dark"] .lb-row {
+  background: #1c1c32;
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+[data-theme="dark"] .lb-row:hover {
+  background: #22224a;
+  border-color: rgba(140, 140, 200, 0.2);
+}
+[data-theme="dark"] .lb-row.lb-header {
+  background: transparent;
+  border: none;
+}
+/* Top 3 leaderboard rows */
+[data-theme="dark"] .lb-row:nth-child(2) {
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.08) 0%, #1c1c32 100%);
+  border-color: rgba(234, 179, 8, 0.2);
+}
+[data-theme="dark"] .lb-row:nth-child(3) {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.06) 0%, #1c1c32 100%);
+  border-color: rgba(148, 163, 184, 0.15);
+}
+[data-theme="dark"] .lb-row:nth-child(4) {
+  background: linear-gradient(90deg, rgba(180, 83, 9, 0.06) 0%, #1c1c32 100%);
+  border-color: rgba(180, 83, 9, 0.15);
+}
+
+/* ── Rank badges ───────────────────────────────────────── */
+[data-theme="dark"] .lb-badge {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #9a9ab4;
+}
+[data-theme="dark"] .lb-badge[style*="cd7f32"] { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3); color: #d4a54a; }
+[data-theme="dark"] .lb-badge[style*="c0c0c0"] { background: rgba(148, 163, 184, 0.1); border-color: rgba(148, 163, 184, 0.25); color: #9a9ab4; }
+[data-theme="dark"] .lb-badge[style*="ffd700"] { background: rgba(234, 179, 8, 0.12); border-color: rgba(234, 179, 8, 0.3); color: #d4a54a; }
+[data-theme="dark"] .lb-badge[style*="e5e4e2"] { background: rgba(125, 211, 252, 0.08); border-color: rgba(125, 211, 252, 0.2); color: #6ec6d6; }
+[data-theme="dark"] .lb-badge[style*="b9f2ff"] { background: rgba(34, 211, 238, 0.08); border-color: rgba(34, 211, 238, 0.2); color: #6ec6d6; }
+[data-theme="dark"] .lb-badge[style*="9b59b6"] { background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.25); color: #b88ae8; }
+[data-theme="dark"] .lb-badge[style*="e74c3c"] { background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.2); color: #e07070; }
+
+/* ── Friends ───────────────────────────────────────────── */
+[data-theme="dark"] .friend-item {
+  background: #1c1c32;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+[data-theme="dark"] .friend-item:hover {
+  border-color: rgba(140, 140, 200, 0.2);
+}
+
+/* ── Profile stats ─────────────────────────────────────── */
+[data-theme="dark"] .stat-card {
+  background: #1c1c32;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+/* Category stat bar bg */
+[data-theme="dark"] .cat-stat-bar {
+  background: #2a2a4a;
+}
+
+/* ── DM Messages ───────────────────────────────────────── */
+[data-theme="dark"] .dm-msg.sent {
+  background: rgba(124, 124, 191, 0.1);
+  border-color: rgba(124, 124, 191, 0.2);
+}
+[data-theme="dark"] .dm-msg.received {
+  background: #1c1c32;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .dm-input-row input {
+  background: #1a1a30;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #dcdce8;
 }
 
 /* Google btn */
 [data-theme="dark"] .qv-google-btn {
   background: #1c1c32;
   border-color: rgba(255, 255, 255, 0.1);
-  color: #e8e8f0;
+  color: #dcdce8;
 }
 [data-theme="dark"] .qv-google-btn:hover {
   background: #22224a;
@@ -5426,6 +5573,14 @@ input::placeholder {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+/* ── Overlays ──────────────────────────────────────────── */
+[data-theme="dark"] .overlay {
+  background: rgba(5, 5, 15, 0.85);
+}
+[data-theme="dark"] .overlay-content {
+  color: #dcdce8;
+}
+
 /* Game view */
 [data-theme="dark"] .game-card {
   background: #1c1c32;
@@ -5434,22 +5589,17 @@ input::placeholder {
 [data-theme="dark"] .game-option {
   background: #1a1a30;
   border-color: rgba(255, 255, 255, 0.1);
-  color: #e8e8f0;
+  color: #dcdce8;
 }
 [data-theme="dark"] .game-option:hover:not(.disabled) {
-  border-color: #818cf8;
-  background: rgba(129, 140, 248, 0.08);
-}
-
-/* Overlays */
-[data-theme="dark"] .overlay {
-  background: rgba(0, 0, 0, 0.7);
+  border-color: #7c7cbf;
+  background: rgba(140, 140, 200, 0.08);
 }
 
 /* Toast */
 [data-theme="dark"] .toast {
   background: #1c1c32;
-  color: #e8e8f0;
+  color: #dcdce8;
   border-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -5459,10 +5609,10 @@ input::placeholder {
   border-top-color: rgba(255, 255, 255, 0.06);
 }
 [data-theme="dark"] .mobile-nav-btn {
-  color: #6b6b85;
+  color: #5f5f78;
 }
 [data-theme="dark"] .mobile-nav-btn.active {
-  color: #818cf8;
+  color: #9a9ad4;
 }
 
 /* Mobile more menu */
@@ -5470,7 +5620,7 @@ input::placeholder {
   background: #1c1c32;
 }
 [data-theme="dark"] .mobile-more-item {
-  color: #a0a0b8;
+  color: #9a9ab4;
 }
 
 /* Mobile chat overlay */
@@ -5484,8 +5634,8 @@ input::placeholder {
 
 /* Toggle switch */
 [data-theme="dark"] .toggle-switch {
-  background: #3a3a5a;
-  border-color: #4a4a6a;
+  background: #33335a;
+  border-color: #44446a;
 }
 
 /* Wrong q cards */
@@ -5500,9 +5650,12 @@ input::placeholder {
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Profile rank badge */
+/* Profile */
 [data-theme="dark"] .profile-rank-badge {
-  background: rgba(129, 140, 248, 0.1);
+  background: rgba(140, 140, 200, 0.1);
+}
+[data-theme="dark"] .profile-bio-text {
+  background: rgba(140, 140, 200, 0.04);
 }
 
 /* Diamond panel */
@@ -5526,6 +5679,62 @@ input::placeholder {
 /* Game view */
 [data-theme="dark"] #view-game {
   background: #0f0f1a;
+}
+
+/* ── Browse panel ──────────────────────────────────────── */
+[data-theme="dark"] .lobby-table th {
+  background: #16162a;
+  color: #9a9ab4;
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+[data-theme="dark"] .lobby-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Settings ──────────────────────────────────────────── */
+[data-theme="dark"] .settings-actions {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Notification badge ────────────────────────────────── */
+[data-theme="dark"] .sidebar-badge {
+  background: #e07070;
+}
+
+/* ── PDF select / dropdowns ────────────────────────────── */
+[data-theme="dark"] .pdf-select,
+[data-theme="dark"] .custom-select {
+  background: #1a1a30;
+  color: #dcdce8;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Bio narrator cards ────────────────────────────────── */
+[data-theme="dark"] .bio-narrator-card {
+  background: #1c1c32;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+[data-theme="dark"] .bio-narrator-card:hover {
+  border-color: rgba(140, 140, 200, 0.2);
+}
+[data-theme="dark"] .bio-narrator-card.active {
+  border-color: #7c7cbf;
+}
+
+/* ── Theme card in dark ────────────────────────────────── */
+[data-theme="dark"] .theme-card {
+  background: #1c1c32;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+[data-theme="dark"] .theme-card:hover {
+  border-color: #7c7cbf;
+}
+[data-theme="dark"] .theme-card.active {
+  border-color: #7c7cbf;
+  box-shadow: 0 0 0 3px rgba(124, 124, 191, 0.15);
+}
+[data-theme="dark"] .theme-card.active::after {
+  background: #7c7cbf;
 }
 
 
