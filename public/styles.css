@@ -57,96 +57,6 @@
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Theme Definitions ──────────────────────────────────────── */
-[data-theme="dark"] {
-  --bg-primary: #121212;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #242424;
-  --bg-card: rgba(30, 30, 30, 0.85);
-  --bg-glass: rgba(30, 30, 30, 0.75);
-  --bg-hover: rgba(255, 255, 255, 0.08);
-
-  --text-primary: #f9f7f1;
-  --text-secondary: #cccccc;
-  --text-muted: #888888;
-
-  --accent-primary: #6C5CE7;
-  --accent-secondary: #00CEFF;
-  
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-glow: rgba(255, 255, 255, 0.05);
-
-  --paper-bg: #121212;
-  --sidebar-bg: #1a1a1a;
-  --line-blue: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="focus"] {
-  --bg-primary: #eeeeee;
-  --bg-secondary: #e6e6e6;
-  --bg-tertiary: #dddddd;
-  --bg-card: #f5f5f5;
-  --bg-glass: #f5f5f5;
-  --bg-hover: rgba(0, 0, 0, 0.05);
-
-  --text-primary: #222222;
-  --text-secondary: #444444;
-  --text-muted: #666666;
-
-  --accent-primary: #444444;
-  --accent-secondary: #444444;
-  --accent-warm: #444444;
-  --accent-danger: #444444;
-  --accent-success: #444444;
-
-  --border-color: #cccccc;
-  --border-glow: transparent;
-
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-  --shadow-glow: none;
-
-  --font-display: system-ui, -apple-system, sans-serif;
-  --font-main: system-ui, -apple-system, sans-serif;
-  
-  --gradient-main: none;
-  --gradient-warm: none;
-  --gradient-danger: none;
-  --gradient-success: none;
-  
-  --paper-bg: #eeeeee;
-  --sidebar-bg: #eeeeee;
-  --line-blue: transparent;
-}
-
-[data-theme="focus"] * {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-}
-
-[data-theme="focus"] .glass-card,
-[data-theme="focus"] .glow-card,
-[data-theme="focus"] .auth-card {
-  border: 1px solid var(--border-color);
-}
-[data-theme="focus"] #particles-canvas {
-  display: none !important;
-}
-[data-theme="focus"] svg rect[fill="url(#logo-grad)"],
-[data-theme="focus"] svg rect[fill="url(#nav-grad)"],
-[data-theme="focus"] svg rect[fill="url(#setup-grad)"] {
-  fill: #444 !important;
-}
-[data-theme="focus"] .btn-primary, [data-theme="focus"] .btn-accent, [data-theme="focus"] .btn-warm {
-  background: #bbbbbb !important;
-  color: #000 !important;
-}
-[data-theme="focus"] .view {
-  background-image: none !important;
-}
-
 /* ── Reset ─────────────────────────────────────────────────── */
 *,
 *::before,
@@ -5158,5 +5068,229 @@ input::placeholder {
   padding-bottom: 0.5rem;
 }
 .dl-diamond { color: #9333ea; font-weight: 700; }
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME PICKER UI
+   ═══════════════════════════════════════════════════════════════ */
+.theme-picker {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.theme-card {
+  flex: 1 1 100px;
+  min-width: 100px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  cursor: pointer;
+  text-align: center;
+  transition: var(--transition);
+}
+.theme-card:hover {
+  border-color: var(--accent-primary);
+}
+.theme-card.active {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+}
+.theme-preview {
+  width: 100%;
+  height: 48px;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+}
+.theme-preview .tp-line {
+  height: 4px;
+  border-radius: 2px;
+}
+.theme-preview--notebook {
+  background: #f9f7f1;
+  border: 1px solid #e5e0d5;
+}
+.theme-preview--notebook .tp-line { background: #d4cfc4; }
+.theme-preview--dark {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+}
+.theme-preview--dark .tp-line { background: #3a3a5c; }
+.theme-preview--default {
+  background: #e5e5e5;
+  border: 1px solid #ccc;
+}
+.theme-preview--default .tp-line { background: #bbb; }
+.theme-card-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+.theme-card-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK THEME
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: #222240;
+  --bg-card: rgba(26, 26, 46, 0.92);
+  --bg-glass: rgba(26, 26, 46, 0.8);
+  --bg-hover: rgba(99, 102, 241, 0.12);
+
+  --text-primary: #e8e8f0;
+  --text-secondary: #a8a8c0;
+  --text-muted: #6e6e8a;
+
+  --accent-primary: #7c6ff7;
+  --accent-secondary: #22d3ee;
+  --accent-warm: #f59e0b;
+  --accent-danger: #f87171;
+  --accent-success: #34d399;
+
+  --gradient-main: linear-gradient(135deg, #7c6ff7 0%, #22d3ee 100%);
+
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(124, 111, 247, 0.4);
+
+  --shadow-sm: 2px 3px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 2px 4px 10px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 3px 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(124, 111, 247, 0.15);
+
+  --line-blue: rgba(100, 120, 180, 0.2);
+  --paper-bg: #0f0f1a;
+  --sidebar-bg: #1a1a2e;
+  --yellow-note: #3d3520;
+  --yellow-note-dark: #4a4025;
+  --tape-color: rgba(60, 55, 30, 0.65);
+}
+
+[data-theme="dark"] body {
+  background: #0f0f1a;
+}
+
+[data-theme="dark"] ::selection {
+  background: #7c6ff7;
+  color: #fff;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3a3a5c;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a7c;
+}
+
+[data-theme="dark"] .glass-card {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .qv-input,
+[data-theme="dark"] .qv-select {
+  background: #1a1a2e;
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .qv-input:focus,
+[data-theme="dark"] .qv-select:focus {
+  border-color: var(--accent-primary);
+  background: #222240;
+}
+
+[data-theme="dark"] .btn-ghost {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOCUS / DEFAULT THEME — minimal, grey, no decorations
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="default"] {
+  --bg-primary: #e8e8e8;
+  --bg-secondary: #dedede;
+  --bg-tertiary: #d2d2d2;
+  --bg-card: rgba(255, 255, 255, 0.7);
+  --bg-glass: rgba(255, 255, 255, 0.6);
+  --bg-hover: rgba(100, 100, 100, 0.06);
+
+  --text-primary: #222;
+  --text-secondary: #555;
+  --text-muted: #888;
+
+  --accent-primary: #444;
+  --accent-secondary: #555;
+  --accent-warm: #777;
+  --accent-danger: #c33;
+  --accent-success: #2a7a2a;
+
+  --gradient-main: linear-gradient(135deg, #555 0%, #777 100%);
+  --gradient-warm: linear-gradient(135deg, #888 0%, #aaa 100%);
+  --gradient-danger: linear-gradient(135deg, #c33 0%, #a22 100%);
+  --gradient-success: linear-gradient(135deg, #2a7a2a 0%, #555 100%);
+
+  --border-color: rgba(0, 0, 0, 0.12);
+  --border-glow: rgba(0, 0, 0, 0.15);
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-glow: none;
+
+  --line-blue: transparent;
+  --paper-bg: #e8e8e8;
+  --sidebar-bg: #f0f0f0;
+  --yellow-note: #ddd;
+  --yellow-note-dark: #ccc;
+  --tape-color: transparent;
+
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-theme="default"] body {
+  background: #e8e8e8;
+}
+
+[data-theme="default"] ::selection {
+  background: #bbb;
+  color: #222;
+}
+
+[data-theme="default"] .glass-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="default"] .glow-card {
+  box-shadow: none;
+}
+
+[data-theme="default"] .glow-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+[data-theme="default"] #particles-canvas {
+  display: none;
+}
 
 

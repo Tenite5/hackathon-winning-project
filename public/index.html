@@ -16,15 +16,16 @@
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined|Material+Icons" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
+  <script>
+    // Apply saved theme immediately to prevent flash
+    (function() {
+      var t = localStorage.getItem('qvizio_theme');
+      if (t && t !== 'notebook') document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <!-- Firebase SDK for Google Auth -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script>
-    (function() {
-      const savedTheme = localStorage.getItem('qv-theme') || 'default';
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    })();
-  </script>
 </head>
 
 <body>
@@ -749,15 +750,31 @@
           </div>
 
           <!-- Theme -->
-          <div class="settings-section glass-card" id="theme-section">
+          <div class="settings-section glass-card">
             <h3 class="settings-heading">Theme</h3>
-            <p class="section-subtitle" style="margin-bottom:0.75rem;">Choose your visual preference.</p>
-            <div class="input-group">
-              <select id="settings-theme" class="qv-select qv-select-sm" style="width: 100%;">
-                <option value="default">Default</option>
-                <option value="dark">Dark Mode</option>
-                <option value="focus">Default Mode</option>
-              </select>
+            <p class="section-subtitle" style="margin-bottom:0.75rem;">Choose how QVIZIO looks.</p>
+            <div class="theme-picker" id="theme-picker">
+              <button class="theme-card active" data-theme="notebook" type="button">
+                <div class="theme-preview theme-preview--notebook">
+                  <div class="tp-line"></div><div class="tp-line"></div><div class="tp-line"></div>
+                </div>
+                <div class="theme-card-label">Notebook</div>
+                <div class="theme-card-desc">Original look</div>
+              </button>
+              <button class="theme-card" data-theme="dark" type="button">
+                <div class="theme-preview theme-preview--dark">
+                  <div class="tp-line"></div><div class="tp-line"></div><div class="tp-line"></div>
+                </div>
+                <div class="theme-card-label">Dark Mode</div>
+                <div class="theme-card-desc">Easy on the eyes</div>
+              </button>
+              <button class="theme-card" data-theme="default" type="button">
+                <div class="theme-preview theme-preview--default">
+                  <div class="tp-line"></div><div class="tp-line"></div><div class="tp-line"></div>
+                </div>
+                <div class="theme-card-label">Focus</div>
+                <div class="theme-card-desc">Clean &amp; minimal</div>
+              </button>
             </div>
           </div>
 

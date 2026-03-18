@@ -421,9 +421,13 @@
         $('settings-username').value = state.user.username;
         settingsAvatarData = null;
 
-        const themeSelect = document.getElementById('settings-theme');
-        if (themeSelect) {
-            themeSelect.value = localStorage.getItem('qv-theme') || 'default';
+        // Theme picker — sync active card
+        const savedTheme = localStorage.getItem('qvizio_theme') || 'notebook';
+        const themePicker = document.getElementById('theme-picker');
+        if (themePicker) {
+            themePicker.querySelectorAll('.theme-card').forEach(c => {
+                c.classList.toggle('active', c.dataset.theme === savedTheme);
+            });
         }
 
         // Bio narrator card grid — visible to all, locked for non-Diamond
@@ -554,6 +558,22 @@
         }
     });
 
+    // Theme picker clicks
+    document.getElementById('theme-picker').addEventListener('click', (e) => {
+        const card = e.target.closest('.theme-card');
+        if (!card) return;
+        const theme = card.dataset.theme;
+        document.getElementById('theme-picker').querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        // Apply immediately
+        if (theme === 'notebook') {
+            document.documentElement.removeAttribute('data-theme');
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        localStorage.setItem('qvizio_theme', theme);
+    });
+
     // Bio narrator card clicks
     document.getElementById('bio-char-grid').addEventListener('click', (e) => {
         const card = e.target.closest('.bio-narrator-card');
@@ -625,15 +645,6 @@
         history.replaceState({}, '', window.location.pathname);
         QV.showPanel('diamond');
         toast('Payment was not completed. Please try again.', 'error');
-    }
-
-    const themeSelect = document.getElementById('settings-theme');
-    if (themeSelect) {
-        themeSelect.addEventListener('change', () => {
-            const t = themeSelect.value;
-            document.documentElement.setAttribute('data-theme', t);
-            localStorage.setItem('qv-theme', t);
-        });
     }
 
     // Check if returning from Diamond checkout
