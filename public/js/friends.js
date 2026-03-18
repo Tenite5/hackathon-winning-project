@@ -34,9 +34,12 @@
                 data.requests.forEach(req => {
                     const item = document.createElement('div');
                     item.className = 'friend-item';
+                    const reqAvatarHtml = req.photoURL
+                        ? `<img class="friend-avatar" src="${escapeHtml(req.photoURL)}" alt="${escapeHtml(req.username)}" style="object-fit:cover;" />`
+                        : `<div class="friend-avatar">${req.username[0].toUpperCase()}</div>`;
                     item.innerHTML = `
                         <div class="friend-item-info">
-                            <div class="friend-avatar">${req.username[0].toUpperCase()}</div>
+                            ${reqAvatarHtml}
                             <div>
                                 <div class="friend-name">${escapeHtml(req.username)}</div>
                                 <div class="friend-status text-muted">Wants to be friends</div>
@@ -78,9 +81,12 @@
                 const isPending = state.pendingChallengeToId === friend.id;
                 const item = document.createElement('div');
                 item.className = 'friend-item';
+                const avatarHtml = friend.photoURL
+                    ? `<img class="friend-avatar" src="${escapeHtml(friend.photoURL)}" alt="${escapeHtml(friend.username)}" style="object-fit:cover;" />`
+                    : `<div class="friend-avatar">${friend.username[0].toUpperCase()}</div>`;
                 item.innerHTML = `
                     <div class="friend-item-info" style="cursor:pointer;">
-                        <div class="friend-avatar">${friend.username[0].toUpperCase()}</div>
+                        ${avatarHtml}
                         <div>
                             <div class="friend-name">
                                 ${escapeHtml(friend.username)}
@@ -102,7 +108,7 @@
                     </div>
                 `;
                 item.querySelector('.friend-item-info').addEventListener('click', () => QV.openUserProfile(friend.id));
-                item.querySelector('.msg-btn').addEventListener('click', () => QV.openDM(friend));
+                item.querySelector('.msg-btn').addEventListener('click', () => QV.openDM(friend, item));
                 item.querySelector('.challenge-btn').addEventListener('click', () => {
                     if (!friend.online) return toast('Friend is offline', 'error');
                     if (isPending) {
@@ -201,6 +207,11 @@
         if (!pendingChallengeId) return;
         socket.emit('challenge-accept', { challengeId: pendingChallengeId });
         hideModal('modal-challenge');
+        // Show loading overlay while questions generate
+        $('generating-title').textContent = 'Generating Questions...';
+        $('generating-topic-text').textContent = 'Preparing your challenge match...';
+        $('overlay-generating').classList.remove('hidden');
+        if (typeof QV !== 'undefined' && QV.startLoadingTips) QV.startLoadingTips();
         toast('Challenge accepted! Game starting...', 'success');
         pendingChallengeId = null;
     });
@@ -216,6 +227,11 @@
     socket.on('challenge-accepted', ({ gameId, opponent, topic }) => {
         state.currentGameId = gameId;
         state.pendingChallengeToId = null;
+        // Show loading overlay while questions are being generated
+        $('generating-title').textContent = 'Starting Challenge...';
+        $('generating-topic-text').textContent = `Topic: ${topic} · Opponent: ${opponent.username}`;
+        $('overlay-generating').classList.remove('hidden');
+        if (typeof QV !== 'undefined' && QV.startLoadingTips) QV.startLoadingTips();
         toast(`Game starting with ${opponent.username}! Topic: ${topic}`, 'success');
         QV.loadFriends();
     });

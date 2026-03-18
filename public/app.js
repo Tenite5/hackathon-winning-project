@@ -1076,6 +1076,11 @@
 
     socket.on('challenge-accepted', ({ gameId, opponent, topic }) => {
         state.currentGameId = gameId;
+        // Show loading overlay while questions are being generated
+        $('generating-title').textContent = 'Starting Challenge...';
+        $('generating-topic-text').textContent = `Topic: ${topic} · Opponent: ${opponent.username}`;
+        $('overlay-generating').classList.remove('hidden');
+        if (typeof QV !== 'undefined' && QV.startLoadingTips) QV.startLoadingTips();
         toast(`Game starting with ${opponent.username}! Topic: ${topic}`, 'success');
     });
 

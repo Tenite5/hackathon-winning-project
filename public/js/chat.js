@@ -75,10 +75,18 @@
     // ═══════════════════════════════════════════════════════════════
     // DIRECT MESSAGES (DM)
     // ═══════════════════════════════════════════════════════════════
-    QV.openDM = async function openDM(friend) {
+    QV.openDM = async function openDM(friend, anchorEl) {
         state.dmFriendId = friend.id;
-        $('dm-panel').classList.remove('hidden');
+        const dmPanel = $('dm-panel');
+        dmPanel.classList.remove('hidden');
         $('dm-username').textContent = friend.username;
+
+        // Move DM panel right after the clicked friend item
+        if (anchorEl && anchorEl.parentNode) {
+            anchorEl.parentNode.insertBefore(dmPanel, anchorEl.nextSibling);
+            // Scroll the DM panel into view
+            setTimeout(() => dmPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+        }
 
         try {
             const data = await api(`/messages/${friend.id}`);
