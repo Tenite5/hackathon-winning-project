@@ -1,0 +1,197 @@
+[
+  {
+    "id": 9,
+    "question": "9) y = kx + 1/k ფუნქციის გრაფიკი Oxy მართკუთხა საკოორდინატო სისტემის აბსცისათა და ორდინატთა ღერძებს კვეთს შესაბამისად A და B წერტილებში. იპოვეთ A წერტილის კოორდინატები, თუ ცნობილია, რომ ∠BAO = 60°.",
+    "choices": {
+      "ა": "(-√3/3; 0)",
+      "ბ": "(√3/3; 0)",
+      "გ": "(-1/√3; 0)",
+      "დ": "(1; 0)"
+    },
+    "correct": "ა",
+    "diagram_description": "Oxy coordinate system with a line crossing x-axis at point A and y-axis at point B. Angle BAO is marked at vertex A.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'><line x1='20' y1='140' x2='260' y2='140' stroke='black' stroke-width='1.5'/><line x1='140' y1='260' x2='140' y2='20' stroke='black' stroke-width='1.5'/><text x='255' y='155' font-size='14'>x</text><text x='145' y='25' font-size='14'>y</text><text x='145' y='155' font-size='14'>O</text><line x1='60' y1='240' x2='200' y2='40' stroke='black' stroke-width='2'/><circle cx='105' cy='140' r='3' fill='black'/><circle cx='140' cy='70' r='3' fill='black'/><text x='95' y='158' font-size='13'>A</text><text x='145' y='68' font-size='13'>B</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) სურათზე მოცემულია [-3; 3] შუალედზე განსაზღვრული y = f(x) ფუნქციის გრაფიკი. ქვემოთ ჩამოთვლილი უტოლობებიდან რომელია ჭეშმარიტი?",
+    "choices": {
+      "ა": "k₁ > 0, k₂ < 0",
+      "ბ": "k₁ < 0, k₂ > 0",
+      "გ": "k₁ > 0, k₂ > 0",
+      "დ": "k₁ < 0, k₂ < 0"
+    },
+    "correct": "ა",
+    "diagram_description": "Coordinate grid with two line segments meeting at point B on the y-axis. Line AB goes up-right (positive slope k₁), line CB goes down-right (negative slope k₂).",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='280' viewBox='0 0 300 280'><line x1='20' y1='140' x2='280' y2='140' stroke='black' stroke-width='1'/><line x1='150' y1='260' x2='150' y2='20' stroke='black' stroke-width='1'/><text x='270' y='155' font-size='13'>x</text><text x='155' y='25' font-size='13'>y</text><text x='155' y='155' font-size='13'>O</text><line x1='40' y1='230' x2='150' y2='80' stroke='blue' stroke-width='2'/><line x1='150' y1='80' x2='260' y2='200' stroke='red' stroke-width='2'/><circle cx='40' cy='230' r='3' fill='black'/><circle cx='150' cy='80' r='3' fill='black'/><circle cx='260' cy='200' r='3' fill='black'/><text x='25' y='245' font-size='13'>A</text><text x='155' y='75' font-size='13'>B</text><text x='265' y='215' font-size='13'>C</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) საკოორდინატო ბადით დაფარულ სიბრტყეზე მოცემულია [-3; 4] შუალედზე განსაზღვრული y = f(x) ფუნქციის გრაფიკი. ქვემოთ ჩამოთვლილთაგან რომელ შუალედშია მოთავსებული ამ ფუნქციის მნიშვნელობათა სიმრავლე?",
+    "choices": {
+      "ა": "[-2; 3]",
+      "ბ": "[-1; 4]",
+      "გ": "[-3; 2]",
+      "დ": "[-2; 4]"
+    },
+    "correct": "ა",
+    "diagram_description": "A piecewise function on coordinate grid from x=-3 to x=4, with minimum value -2 and maximum value 3.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='280' viewBox='0 0 320 280'><line x1='20' y1='140' x2='300' y2='140' stroke='%23ccc' stroke-width='1'/><line x1='140' y1='260' x2='140' y2='20' stroke='%23ccc' stroke-width='1'/><text x='290' y='155' font-size='13'>x</text><text x='145' y='25' font-size='13'>y</text><text x='145' y='155' font-size='13'>O</text><polyline points='60,80 100,200 180,60 260,120' fill='none' stroke='black' stroke-width='2'/><circle cx='60' cy='80' r='3' fill='black'/><circle cx='260' cy='120' r='3' fill='black'/></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) საკოორდინატო ბადით დაფარულ სიბრტყეზე მოცემულია [-5; 3] შუალედზე განსაზღვრული y = f(x) ფუნქციის გრაფიკი, რომელიც აბსცისათა ღერძს კვეთს მთელი კოორდინატების მქონე წერტილებში. იპოვეთ f(x) > 0 უტოლობის ამონახსნთა სიმრავლე.",
+    "choices": {
+      "ა": "(-5; -2) ∪ (1; 3)",
+      "ბ": "(-2; 1)",
+      "გ": "(-5; -2) ∪ (1; 3]",
+      "დ": "[-5; -2) ∪ (1; 3]"
+    },
+    "correct": "ა",
+    "diagram_description": "Coordinate grid with a continuous curve defined on [-5;3] that crosses the x-axis at x=-2 and x=1. The function is positive on (-5,-2) and (1,3).",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='280' viewBox='0 0 320 280'><line x1='20' y1='140' x2='300' y2='140' stroke='%23ccc' stroke-width='1'/><line x1='180' y1='260' x2='180' y2='20' stroke='%23ccc' stroke-width='1'/><text x='290' y='155' font-size='13'>x</text><text x='185' y='25' font-size='13'>y</text><text x='185' y='155' font-size='13'>O</text><polyline points='40,80 100,60 140,140 200,200 240,140 280,80' fill='none' stroke='black' stroke-width='2'/><circle cx='140' cy='140' r='3' fill='black'/><circle cx='240' cy='140' r='3' fill='black'/><text x='132' y='158' font-size='12'>-2</text><text x='242' y='158' font-size='12'>1</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) y = kx + 1/k ფუნქციის გრაფიკი Oxy მართკუთხა საკოორდინატო სისტემის აბსცისათა და ორდინატთა ღერძებს კვეთს შესაბამისად A და B წერტილებში. იპოვეთ A წერტილის კოორდინატები, თუ ცნობილია, რომ ∠BAO = 45°.",
+    "choices": {
+      "ა": "(-1; 0)",
+      "ბ": "(1; 0)",
+      "გ": "(-2; 0)",
+      "დ": "(2; 0)"
+    },
+    "correct": "ა",
+    "diagram_description": "Oxy coordinate system with line crossing x-axis at A and y-axis at B, angle BAO = 45°.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'><line x1='20' y1='140' x2='260' y2='140' stroke='black' stroke-width='1.5'/><line x1='140' y1='260' x2='140' y2='20' stroke='black' stroke-width='1.5'/><text x='255' y='155' font-size='14'>x</text><text x='145' y='25' font-size='14'>y</text><text x='145' y='155' font-size='14'>O</text><line x1='60' y1='220' x2='220' y2='60' stroke='black' stroke-width='2'/><circle cx='100' cy='140' r='3' fill='black'/><circle cx='140' cy='100' r='3' fill='black'/><text x='90' y='158' font-size='13'>A</text><text x='145' y='97' font-size='13'>B</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) y = k₁x + b₁ ფუნქციის გრაფიკი არის AB წრფე, ხოლო y = k₂x + b₂ ფუნქციის გრაფიკი არის CB წრფე (იხ. სურათი). სურათზე დაყრდნობით დაადგინეთ, ქვემოთ ჩამოთვლილთაგან რომელი უტოლობაა ჭეშმარიტი?",
+    "choices": {
+      "ა": "b₁ > b₂",
+      "ბ": "b₁ < b₂",
+      "გ": "b₁ = b₂",
+      "დ": "b₁ · b₂ < 0"
+    },
+    "correct": "გ",
+    "diagram_description": "Two lines AB and CB meeting at point B on the y-axis. Both lines cross the y-axis at the same point B, so b₁ = b₂.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='280' viewBox='0 0 300 280'><line x1='20' y1='140' x2='280' y2='140' stroke='black' stroke-width='1'/><line x1='150' y1='260' x2='150' y2='20' stroke='black' stroke-width='1'/><text x='270' y='155' font-size='13'>x</text><text x='155' y='25' font-size='13'>y</text><text x='155' y='155' font-size='13'>O</text><line x1='30' y1='250' x2='150' y2='70' stroke='blue' stroke-width='2'/><line x1='150' y1='70' x2='270' y2='230' stroke='red' stroke-width='2'/><circle cx='30' cy='250' r='3' fill='black'/><circle cx='150' cy='70' r='3' fill='black'/><circle cx='270' cy='230' r='3' fill='black'/><text x='15' y='260' font-size='13'>A</text><text x='155' y='65' font-size='13'>B</text><text x='275' y='240' font-size='13'>C</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) საკოორდინატო ბადით დაფარულ სიბრტყეზე მოცემულია [-2; 5] შუალედზე განსაზღვრული y = f(x) ფუნქციის გრაფიკი. ქვემოთ ჩამოთვლილთაგან რომელ შუალედშია მოთავსებული ამ ფუნქციის მნიშვნელობათა სიმრავლე?",
+    "choices": {
+      "ა": "[-1; 5]",
+      "ბ": "[-3; 4]",
+      "გ": "[-4; 3]",
+      "დ": "[-1; 3]"
+    },
+    "correct": "ბ",
+    "diagram_description": "Piecewise function on [-2;5] with min value -3 and max value 4.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='300' viewBox='0 0 320 300'><line x1='20' y1='160' x2='300' y2='160' stroke='%23ccc' stroke-width='1'/><line x1='100' y1='280' x2='100' y2='20' stroke='%23ccc' stroke-width='1'/><text x='290' y='175' font-size='13'>x</text><text x='105' y='25' font-size='13'>y</text><text x='105' y='175' font-size='13'>O</text><polyline points='60,100 120,240 180,40 260,160' fill='none' stroke='black' stroke-width='2'/><circle cx='60' cy='100' r='3' fill='black'/><circle cx='260' cy='160' r='3' fill='black'/></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) საკოორდინატო ბადით დაფარულ სიბრტყეზე მოცემულია [-4; 5] შუალედზე განსაზღვრული y = f(x) ფუნქციის გრაფიკი, რომელიც აბსცისათა ღერძს კვეთს მთელი კოორდინატების მქონე წერტილებში. იპოვეთ f(x) < 0 უტოლობის ამონახსნთა სიმრავლე.",
+    "choices": {
+      "ა": "(-1; 3)",
+      "ბ": "(-4; -1) ∪ (3; 5)",
+      "გ": "(-4; -1) ∪ (3; 5]",
+      "დ": "[-4; -1) ∪ (3; 5]"
+    },
+    "correct": "ა",
+    "diagram_description": "Function on [-4;5] crossing x-axis at x=-1 and x=3, negative between those points.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='280' viewBox='0 0 320 280'><line x1='20' y1='140' x2='300' y2='140' stroke='%23ccc' stroke-width='1'/><line x1='160' y1='260' x2='160' y2='20' stroke='%23ccc' stroke-width='1'/><text x='290' y='155' font-size='13'>x</text><text x='165' y='25' font-size='13'>y</text><text x='165' y='155' font-size='13'>O</text><polyline points='40,80 80,60 120,140 200,220 240,140 280,80' fill='none' stroke='black' stroke-width='2'/><circle cx='120' cy='140' r='3' fill='black'/><circle cx='240' cy='140' r='3' fill='black'/><text x='112' y='158' font-size='12'>-1</text><text x='242' y='158' font-size='12'>3</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) y = kx + 1/k ფუნქციის გრაფიკი Oxy მართკუთხა საკოორდინატო სისტემის აბსცისათა და ორდინატთა ღერძებს კვეთს შესაბამისად A და B წერტილებში. იპოვეთ B წერტილის კოორდინატები, თუ ცნობილია, რომ ∠BAO = 30°.",
+    "choices": {
+      "ა": "(0; -1/√3)",
+      "ბ": "(0; 1/√3)",
+      "გ": "(0; √3)",
+      "დ": "(0; -√3)"
+    },
+    "correct": "დ",
+    "diagram_description": "Line crossing axes at A (on x-axis) and B (on y-axis), angle BAO = 30°.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'><line x1='20' y1='140' x2='260' y2='140' stroke='black' stroke-width='1.5'/><line x1='140' y1='260' x2='140' y2='20' stroke='black' stroke-width='1.5'/><text x='255' y='155' font-size='14'>x</text><text x='145' y='25' font-size='14'>y</text><text x='145' y='155' font-size='14'>O</text><line x1='50' y1='60' x2='200' y2='240' stroke='black' stroke-width='2'/><circle cx='140' cy='180' r='3' fill='black'/><circle cx='95' cy='120' r='3' fill='black'/><text x='90' y='115' font-size='13'>B</text><text x='145' y='195' font-size='13'>A</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) y = k₁x + b₁ ფუნქციის გრაფიკი არის AB წრფე, ხოლო y = k₂x + b₂ ფუნქციის გრაფიკი არის CB წრფე. სურათზე დაყრდნობით დაადგინეთ, ქვემოთ ჩამოთვლილთაგან რომელი უტოლობაა ჭეშმარიტი, თუ AB ზრდადია და CB კლებადია?",
+    "choices": {
+      "ა": "k₁ + k₂ > 0",
+      "ბ": "k₁ · k₂ > 0",
+      "გ": "k₁ · k₂ < 0",
+      "დ": "k₁ + k₂ < 0"
+    },
+    "correct": "გ",
+    "diagram_description": "Two lines: AB with positive slope, CB with negative slope, meeting at point B.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='280' viewBox='0 0 300 280'><line x1='20' y1='140' x2='280' y2='140' stroke='black' stroke-width='1'/><line x1='150' y1='260' x2='150' y2='20' stroke='black' stroke-width='1'/><text x='270' y='155' font-size='13'>x</text><text x='155' y='25' font-size='13'>y</text><text x='155' y='155' font-size='13'>O</text><line x1='40' y1='220' x2='160' y2='60' stroke='blue' stroke-width='2'/><line x1='160' y1='60' x2='260' y2='200' stroke='red' stroke-width='2'/><circle cx='40' cy='220' r='3' fill='black'/><circle cx='160' cy='60' r='3' fill='black'/><circle cx='260' cy='200' r='3' fill='black'/><text x='25' y='230' font-size='13'>A</text><text x='165' y='55' font-size='13'>B</text><text x='265' y='210' font-size='13'>C</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) საკოორდინატო ბადით დაფარულ სიბრტყეზე მოცემულია [-1; 6] შუალედზე განსაზღვრული y = f(x) ფუნქციის გრაფიკი. ქვემოთ ჩამოთვლილთაგან რომელ შუალედშია მოთავსებული ამ ფუნქციის მნიშვნელობათა სიმრავლე?",
+    "choices": {
+      "ა": "[-2; 5]",
+      "ბ": "[-3; 5]",
+      "გ": "[-3; 4]",
+      "დ": "[-2; 4]"
+    },
+    "correct": "გ",
+    "diagram_description": "Piecewise function on [-1;6] with min value -3 and max value 4.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='300' viewBox='0 0 320 300'><line x1='20' y1='160' x2='300' y2='160' stroke='%23ccc' stroke-width='1'/><line x1='60' y1='280' x2='60' y2='20' stroke='%23ccc' stroke-width='1'/><text x='290' y='175' font-size='13'>x</text><text x='65' y='25' font-size='13'>y</text><text x='65' y='175' font-size='13'>O</text><polyline points='50,120 100,60 160,240 220,100 280,160' fill='none' stroke='black' stroke-width='2'/><circle cx='50' cy='120' r='3' fill='black'/><circle cx='280' cy='160' r='3' fill='black'/></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) საკოორდინატო ბადით დაფარულ სიბრტყეზე მოცემულია [-3; 4] შუალედზე განსაზღვრული y = f(x) ფუნქციის გრაფიკი, რომელიც აბსცისათა ღერძს კვეთს მთელი კოორდინატების მქონე წერტილებში. იპოვეთ f(x) ≥ 0 უტოლობის ამონახსნთა სიმრავლე.",
+    "choices": {
+      "ა": "[-3; 0] ∪ [2; 4]",
+      "ბ": "(0; 2)",
+      "გ": "[-3; 0] ∪ [2; 4)",
+      "დ": "(-3; 0] ∪ [2; 4]"
+    },
+    "correct": "ა",
+    "diagram_description": "Function on [-3;4] crossing x-axis at x=0 and x=2, non-negative on [-3,0] and [2,4].",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='280' viewBox='0 0 320 280'><line x1='20' y1='140' x2='300' y2='140' stroke='%23ccc' stroke-width='1'/><line x1='140' y1='260' x2='140' y2='20' stroke='%23ccc' stroke-width='1'/><text x='290' y='155' font-size='13'>x</text><text x='145' y='25' font-size='13'>y</text><text x='145' y='155' font-size='13'>O</text><polyline points='40,60 80,80 140,140 190,200 220,140 280,80' fill='none' stroke='black' stroke-width='2'/><circle cx='140' cy='140' r='3' fill='black'/><circle cx='220' cy='140' r='3' fill='black'/><text x='136' y='158' font-size='12'>0</text><text x='222' y='158' font-size='12'>2</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) y = kx + 1/k ფუნქციის გრაფიკი Oxy მართკუთხა საკოორდინატო სისტემის აბსცისათა და ორდინატთა ღერძებს კვეთს შესაბამისად A და B წერტილებში. იპოვეთ A წერტილის კოორდინატები, თუ ცნობილია, რომ ∠BAO = 45° და k < 0.",
+    "choices": {
+      "ა": "(1; 0)",
+      "ბ": "(-1; 0)",
+      "გ": "(2; 0)",
+      "დ": "(-2; 0)"
+    },
+    "correct": "ბ",
+    "diagram_description": "Line with negative slope crossing axes, angle BAO = 45°.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'><line x1='20' y1='140' x2='260' y2='140' stroke='black' stroke-width='1.5'/><line x1='140' y1='260' x2='140' y2='20' stroke='black' stroke-width='1.5'/><text x='255' y='155' font-size='14'>x</text><text x='145' y='25' font-size='14'>y</text><text x='145' y='155' font-size='14'>O</text><line x1='40' y1='240' x2='220' y2='60' stroke='black' stroke-width='2'/><circle cx='100' cy='140' r='3' fill='black'/><circle cx='140' cy='100' r='3' fill='black'/><text x='90' y='158' font-size='13'>A</text><text x='145' y='97' font-size='13'>B</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) y = k₁x + b₁ ფუნქციის გრაფიკი არის AB წრფე, ხოლო y = k₂x + b₂ ფუნქციის გრაფიკი არის CB წრფე. სურათზე დაყრდნობით დაადგინეთ, თუ ორივე წრფე კვეთს y-ღერძს დადებით ნაწილში, ქვემოთ ჩამოთვლილთაგან რომელია ჭეშმარიტი?",
+    "choices": {
+      "ა": "b₁ > 0 და b₂ > 0",
+      "ბ": "b₁ < 0 და b₂ < 0",
+      "გ": "b₁ > 0 და b₂ < 0",
+      "დ": "b₁ < 0 და b₂ > 0"
+    },
+    "correct": "ა",
+    "diagram_description": "Two lines both crossing the positive y-axis.",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='280' viewBox='0 0 300 280'><line x1='20' y1='180' x2='280' y2='180' stroke='black' stroke-width='1'/><line x1='150' y1='260' x2='150' y2='20' stroke='black' stroke-width='1'/><text x='270' y='195' font-size='13'>x</text><text x='155' y='25' font-size='13'>y</text><text x='155' y='195' font-size='13'>O</text><line x1='40' y1='240' x2='260' y2='80' stroke='blue' stroke-width='2'/><line x1='40' y1='60' x2='260' y2='160' stroke='red' stroke-width='2'/><circle cx='150' cy='120' r='3' fill='blue'/><circle cx='150' cy='100' r='3' fill='red'/><text x='30' y='250' font-size='13'>A</text><text x='265' y='78' font-size='13'>B</text><text x='30' y='55' font-size='13'>C</text></svg>"
+  },
+  {
+    "id": 9,
+    "question": "9) საკოორდინატო ბადით დაფარულ სიბრტყეზე მოცემულია [-6; 2] შუალედზე განსაზღვრული y = f(x) ფუნქციის გრაფიკი, რომელიც აბსცისათა ღერძს კვეთს მთელი კოორდინატების მქონე წერტილებში. იპოვეთ f(x) > 0 უტოლობის ამონახსნთა სიმრავლე.",
+    "choices": {
+      "ა": "(-4; -1) ∪ (0; 2)",
+      "ბ": "(-6; -4) ∪ (-1; 0)",
+      "გ": "(-6; -4) ∪ (-1; 0) ∪ (0; 2)",
+      "დ": "(-4; -1)"
+    },
+    "correct": "ა",
+    "diagram_description": "Function on [-6;2] crossing x-axis at x=-4, x=-1, and x=0, positive on (-4,-1) and (0,2).",
+    "diagram_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='340' height='280' viewBox='0 0 340 280'><line x1='20' y1='140' x2='320' y2='140' stroke='%23ccc' stroke-width='1'/><line x1='240' y1='260' x2='240' y2='20' stroke='%23ccc' stroke-width='1'/><text x='310' y='155' font-size='13'>x</text><text x='245' y='25' font-size='13'>y</text><text x='245' y='155' font-size='13'>O</text><polyline points='40,200 100,140 160,60 200,140 240,140 280,60 320,100' fill='none' stroke='black' stroke-width='2'/><circle cx='100' cy='140' r='3' fill='black'/><circle cx='200' cy='140' r='3' fill='black'/><circle cx='240' cy='140' r='3' fill='black'/><text x='92' y='158' font-size='12'>-4</text><text x='192' y='158' font-size='12'>-1</text></svg>"
+  }
+]

@@ -316,7 +316,7 @@ module.exports = function (io, socket, getCurrentUser) {
             };
         });
 
-        const timeLimit = presetId === 'hard-math' ? 120 : 30;
+        const timeLimit = presetId === 'math' ? 120 : 30;
 
         // Create a solo game directly instead of a public lobby
         const gameId = uuidv4();
