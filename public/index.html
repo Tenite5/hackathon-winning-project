@@ -1244,7 +1244,7 @@
         <label>Or choose a preset</label>
         <select id="lobby-preset-select">
           <option value="">— Custom (AI-generated) —</option>
-          <option value="math">📐 მათემატიკა (600 questions)</option>
+          <option value="math">📐 მათემატიკის ეროვნული გამოცდა (600)</option>
           <option value="sat">📝 SAT (235 questions)</option>
         </select>
       </div>
@@ -1298,7 +1298,7 @@
         <label>Or choose a preset</label>
         <select id="solo-preset-select">
           <option value="">— Custom (AI-generated) —</option>
-          <option value="math">📐 მათემატიკა (600 questions)</option>
+          <option value="math">📐 მათემატიკის ეროვნული გამოცდა (600)</option>
           <option value="sat">📝 SAT (235 questions)</option>
         </select>
       </div>
@@ -1587,6 +1587,9 @@
         <div class="game-question-area">
           <div class="game-topic-label" id="game-topic-label"></div>
           <h2 class="game-question-text" id="game-question-text">Waiting for question...</h2>
+          <div class="game-question-image hidden" id="game-question-image">
+            <img id="game-question-img" src="" alt="Question diagram" />
+          </div>
           <div class="game-options" id="game-options"></div>
           <div class="game-feedback hidden" id="game-feedback"></div>
           <div class="game-waiting-opponent hidden" id="game-waiting-opponent">⏳ Waiting for opponent...</div>

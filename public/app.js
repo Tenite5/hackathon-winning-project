@@ -519,6 +519,19 @@
         $('game-question-text').textContent = data.question;
         $('game-feedback').classList.add('hidden');
 
+        // Show question image if present
+        const imgContainer = $('game-question-image');
+        const imgEl = $('game-question-img');
+        if (imgContainer && imgEl) {
+            if (data.imageUrl) {
+                imgEl.src = data.imageUrl;
+                imgContainer.classList.remove('hidden');
+            } else {
+                imgEl.src = '';
+                imgContainer.classList.add('hidden');
+            }
+        }
+
         // Options
         const optionsEl = $('game-options');
         optionsEl.innerHTML = '';

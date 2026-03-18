@@ -23,12 +23,14 @@ function loadMathPreset() {
         const raw = JSON.parse(text);
         for (const q of raw) {
             const opts = [q.choices['ა'], q.choices['ბ'], q.choices['გ'], q.choices['დ']];
-            questions.push({
+            const entry = {
                 question: q.question,
                 options: opts,
                 correct: GEORGIAN_LETTER_INDEX[q.correct] ?? 0,
                 difficulty: 'hard',
-            });
+            };
+            if (q.diagram_url) entry.imageUrl = q.diagram_url;
+            questions.push(entry);
         }
     }
     return questions;
@@ -43,12 +45,14 @@ function loadSATPreset() {
             const questionText = q.passage
                 ? `${q.passage}\n\n${q.question_text}`
                 : q.question_text;
-            return {
+            const entry = {
                 question: questionText,
                 options: q.options,
                 correct: q.options.indexOf(q.correct_answer),
                 difficulty: q.difficulty || 'medium',
             };
+            if (q.image_url) entry.imageUrl = q.image_url;
+            return entry;
         });
 }
 
@@ -64,7 +68,7 @@ const RANKS = [
 
 const PRESET_QUESTIONS = {
     'math': {
-        name: 'მათემატიკა',
+        name: 'მათემატიკის ეროვნული გამოცდა',
         questions: loadMathPreset(),
     },
     'sat': {

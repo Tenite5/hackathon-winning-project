@@ -2442,6 +2442,21 @@ input::placeholder {
   color: var(--text-primary);
 }
 
+.game-question-image {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  max-width: 500px;
+  width: 100%;
+}
+
+.game-question-image img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px;
+}
+
 .game-options {
   display: grid;
   grid-template-columns: 1fr 1fr;

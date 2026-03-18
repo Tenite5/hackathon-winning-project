@@ -141,6 +141,7 @@ function startGameQuestion(gameId, io) {
         question: obfuscated.question,
         options: obfuscated.options,
         difficulty: obfuscated.difficulty,
+        imageUrl: q.imageUrl || null,
         encoded: true,
         timeLimit: game.timeLimit,
         playerCount: game.players.length,

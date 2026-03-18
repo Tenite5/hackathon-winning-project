@@ -22,6 +22,8 @@
     function clearGameState() {
         state.leavingGame = false;
         $('game-question-text').textContent = 'Loading questions...';
+        const imgC = $('game-question-image');
+        if (imgC) imgC.classList.add('hidden');
         $('game-options').innerHTML = '';
         $('game-feedback').classList.add('hidden');
         $('game-q-counter').textContent = '';
@@ -380,6 +382,19 @@
         $('game-question-text').textContent = data.question;
         $('game-feedback').classList.add('hidden');
         $('game-waiting-opponent').classList.add('hidden');
+
+        // Show question image if present
+        const imgContainer = $('game-question-image');
+        const imgEl = $('game-question-img');
+        if (imgContainer && imgEl) {
+            if (data.imageUrl) {
+                imgEl.src = data.imageUrl;
+                imgContainer.classList.remove('hidden');
+            } else {
+                imgEl.src = '';
+                imgContainer.classList.add('hidden');
+            }
+        }
 
         const optionsEl = $('game-options');
         optionsEl.innerHTML = '';
