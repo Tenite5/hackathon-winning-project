@@ -20,7 +20,7 @@
     // Apply saved theme immediately to prevent flash
     (function() {
       var t = localStorage.getItem('qvizio_theme');
-      if (t && t !== 'notebook') document.documentElement.setAttribute('data-theme', t);
+      if (t && t !== 'default') document.documentElement.setAttribute('data-theme', t);
     })();
   </script>
   <!-- Firebase SDK for Google Auth -->
@@ -749,41 +749,54 @@
             </div>
           </div>
 
-          <!-- Theme -->
-          <div class="settings-section glass-card">
-            <h3 class="settings-heading">Theme</h3>
-            <p class="section-subtitle" style="margin-bottom:0.75rem;">Choose how QVIZIO looks.</p>
-            <div class="theme-picker" id="theme-picker">
-              <button class="theme-card active" data-theme="notebook" type="button">
-                <div class="theme-preview theme-preview--notebook">
-                  <div class="tp-line"></div><div class="tp-line"></div><div class="tp-line"></div>
-                </div>
-                <div class="theme-card-label">Notebook</div>
-                <div class="theme-card-desc">Original look</div>
-              </button>
-              <button class="theme-card" data-theme="dark" type="button">
-                <div class="theme-preview theme-preview--dark">
-                  <div class="tp-line"></div><div class="tp-line"></div><div class="tp-line"></div>
-                </div>
-                <div class="theme-card-label">Dark Mode</div>
-                <div class="theme-card-desc">Easy on the eyes</div>
-              </button>
-              <button class="theme-card" data-theme="default" type="button">
-                <div class="theme-preview theme-preview--default">
-                  <div class="tp-line"></div><div class="tp-line"></div><div class="tp-line"></div>
-                </div>
-                <div class="theme-card-label">Focus</div>
-                <div class="theme-card-desc">Clean &amp; minimal</div>
-              </button>
-            </div>
-          </div>
-
           <div class="settings-actions">
             <button class="btn btn-primary btn-sm" id="btn-save-settings">Save Changes</button>
             <span id="settings-status" class="settings-status hidden"></span>
           </div>
 
           <div id="settings-error" class="auth-error hidden"></div>
+
+          <!-- Theme Selector -->
+          <div class="settings-section glass-card" id="theme-section">
+            <h3 class="settings-heading">
+              Theme
+            </h3>
+            <p class="section-subtitle" style="margin-bottom:0.75rem;">Choose your visual style.</p>
+            <div class="theme-selector-grid" id="theme-selector-grid">
+              <!-- Notebook (Default) -->
+              <button class="theme-card active" data-theme="default" type="button" title="Notebook — Default paper theme">
+                <div class="theme-preview theme-preview-notebook">
+                  <div class="theme-preview-line"></div>
+                  <div class="theme-preview-line"></div>
+                  <div class="theme-preview-line"></div>
+                  <div class="theme-preview-dot" style="background:#4f46e5;"></div>
+                </div>
+                <div class="theme-card-label">Notebook</div>
+                <div class="theme-card-desc">Classic paper theme</div>
+              </button>
+              <!-- Dark Mode -->
+              <button class="theme-card" data-theme="dark" type="button" title="Dark Mode — Dark notebook">
+                <div class="theme-preview theme-preview-dark">
+                  <div class="theme-preview-line"></div>
+                  <div class="theme-preview-line"></div>
+                  <div class="theme-preview-line"></div>
+                  <div class="theme-preview-dot" style="background:#818cf8;"></div>
+                </div>
+                <div class="theme-card-label">Dark Mode</div>
+                <div class="theme-card-desc">Easier on the eyes</div>
+              </button>
+              <!-- Focus Mode -->
+              <button class="theme-card" data-theme="focus" type="button" title="Focus Mode — Minimal, distraction-free">
+                <div class="theme-preview theme-preview-focus">
+                  <div class="theme-preview-line"></div>
+                  <div class="theme-preview-line"></div>
+                  <div class="theme-preview-line"></div>
+                </div>
+                <div class="theme-card-label">Focus Mode</div>
+                <div class="theme-card-desc">Minimal &amp; clean</div>
+              </button>
+            </div>
+          </div>
 
           <!-- Bio Narrator -->
           <div class="settings-section glass-card" id="bio-character-section">

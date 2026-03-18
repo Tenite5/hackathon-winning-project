@@ -421,14 +421,13 @@
         $('settings-username').value = state.user.username;
         settingsAvatarData = null;
 
-        // Theme picker — sync active card
-        const savedTheme = localStorage.getItem('qvizio_theme') || 'notebook';
-        const themePicker = document.getElementById('theme-picker');
-        if (themePicker) {
-            themePicker.querySelectorAll('.theme-card').forEach(c => {
-                c.classList.toggle('active', c.dataset.theme === savedTheme);
-            });
-        }
+
+        // Sync theme selector cards with current theme
+        const currentTheme = localStorage.getItem('qvizio_theme') || 'default';
+        document.querySelectorAll('#theme-selector-grid .theme-card').forEach(card => {
+            card.classList.toggle('active', card.dataset.theme === currentTheme);
+        });
+
 
         // Bio narrator card grid — visible to all, locked for non-Diamond
         const charInput = document.getElementById('settings-bio-character');
@@ -558,21 +557,6 @@
         }
     });
 
-    // Theme picker clicks
-    document.getElementById('theme-picker').addEventListener('click', (e) => {
-        const card = e.target.closest('.theme-card');
-        if (!card) return;
-        const theme = card.dataset.theme;
-        document.getElementById('theme-picker').querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        // Apply immediately
-        if (theme === 'notebook') {
-            document.documentElement.removeAttribute('data-theme');
-        } else {
-            document.documentElement.setAttribute('data-theme', theme);
-        }
-        localStorage.setItem('qvizio_theme', theme);
-    });
 
     // Bio narrator card clicks
     document.getElementById('bio-char-grid').addEventListener('click', (e) => {
@@ -586,6 +570,26 @@
         document.getElementById('settings-bio-character').value = card.dataset.value;
         document.querySelectorAll('.bio-narrator-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
+    });
+
+    // Theme selector card clicks
+    document.getElementById('theme-selector-grid').addEventListener('click', (e) => {
+        const card = e.target.closest('.theme-card');
+        if (!card) return;
+        const theme = card.dataset.theme;
+        // Apply theme to DOM
+        if (theme === 'default') {
+            document.documentElement.removeAttribute('data-theme');
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        // Save to localStorage
+        localStorage.setItem('qvizio_theme', theme);
+        // Sync active states
+        document.querySelectorAll('#theme-selector-grid .theme-card').forEach(c => {
+            c.classList.toggle('active', c.dataset.theme === theme);
+        });
+        toast('Theme updated!', 'success');
     });
 
     // Remove avatar
