@@ -953,11 +953,14 @@ input::placeholder {
 
 .action-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1.5rem;
 }
 
 .action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   padding-top: 1rem;
   padding-bottom: 1.25rem;
@@ -993,6 +996,7 @@ input::placeholder {
   font-size: 0.9rem;
   margin-bottom: 1.25rem;
   line-height: 1.5;
+  flex: 1;
 }
 
 .action-card .btn {
@@ -1055,6 +1059,49 @@ input::placeholder {
 
 #card-wrong-answers .action-card-icon {
   background: rgba(225, 29, 72, 0.08);
+}
+
+#card-pdf-mode {
+  background: #f0fdf9;
+  border-color: #99f6e4;
+}
+
+#card-pdf-mode .action-card-icon {
+  background: rgba(0, 184, 148, 0.1);
+}
+
+/* PDF card reuse section */
+.pdf-reuse-section {
+  width: 100%;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.pdf-reuse-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  flex: unset;
+}
+
+.home-pdf-reuse {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
+
+.home-pdf-reuse .qv-select-sm {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-pdf-reuse .btn-sm {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Alternate tape rotation */
@@ -5485,8 +5532,14 @@ input::placeholder {
 
 /* PDF / Image Mode card */
 [data-theme="dark"] #card-pdf-mode {
-  background: rgba(99, 102, 241, 0.06);
-  border-color: rgba(99, 102, 241, 0.15);
+  background: rgba(0, 184, 148, 0.06);
+  border-color: rgba(0, 184, 148, 0.18);
+}
+[data-theme="dark"] #card-pdf-mode .action-card-icon {
+  background: rgba(0, 184, 148, 0.12);
+}
+[data-theme="dark"] .pdf-reuse-section {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ── Leaderboard rows ──────────────────────────────────── */

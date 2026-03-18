@@ -422,11 +422,14 @@
               <p>Upload a PDF or image — AI reads it and creates quiz questions!</p>
               <button class="btn" id="btn-pdf-mode"
                 style="background: linear-gradient(135deg, #00b894, #00cec9);">Upload New</button>
-              <div class="home-pdf-reuse">
-                <select id="home-pdf-saved-select" class="qv-select qv-select-sm" style="width:100%;margin-top:0.5rem;">
-                  <option value="">-- Saved PDFs --</option>
-                </select>
-                <button class="btn btn-sm btn-ghost" id="btn-home-pdf-reuse" style="margin-top:0.35rem;" disabled>Reuse Selected</button>
+              <div class="pdf-reuse-section">
+                <p class="pdf-reuse-label">or reuse saved</p>
+                <div class="home-pdf-reuse">
+                  <select id="home-pdf-saved-select" class="qv-select qv-select-sm">
+                    <option value="">Select saved PDF...</option>
+                  </select>
+                  <button class="btn btn-sm btn-ghost" id="btn-home-pdf-reuse" disabled>Reuse</button>
+                </div>
               </div>
             </div>
 
