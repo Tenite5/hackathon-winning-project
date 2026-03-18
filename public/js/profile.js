@@ -421,6 +421,11 @@
         $('settings-username').value = state.user.username;
         settingsAvatarData = null;
 
+        const themeSelect = document.getElementById('settings-theme');
+        if (themeSelect) {
+            themeSelect.value = localStorage.getItem('qv-theme') || 'default';
+        }
+
         // Bio narrator card grid — visible to all, locked for non-Diamond
         const charInput = document.getElementById('settings-bio-character');
         const charLock = document.getElementById('bio-char-lock');
@@ -620,6 +625,15 @@
         history.replaceState({}, '', window.location.pathname);
         QV.showPanel('diamond');
         toast('Payment was not completed. Please try again.', 'error');
+    }
+
+    const themeSelect = document.getElementById('settings-theme');
+    if (themeSelect) {
+        themeSelect.addEventListener('change', () => {
+            const t = themeSelect.value;
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('qv-theme', t);
+        });
     }
 
     // Check if returning from Diamond checkout

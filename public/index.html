@@ -19,6 +19,12 @@
   <!-- Firebase SDK for Google Auth -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('qv-theme') || 'default';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
 </head>
 
 <body>
@@ -739,6 +745,19 @@
             <div class="settings-name-col">
               <label class="settings-label">Display Name</label>
               <input type="text" id="settings-username" placeholder="Your display name" maxlength="20" class="qv-input" />
+            </div>
+          </div>
+
+          <!-- Theme -->
+          <div class="settings-section glass-card" id="theme-section">
+            <h3 class="settings-heading">Theme</h3>
+            <p class="section-subtitle" style="margin-bottom:0.75rem;">Choose your visual preference.</p>
+            <div class="input-group">
+              <select id="settings-theme" class="qv-select qv-select-sm" style="width: 100%;">
+                <option value="default">Default</option>
+                <option value="dark">Dark Mode</option>
+                <option value="focus">Default Mode</option>
+              </select>
             </div>
           </div>
 

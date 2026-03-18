@@ -57,6 +57,96 @@
   --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Theme Definitions ──────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-primary: #121212;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #242424;
+  --bg-card: rgba(30, 30, 30, 0.85);
+  --bg-glass: rgba(30, 30, 30, 0.75);
+  --bg-hover: rgba(255, 255, 255, 0.08);
+
+  --text-primary: #f9f7f1;
+  --text-secondary: #cccccc;
+  --text-muted: #888888;
+
+  --accent-primary: #6C5CE7;
+  --accent-secondary: #00CEFF;
+  
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(255, 255, 255, 0.05);
+
+  --paper-bg: #121212;
+  --sidebar-bg: #1a1a1a;
+  --line-blue: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="focus"] {
+  --bg-primary: #eeeeee;
+  --bg-secondary: #e6e6e6;
+  --bg-tertiary: #dddddd;
+  --bg-card: #f5f5f5;
+  --bg-glass: #f5f5f5;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+
+  --text-primary: #222222;
+  --text-secondary: #444444;
+  --text-muted: #666666;
+
+  --accent-primary: #444444;
+  --accent-secondary: #444444;
+  --accent-warm: #444444;
+  --accent-danger: #444444;
+  --accent-success: #444444;
+
+  --border-color: #cccccc;
+  --border-glow: transparent;
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-glow: none;
+
+  --font-display: system-ui, -apple-system, sans-serif;
+  --font-main: system-ui, -apple-system, sans-serif;
+  
+  --gradient-main: none;
+  --gradient-warm: none;
+  --gradient-danger: none;
+  --gradient-success: none;
+  
+  --paper-bg: #eeeeee;
+  --sidebar-bg: #eeeeee;
+  --line-blue: transparent;
+}
+
+[data-theme="focus"] * {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+[data-theme="focus"] .glass-card,
+[data-theme="focus"] .glow-card,
+[data-theme="focus"] .auth-card {
+  border: 1px solid var(--border-color);
+}
+[data-theme="focus"] #particles-canvas {
+  display: none !important;
+}
+[data-theme="focus"] svg rect[fill="url(#logo-grad)"],
+[data-theme="focus"] svg rect[fill="url(#nav-grad)"],
+[data-theme="focus"] svg rect[fill="url(#setup-grad)"] {
+  fill: #444 !important;
+}
+[data-theme="focus"] .btn-primary, [data-theme="focus"] .btn-accent, [data-theme="focus"] .btn-warm {
+  background: #bbbbbb !important;
+  color: #000 !important;
+}
+[data-theme="focus"] .view {
+  background-image: none !important;
+}
+
 /* ── Reset ─────────────────────────────────────────────────── */
 *,
 *::before,
