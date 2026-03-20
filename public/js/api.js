@@ -19,6 +19,7 @@ window.QV = window.QV || {};
         currentView: 'auth',
         currentPanel: 'home',
         gameTimerInterval: null,
+        _timerRafId: null,
         gameTimeLeft: 0,
         gameTimeLimit: 10,
         dmFriendId: null,
@@ -231,27 +232,70 @@ window.QV = window.QV || {};
         }
     };
 
-    // ── Loading Tips (shown during question generation) ─────────
+    // ── Loading Screen — Pro perks + tips ───────────────────────
+    const DIAMOND_PERKS = [
+        { icon: '🏆', label: 'Host Tournaments',    desc: '4 / 8 / 16-player brackets' },
+        { icon: '🧠', label: 'Super Explain',        desc: 'Deep AI breakdown of wrong answers' },
+        { icon: '📄', label: '20 PDF Slots',         desc: 'Your whole study library saved' },
+        { icon: '⚡', label: 'Instant Questions',    desc: 'AI queues the moment your lobby opens' },
+        { icon: '🎭', label: '6 Bio Characters',     desc: 'Vader, Ramsay, Sherlock & more narrate you' },
+        { icon: '∞',  label: 'Near-Infinite Plays',  desc: 'Almost no daily generation cap' },
+        { icon: '📚', label: 'All Presets Unlocked', desc: 'Full SAT + Math exam question banks' },
+        { icon: '💎', label: 'Diamond Badge',        desc: 'Animated avatar border & ♦ icon everywhere' },
+        { icon: '🔍', label: 'Wrong Answer Log',     desc: 'Track & review every mistake you make' },
+        { icon: '🤖', label: 'Custom Lobby AI',      desc: 'Generate questions on any topic you choose' },
+        { icon: '📊', label: 'Full ELO History',     desc: 'Track your rank progression over time' },
+        { icon: '🌐', label: 'Public Lobby Browser', desc: 'Join or host open games for anyone' },
+    ];
+
     const LOADING_TIPS = [
-        '💡 Did you know? Diamond Pro users can have Darth Vader write their profile bio.',
-        '📚 Reviewing wrong answers after each game improves retention by up to 40%.',
-        '⚡ Diamond users get questions 10× faster — AI starts the moment the lobby opens.',
-        '🧠 Super Explain breaks down the WHY, gives a memory hook, and dissects the wrong answer.',
-        '♦ Upgrade to Diamond for near-infinite daily limits. Almost infinite. (But not quite.)',
-        '🏆 Only Diamond Pro users can host Tournaments. Build the arena.',
-        '🎯 Spaced repetition is the most proven method to retain knowledge for exams.',
-        '📄 Diamond Pro users can save up to 20 PDFs and images — your whole study library in one place.',
-        '🔒 50% of preset questions are unlocked for free users. Diamond unlocks all of them.',
-        '💬 Gordon Ramsay will rate your academic performance as a dish. Diamond Pro only.',
-        '🎓 The best students don\'t just practice — they review what they got wrong.',
-        '⚔️ Quick 1v1 ranked games update your ELO. Climb the leaderboard one game at a time.',
+        '💡 Your wrong answers are saved — review them in the Mistakes tab after the game.',
+        '⚔️ Quick 1v1 games are ranked. Every match moves your ELO — win streaks climb fast.',
+        '🎯 Spaced repetition is the #1 proven method for retaining knowledge before exams.',
+        '🧠 Super Explain doesn\'t just tell you the answer — it teaches the concept behind it.',
+        '📈 Your ELO chart is live. Every game is a data point on your journey to Grandmaster.',
+        '🏆 Diamond Pro unlocks Tournament hosting — build 4 to 16-player single-elimination brackets.',
+        '📄 Upload any PDF or image and AI turns it into a full quiz. Your notes, your questions.',
+        '🎭 Diamond bios are written by Darth Vader, Gordon Ramsay, Sherlock Holmes, and more.',
+        '🔒 Free users get 50% of preset questions. Diamond unlocks the full SAT + Math exam banks.',
+        '⚡ Diamond Pro starts AI generation the moment a lobby is opened — zero wait on game start.',
+        '💡 The best quiz players don\'t just play — they obsess over the questions they got wrong.',
+        '🌍 Geography, Science, History, Pop Culture — Quick Match topics rotate randomly every game.',
     ];
     let _tipInterval = null;
+    let _perkInterval = null;
     let _tipIndex = 0;
+    let _perkGroupIndex = 0;
+
+    function renderPerkChips() {
+        const strip = document.getElementById('loading-perks-strip');
+        if (!strip) return;
+        // Show 3 perks at a time, cycling through groups
+        const start = (_perkGroupIndex * 3) % DIAMOND_PERKS.length;
+        const group = [
+            DIAMOND_PERKS[start % DIAMOND_PERKS.length],
+            DIAMOND_PERKS[(start + 1) % DIAMOND_PERKS.length],
+            DIAMOND_PERKS[(start + 2) % DIAMOND_PERKS.length],
+        ];
+        strip.innerHTML = group.map(p => `
+            <div class="loading-perk-chip">
+                <span class="loading-perk-icon">${p.icon}</span>
+                <span class="loading-perk-label">${p.label}</span>
+                <span class="loading-perk-desc">${p.desc}</span>
+            </div>
+        `).join('');
+        _perkGroupIndex++;
+    }
 
     QV.startLoadingTips = function () {
         const el = document.getElementById('generating-tip-text');
         if (!el) return;
+
+        // Start perks cycling
+        renderPerkChips();
+        _perkInterval = setInterval(renderPerkChips, 4000);
+
+        // Start tips cycling
         _tipIndex = Math.floor(Math.random() * LOADING_TIPS.length);
         el.textContent = LOADING_TIPS[_tipIndex];
         el.classList.add('tip-visible');
@@ -262,13 +306,16 @@ window.QV = window.QV || {};
                 el.textContent = LOADING_TIPS[_tipIndex];
                 el.classList.add('tip-visible');
             }, 400);
-        }, 3500);
+        }, 4500);
     };
 
     QV.stopLoadingTips = function () {
-        if (_tipInterval) { clearInterval(_tipInterval); _tipInterval = null; }
+        if (_tipInterval)  { clearInterval(_tipInterval);  _tipInterval = null; }
+        if (_perkInterval) { clearInterval(_perkInterval); _perkInterval = null; }
         const el = document.getElementById('generating-tip-text');
         if (el) el.classList.remove('tip-visible');
+        const strip = document.getElementById('loading-perks-strip');
+        if (strip) strip.innerHTML = '';
     };
 
     QV.updateNavUser = function () {

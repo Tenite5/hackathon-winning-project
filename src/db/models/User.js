@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema({
     diamondSince: { type: Number, default: 0 },
     diamondOrderId: { type: String, default: '' },
     bioCharacter: { type: String, default: 'default' },
+    isBot: { type: Boolean, default: false },
     createdAt: { type: Number, default: Date.now },
 }, { _id: false, versionKey: false });
 

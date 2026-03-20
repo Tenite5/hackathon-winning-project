@@ -1225,9 +1225,23 @@
   <!-- ═══════════════════════════════════════════ -->
   <div id="overlay-generating" class="overlay hidden">
     <div class="overlay-content glass-card">
-      <div class="queue-spinner"></div>
-      <h2 id="generating-title">Generating Questions...</h2>
-      <p class="text-muted" id="generating-topic-text"></p>
+
+      <!-- Gradient spinner -->
+      <div class="overlay-spinner-ring"></div>
+
+      <h2 id="generating-title">Preparing Questions...</h2>
+      <p class="text-muted overlay-topic-text" id="generating-topic-text"></p>
+
+      <!-- Diamond Pro perks strip (populated by JS) -->
+      <div class="loading-perks-wrap">
+        <div class="loading-perks-eyebrow">
+          <svg width="12" height="12" viewBox="0 0 24 24"><polygon points="12 2 22 9 18 21 6 21 2 9" fill="url(#lpGrad)"/><defs><linearGradient id="lpGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient></defs></svg>
+          Diamond Pro
+        </div>
+        <div class="loading-perks-strip" id="loading-perks-strip"></div>
+      </div>
+
+      <!-- Cycling tip -->
       <p class="generating-tip" id="generating-tip-text"></p>
     </div>
   </div>
@@ -1347,7 +1361,14 @@
   <div id="modal-pdf-upload" class="modal hidden">
     <div class="modal-backdrop" data-close-modal="modal-pdf-upload"></div>
     <div class="modal-content glass-card" style="max-width: 560px;">
-      <h2>📄 Upload PDF / Image</h2>
+      <h2>📄 PDF / Image Mode</h2>
+
+      <!-- Saved PDFs quick-reuse bar (hidden when empty) -->
+      <div id="modal-pdf-saved-section" class="hidden">
+        <p class="modal-saved-label">Reuse a saved file</p>
+        <div id="modal-pdf-saved-list" class="modal-pdf-saved-list"></div>
+        <div class="modal-pdf-or-divider"><span>— or upload a new file —</span></div>
+      </div>
 
       <!-- Step 1: File Upload -->
       <div id="pdf-step-upload">

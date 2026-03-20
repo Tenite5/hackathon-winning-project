@@ -221,7 +221,7 @@ function recordMatchHistory(game, eloUpdates = {}) {
 
     game.players.forEach(p => {
         const user = db.users.get(p.userId);
-        if (!user) return;
+        if (!user || user.isBot) return;
 
         // Determine result
         let result = 'draw';
@@ -317,21 +317,22 @@ function endGame(gameId, io) {
             winnerUser.elo = Math.max(0, winnerNew);
             loserUser.elo = Math.max(0, loserNew);
 
-            winnerUser.stats.totalWins++;
-            loserUser.stats.totalLosses++;
-            winnerUser.stats.gamesPlayed++;
-            loserUser.stats.gamesPlayed++;
+            // Bots track ELO in memory but don't count stats
+            if (!winnerUser.isBot) winnerUser.stats.totalWins++;
+            if (!loserUser.isBot) loserUser.stats.totalLosses++;
+            if (!winnerUser.isBot) winnerUser.stats.gamesPlayed++;
+            if (!loserUser.isBot) loserUser.stats.gamesPlayed++;
 
             const cat = game.topic;
             [winnerUser, loserUser].forEach(u => {
                 if (!u.stats.categories[cat]) u.stats.categories[cat] = { wins: 0, losses: 0, accuracy: 0, totalAnswered: 0, correctAnswers: 0 };
             });
-            winnerUser.stats.categories[cat].wins++;
-            loserUser.stats.categories[cat].losses++;
+            if (!winnerUser.isBot) winnerUser.stats.categories[cat].wins++;
+            if (!loserUser.isBot) loserUser.stats.categories[cat].losses++;
 
             game.players.forEach(p => {
                 const u = db.users.get(p.userId);
-                if (u) {
+                if (u && !u.isBot) {
                     const correct = p.answers.filter(a => a && a.isCorrect).length;
                     const total = p.answers.filter(a => a).length;
                     u.stats.totalAnswers += total;
@@ -369,11 +370,11 @@ function endGame(gameId, io) {
                 topic: game.topic,
             });
 
-            if (winnerUser.stats.gamesPlayed % 3 === 0) generateBio(winnerUser).then(bio => { winnerUser.bio = bio; db.saveUser(winnerUser.id); }).catch(err => console.error('Bio regen error:', err.message));
-            if (loserUser.stats.gamesPlayed % 3 === 0) generateBio(loserUser).then(bio => { loserUser.bio = bio; db.saveUser(loserUser.id); }).catch(err => console.error('Bio regen error:', err.message));
+            if (!winnerUser.isBot && winnerUser.stats.gamesPlayed % 3 === 0) generateBio(winnerUser).then(bio => { winnerUser.bio = bio; db.saveUser(winnerUser.id); }).catch(err => console.error('Bio regen error:', err.message));
+            if (!loserUser.isBot && loserUser.stats.gamesPlayed % 3 === 0) generateBio(loserUser).then(bio => { loserUser.bio = bio; db.saveUser(loserUser.id); }).catch(err => console.error('Bio regen error:', err.message));
 
-            db.saveUser(winnerUser.id);
-            db.saveUser(loserUser.id);
+            if (!winnerUser.isBot) db.saveUser(winnerUser.id);
+            if (!loserUser.isBot) db.saveUser(loserUser.id);
 
             return;
         }
@@ -387,24 +388,28 @@ function endGame(gameId, io) {
             if (u) {
                 u.stats.gamesPlayed++;
                 if (!u.stats.categories[cat]) u.stats.categories[cat] = { wins: 0, losses: 0, accuracy: 0, totalAnswered: 0, correctAnswers: 0 };
-                if (!isDraw && winner.userId === p.userId) {
-                    u.stats.totalWins++;
-                    u.stats.categories[cat].wins++;
-                } else if (!isDraw) {
-                    u.stats.totalLosses++;
-                    u.stats.categories[cat].losses++;
+                if (!u.isBot) {
+                    if (!isDraw && winner.userId === p.userId) {
+                        u.stats.totalWins++;
+                        u.stats.categories[cat].wins++;
+                    } else if (!isDraw) {
+                        u.stats.totalLosses++;
+                        u.stats.categories[cat].losses++;
+                    }
                 }
                 const correct = p.answers.filter(a => a && a.isCorrect).length;
                 const total = p.answers.filter(a => a).length;
-                u.stats.totalAnswers += total;
-                u.stats.correctAnswers += correct;
-                u.stats.categories[cat].totalAnswered += total;
-                u.stats.categories[cat].correctAnswers += correct;
-                u.stats.categories[cat].accuracy = u.stats.categories[cat].totalAnswered > 0
-                    ? u.stats.categories[cat].correctAnswers / u.stats.categories[cat].totalAnswered
-                    : 0;
-                if (u.stats.gamesPlayed % 3 === 0) generateBio(u).then(bio => { u.bio = bio; db.saveUser(u.id); }).catch(err => console.error('Bio regen error:', err.message));
-                db.saveUser(u.id);
+                if (!u.isBot) {
+                    u.stats.totalAnswers += total;
+                    u.stats.correctAnswers += correct;
+                    u.stats.categories[cat].totalAnswered += total;
+                    u.stats.categories[cat].correctAnswers += correct;
+                    u.stats.categories[cat].accuracy = u.stats.categories[cat].totalAnswered > 0
+                        ? u.stats.categories[cat].correctAnswers / u.stats.categories[cat].totalAnswered
+                        : 0;
+                }
+                if (!u.isBot && u.stats.gamesPlayed % 3 === 0) generateBio(u).then(bio => { u.bio = bio; db.saveUser(u.id); }).catch(err => console.error('Bio regen error:', err.message));
+                if (!u.isBot) db.saveUser(u.id);
             }
         });
     }
@@ -546,21 +551,21 @@ function handleDisconnectFromGames(io, currentUser) {
                 winnerUser.elo = Math.max(0, winnerNew);
                 loserUser.elo = Math.max(0, loserNew);
 
-                winnerUser.stats.totalWins++;
-                loserUser.stats.totalLosses++;
-                winnerUser.stats.gamesPlayed++;
-                loserUser.stats.gamesPlayed++;
+                if (!winnerUser.isBot) winnerUser.stats.totalWins++;
+                if (!loserUser.isBot) loserUser.stats.totalLosses++;
+                if (!winnerUser.isBot) winnerUser.stats.gamesPlayed++;
+                if (!loserUser.isBot) loserUser.stats.gamesPlayed++;
 
                 const cat = game.topic;
                 [winnerUser, loserUser].forEach(u => {
                     if (!u.stats.categories[cat]) u.stats.categories[cat] = { wins: 0, losses: 0, accuracy: 0, totalAnswered: 0, correctAnswers: 0 };
                 });
-                winnerUser.stats.categories[cat].wins++;
-                loserUser.stats.categories[cat].losses++;
+                if (!winnerUser.isBot) winnerUser.stats.categories[cat].wins++;
+                if (!loserUser.isBot) loserUser.stats.categories[cat].losses++;
 
                 game.players.forEach(p => {
                     const u = db.users.get(p.userId);
-                    if (u) {
+                    if (u && !u.isBot) {
                         const correct = p.answers.filter(a => a && a.isCorrect).length;
                         const total = p.answers.filter(a => a).length;
                         u.stats.totalAnswers += total;
@@ -575,8 +580,8 @@ function handleDisconnectFromGames(io, currentUser) {
                     }
                 });
 
-                db.saveUser(winnerUser.id);
-                db.saveUser(loserUser.id);
+                if (!winnerUser.isBot) db.saveUser(winnerUser.id);
+                if (!loserUser.isBot) db.saveUser(loserUser.id);
 
                 io.to(game.id).emit('game-over', {
                     reason: 'opponent-disconnect',

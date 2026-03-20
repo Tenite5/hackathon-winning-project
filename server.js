@@ -19,6 +19,10 @@ const PORT = process.env.PORT || 3000;
         server.listen(PORT, () => {
             console.log(`QVIZIO server running on http://localhost:${PORT}`);
         });
+
+        // Warm up pre-generated question pools in the background (non-blocking)
+        const { warmUpPools } = require('./src/services/questionPool');
+        warmUpPools();
     } catch (err) {
         console.error('Failed to start server:', err);
         process.exit(1);

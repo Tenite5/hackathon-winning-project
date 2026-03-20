@@ -14,10 +14,12 @@
 
     // ── Nav buttons ──────────────────────────────────────────────
     $('btn-pdf-mode').addEventListener('click', () => {
+        loadSavedPdfs();
         showModal('modal-pdf-upload');
     });
 
     $('btn-pdf-upload-new').addEventListener('click', () => {
+        loadSavedPdfs();
         showModal('modal-pdf-upload');
     });
 
@@ -294,9 +296,27 @@
         }
     }
 
+    function renderModalSavedPdfs(pdfs) {
+        const section = document.getElementById('modal-pdf-saved-section');
+        const list = document.getElementById('modal-pdf-saved-list');
+        if (!section || !list) return;
+        if (!pdfs.length) {
+            section.classList.add('hidden');
+            return;
+        }
+        section.classList.remove('hidden');
+        list.innerHTML = pdfs.map(pdf => `
+            <div class="modal-saved-pdf-row">
+                <span class="modal-saved-pdf-name">${escapeHtml(pdf.fileName)}</span>
+                <button class="btn btn-sm modal-saved-pdf-btn" onclick="QV.reusePdf('${escapeHtml(pdf.id)}', '${escapeHtml(pdf.fileName)}'); QV.hideModal('modal-pdf-upload');">Reuse</button>
+            </div>
+        `).join('');
+    }
+
     function renderSavedPdfs(pdfs) {
         $('pdf-count-badge').textContent = pdfs.length;
         populateHomePdfDropdown(pdfs);
+        renderModalSavedPdfs(pdfs);
 
         const container = $('saved-pdfs-list');
         if (!pdfs.length) {

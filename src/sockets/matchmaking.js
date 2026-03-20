@@ -1,6 +1,15 @@
 /**
  * @file sockets/matchmaking.js
- * @description Socket handlers for quick-game queue, friend challenges, accept/decline.
+ * @description Socket handlers for quick-game queue, bot fill-in, friend challenges.
+ *
+ * Quick game flow:
+ *  1. Real player joins queue → queue-join
+ *  2. If 2+ real players: match them immediately
+ *  3. If 1 real player waits >8s: match with a bot (pickBotForElo)
+ *  4. Questions are served from the pre-generated pool (questionPool.js)
+ *     falling back to real-time AI if pool is cold
+ *  5. Difficulty is determined by 5-level ELO tiers (getLevelFromElo)
+ *  6. When a bot is matched, botManager.scheduleBotAnswers() drives bot gameplay
  */
 
 'use strict';
@@ -13,9 +22,14 @@ const { sanitizeUser } = require('../services/elo');
 const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText } = require('../middleware/validate');
 const { checkAIRateLimit } = require('../middleware/rateLimit');
+const { getLevelFromElo, getQuestionsFromPool, LEVEL_CONFIGS } = require('../services/questionPool');
+const { pickBotForElo, scheduleBotAnswers } = require('../services/botManager');
 
 /** Prevent two simultaneous queue-join events from both starting a match. */
 let _queueMatching = false;
+
+/** Bot fill-in timers: userId -> timeoutId */
+const _botTimers = new Map();
 
 /** Race a promise against a ms timeout. */
 function withTimeout(promise, ms) {
@@ -32,12 +46,10 @@ function cancelOutgoingChallenges(io, userId) {
     for (const [cId, ch] of db.challenges) {
         if (ch.fromId === userId) {
             db.challenges.delete(cId);
-            // Tell the recipient the challenge was withdrawn
             const target = db.users.get(ch.toId);
             if (target && target.socketId) {
                 io.to(target.socketId).emit('challenge-cancelled', { challengeId: cId });
             }
-            // Also notify the sender
             const sender = db.users.get(ch.fromId);
             if (sender && sender.socketId) {
                 io.to(sender.socketId).emit('challenge-expired', { challengeId: cId });
@@ -46,11 +58,95 @@ function cancelOutgoingChallenges(io, userId) {
     }
 }
 
-/** Get difficulty label based on average ELO. */
-function getDifficultyFromElo(avgElo) {
-    if (avgElo >= 1600) return 'hard';
-    if (avgElo >= 1200) return 'medium';
-    return 'easy';
+/** Attempt to start a match between two queue entries (real or bot). */
+async function tryStartMatch(io, p1, p2, isBotMatch = false) {
+    const user1 = db.users.get(p1.userId);
+    const user2 = db.users.get(p2.userId);
+    if (!user1 || !user2) return false;
+
+    const topic = QUICK_GAME_TOPICS[Math.floor(Math.random() * QUICK_GAME_TOPICS.length)];
+    const avgElo = Math.round(((user1.elo || 1000) + (user2.elo || 1000)) / 2);
+    const level = getLevelFromElo(avgElo);
+    const levelCfg = LEVEL_CONFIGS[level] || LEVEL_CONFIGS[1];
+
+    // Notify real player(s) of the match
+    if (p1.socketId) {
+        io.to(p1.socketId).emit('queue-matched', { opponent: sanitizeUser(user2), topic });
+    }
+    if (p2.socketId && !isBotMatch) {
+        io.to(p2.socketId).emit('queue-matched', { opponent: sanitizeUser(user1), topic });
+    }
+
+    // Check AI rate limits (skip for bot player)
+    const realPlayers = isBotMatch ? [p1] : [p1, p2];
+    for (const rp of realPlayers) {
+        const rl = checkAIRateLimit(rp.userId);
+        if (rl.limited) {
+            const msg = rl.reason === 'global'
+                ? 'Server is busy — too many games in progress. Try again in a few minutes.'
+                : 'You\'ve generated too many games recently. Please wait a couple of minutes.';
+            io.to(rp.socketId).emit('queue-error', { message: msg });
+            return false;
+        }
+    }
+
+    let questions = null;
+
+    // 1. Try pre-generated pool first (fast, no AI call)
+    questions = getQuestionsFromPool(topic, level);
+
+    // 2. Fall back to real-time AI generation
+    if (!questions) {
+        try {
+            questions = await withTimeout(
+                generateQuestions(topic, 7, levelCfg.aiDifficulty, level),
+                15000
+            );
+        } catch (err) {
+            console.error('Matchmaking question generation failed:', err.message);
+            if (p1.socketId) io.to(p1.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
+            if (p2.socketId && !isBotMatch) io.to(p2.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
+            return false;
+        }
+    }
+
+    const gameId = uuidv4();
+    const game = {
+        id: gameId,
+        type: 'quick',
+        topic,
+        level,
+        players: [
+            { userId: p1.userId, username: user1.username, socketId: p1.socketId, score: 0, answers: [] },
+            { userId: p2.userId, username: user2.username, socketId: p2.socketId, score: 0, answers: [] },
+        ],
+        questions,
+        currentQuestion: 0,
+        timeLimit: levelCfg.timeLimit,
+        questionStartTime: null,
+        status: 'playing',
+        chat: [],
+        createdAt: Date.now(),
+        isBotMatch,
+    };
+
+    db.games.set(gameId, game);
+
+    // Join socket rooms (skip bot — no real socket)
+    const s1 = p1.socketId ? io.sockets.sockets.get(p1.socketId) : null;
+    const s2 = !isBotMatch && p2.socketId ? io.sockets.sockets.get(p2.socketId) : null;
+    if (s1) s1.join(gameId);
+    if (s2) s2.join(gameId);
+
+    setTimeout(() => {
+        startGameQuestion(gameId, io);
+        // If bot match, schedule bot answers right away
+        if (isBotMatch) {
+            scheduleBotAnswers(gameId, p2.userId, io);
+        }
+    }, 2000);
+
+    return true;
 }
 
 module.exports = function (io, socket, getCurrentUser) {
@@ -62,7 +158,6 @@ module.exports = function (io, socket, getCurrentUser) {
         if (currentUser._lastQueueJoin && now - currentUser._lastQueueJoin < 3000) return;
         currentUser._lastQueueJoin = now;
 
-        // Cancel any outgoing challenges when entering queue
         cancelOutgoingChallenges(io, currentUser.id);
 
         db.quickQueue = db.quickQueue.filter(q => q.userId !== currentUser.id);
@@ -70,83 +165,71 @@ module.exports = function (io, socket, getCurrentUser) {
 
         socket.emit('queue-status', { position: db.quickQueue.length, waiting: true });
 
+        // ── Real vs real match ────────────────────────────────────────────
         if (db.quickQueue.length >= 2 && !_queueMatching) {
             _queueMatching = true;
             const p1 = db.quickQueue.shift();
             const p2 = db.quickQueue.shift();
 
-            const user1 = db.users.get(p1.userId);
-            const user2 = db.users.get(p2.userId);
+            // Cancel any pending bot timers for these players
+            if (_botTimers.has(p1.userId)) { clearTimeout(_botTimers.get(p1.userId)); _botTimers.delete(p1.userId); }
+            if (_botTimers.has(p2.userId)) { clearTimeout(_botTimers.get(p2.userId)); _botTimers.delete(p2.userId); }
 
-            const topic = QUICK_GAME_TOPICS[Math.floor(Math.random() * QUICK_GAME_TOPICS.length)];
-            const avgElo = Math.round(((user1.elo || 1000) + (user2.elo || 1000)) / 2);
-            const difficulty = getDifficultyFromElo(avgElo);
-
-            io.to(p1.socketId).emit('queue-matched', { opponent: sanitizeUser(user2), topic });
-            io.to(p2.socketId).emit('queue-matched', { opponent: sanitizeUser(user1), topic });
-
-            // Check AI rate limits for both players
-            const rl1 = checkAIRateLimit(p1.userId);
-            const rl2 = checkAIRateLimit(p2.userId);
-            if (rl1.limited || rl2.limited) {
-                const msg = rl1.limited && rl1.reason === 'global'
-                    ? 'Server is busy — too many games in progress. Try again in a few minutes.'
-                    : 'You\'ve generated too many games recently. Please wait a couple of minutes.';
-                io.to(p1.socketId).emit('queue-error', { message: msg });
-                io.to(p2.socketId).emit('queue-error', { message: msg });
+            const ok = await tryStartMatch(io, p1, p2, false);
+            if (!ok) {
                 db.quickQueue.unshift(p1, p2);
-                _queueMatching = false;
+            }
+            _queueMatching = false;
+            return;
+        }
+
+        // ── No immediate match — schedule bot fill-in after 8 seconds ────
+        const timerId = setTimeout(async () => {
+            _botTimers.delete(currentUser.id);
+
+            // Remove from real queue
+            const idx = db.quickQueue.findIndex(q => q.userId === currentUser.id);
+            if (idx === -1) return; // Already matched with a real player
+            const [playerEntry] = db.quickQueue.splice(idx, 1);
+
+            // Check player still connected
+            const player = db.users.get(playerEntry.userId);
+            if (!player || !player.online) return;
+
+            const bot = pickBotForElo(player.elo || 1000);
+            if (!bot) {
+                // No bots available — put back in queue
+                db.quickQueue.push(playerEntry);
                 return;
             }
 
-            try {
-                const questions = await withTimeout(generateQuestions(topic, 7, difficulty), 15000);
-                const gameId = uuidv4();
+            const botEntry = { userId: bot.id, socketId: null, joinedAt: Date.now() };
 
-                const game = {
-                    id: gameId,
-                    type: 'quick',
-                    topic,
-                    players: [
-                        { userId: p1.userId, username: user1.username, socketId: p1.socketId, score: 0, answers: [] },
-                        { userId: p2.userId, username: user2.username, socketId: p2.socketId, score: 0, answers: [] },
-                    ],
-                    questions,
-                    currentQuestion: 0,
-                    timeLimit: 10,
-                    questionStartTime: null,
-                    status: 'playing',
-                    chat: [],
-                    createdAt: Date.now(),
-                };
+            // Notify player they've been matched
+            io.to(playerEntry.socketId).emit('queue-matched', { opponent: sanitizeUser(bot), topic: null });
 
-                db.games.set(gameId, game);
-
-                const s1 = io.sockets.sockets.get(p1.socketId);
-                const s2 = io.sockets.sockets.get(p2.socketId);
-                if (s1) s1.join(gameId);
-                if (s2) s2.join(gameId);
-
-                setTimeout(() => startGameQuestion(gameId, io), 2000);
-            } catch (err) {
-                console.error('Queue matchmaking question generation failed:', err.message);
-                io.to(p1.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
-                io.to(p2.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
-                db.quickQueue.unshift(p1, p2);
-            } finally {
-                _queueMatching = false;
+            const ok = await tryStartMatch(io, playerEntry, botEntry, true);
+            if (!ok) {
+                // Re-queue the real player
+                db.quickQueue.push(playerEntry);
             }
-        }
+        }, 8000);
+
+        _botTimers.set(currentUser.id, timerId);
     });
 
     socket.on('queue-leave', () => {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
         db.quickQueue = db.quickQueue.filter(q => q.userId !== currentUser.id);
+        if (_botTimers.has(currentUser.id)) {
+            clearTimeout(_botTimers.get(currentUser.id));
+            _botTimers.delete(currentUser.id);
+        }
         socket.emit('queue-status', { waiting: false });
     });
 
-    // Friend Challenge
+    // ── Friend Challenge ──────────────────────────────────────────────────────
     socket.on('challenge-friend', ({ friendId, topic }) => {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
@@ -156,7 +239,6 @@ module.exports = function (io, socket, getCurrentUser) {
         const friend = db.users.get(friendId);
         if (!friend || !friend.online || !friend.socketId) return socket.emit('challenge-error', 'Friend is offline');
 
-        // Cancel any existing outgoing challenges first
         cancelOutgoingChallenges(io, currentUser.id);
 
         const cleanTopic = sanitizeText(topic, 100) || 'General Knowledge';
@@ -181,7 +263,6 @@ module.exports = function (io, socket, getCurrentUser) {
             if (db.challenges.has(challengeId)) {
                 db.challenges.delete(challengeId);
                 socket.emit('challenge-expired', { challengeId });
-                // Also tell recipient
                 if (friend.socketId) {
                     io.to(friend.socketId).emit('challenge-cancelled', { challengeId });
                 }
@@ -189,7 +270,6 @@ module.exports = function (io, socket, getCurrentUser) {
         }, 60000);
     });
 
-    // Sender cancels their own outgoing challenge
     socket.on('challenge-cancel', () => {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
@@ -210,7 +290,6 @@ module.exports = function (io, socket, getCurrentUser) {
 
         const topic = challenge.topic;
 
-        // Check AI rate limits
         const rlAcceptor = checkAIRateLimit(currentUser.id);
         const rlChallenger = checkAIRateLimit(challenger.id);
         if (rlAcceptor.limited || rlChallenger.limited) {
@@ -233,7 +312,6 @@ module.exports = function (io, socket, getCurrentUser) {
         }
 
         const gameId = uuidv4();
-
         const game = {
             id: gameId,
             type: 'quick',

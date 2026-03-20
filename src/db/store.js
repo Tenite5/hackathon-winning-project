@@ -9,12 +9,17 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const { randomUUID } = require('crypto');
 
 // Mongoose models
 const UserModel = require('./models/User');
 const SessionModel = require('./models/Session');
 const MessageThreadModel = require('./models/Message');
 const WrongAnswerModel = require('./models/WrongAnswer');
+
+// Bot profiles and question pool
+const BOT_PROFILES = require('../data/botProfiles');
+const { loadPoolsFromDB, warmUpPools } = require('../services/questionPool');
 
 const db = {
     // ── Persistent (loaded from MongoDB on init, saved on mutation) ──
@@ -72,7 +77,61 @@ const db = {
         }
         console.log(`   Loaded ${db.users.size} users`);
 
-        // Apply overrides for special users
+        // ── Seed / refresh bots ───────────────────────────────────────────
+        for (const profile of BOT_PROFILES) {
+            const existing = [...db.users.values()].find(u => u.isBot && u._baseName === profile._baseName);
+            if (existing) {
+                // Refresh in-memory extras (nameVariants, avatar) without touching ELO
+                existing.photoURL = profile.photoURL;
+                existing.nameVariants = profile.nameVariants;
+                existing._baseName = profile._baseName;
+                existing.isDiamondPro = profile.isDiamondPro;
+                continue;
+            }
+            // New bot — create in memory and upsert to MongoDB
+            const botId = randomUUID();
+            const botUser = {
+                id: botId,
+                username: profile.username,
+                _baseName: profile._baseName,
+                nameVariants: profile.nameVariants,
+                passwordHash: '',
+                googleId: '',
+                firebaseUid: '',
+                email: '',
+                photoURL: profile.photoURL,
+                needsSetup: false,
+                elo: profile.elo,
+                stats: { totalWins: 0, totalLosses: 0, totalAnswers: 0, correctAnswers: 0, gamesPlayed: 0, categories: {} },
+                friends: [],
+                friendRequests: [],
+                bio: '',
+                matchHistory: [],
+                eloHistory: [],
+                notifications: [],
+                isDiamondPro: profile.isDiamondPro,
+                diamondSince: 0,
+                diamondOrderId: '',
+                bioCharacter: 'default',
+                isBot: true,
+                online: false,
+                socketId: null,
+                createdAt: Date.now(),
+            };
+            db.users.set(botId, botUser);
+            // Persist bot to MongoDB (isBot flag stored)
+            UserModel.findOneAndUpdate(
+                { username: profile.username, isBot: true },
+                { _id: botId, ...Object.fromEntries(Object.entries(botUser).filter(([k]) => !['online', 'socketId', '_baseName', 'nameVariants'].includes(k))) },
+                { upsert: true }
+            ).catch(err => console.error('Bot seed error:', err.message));
+        }
+        console.log(`   Bots loaded: ${[...db.users.values()].filter(u => u.isBot).length}`);
+
+        // ── Load question pools from MongoDB ─────────────────────────────
+        await loadPoolsFromDB();
+
+        // ── Apply overrides for special users
         const DIAMOND_OVERRIDES = ['temo', 'palela', 'berikela'];
         for (const [, user] of db.users) {
             if (user.username && DIAMOND_OVERRIDES.includes(user.username.toLowerCase()) && !user.isDiamondPro) {

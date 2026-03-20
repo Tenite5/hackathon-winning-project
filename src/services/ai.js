@@ -26,28 +26,68 @@ function withTimeout(promise, ms) {
     ]);
 }
 
-async function generateQuestions(topic, count = 5, difficulty = null) {
-    let raw = null;
-    try {
-        const difficultyHint = difficulty
-            ? ` All questions should be "${difficulty}" difficulty level.`
-            : '';
+// ── Level-specific question generation prompts ────────────────────────────────
+const LEVEL_PROMPTS = {
+    1: `You generate Level 1 (Bronze) quiz questions. Rules:
+- Questions should test genuine knowledge most educated people might know, but not trivially obvious.
+- Ask about real facts, mechanisms, historical events, or scientific concepts — NOT pop trivia like celebrity names.
+- Examples of good topics: how vaccines work, why the sky is blue, major historical turning points, basic geography facts people should know.
+- Avoid questions like "What color is the sun" or "Who sings [song]". Aim for substance.
+- 4 plausible options — one clearly correct, the others believably wrong.`,
 
-        const systemPrompt = `You are a question generator. Generate exactly ${count} questions/problems about the inputted thing.${difficultyHint}
+    2: `You generate Level 2 (Silver) quiz questions. Rules:
+- Questions should require genuine study or curious reading to know.
+- Target: things a well-read person knows but a casual person might miss.
+- Examples: specific scientific laws, historical causes/effects, geographic facts, how everyday technology works, notable achievements.
+- Wrong options must be convincing — not obviously silly.
+- Avoid pure trivia. Each answer should teach something real.`,
+
+    3: `You generate Level 3 (Gold) quiz questions. Rules:
+- Challenging questions that test solid knowledge. Not obscure, but not easy either.
+- Focus on deeper understanding: mechanisms behind events, scientific reasoning, secondary historical facts, nuanced geography.
+- A player should feel smart for getting it right.
+- All 4 options must be plausible to someone with surface knowledge. Only the genuinely informed gets it right.`,
+
+    4: `You generate Level 4 (Platinum) quiz questions. Rules:
+- Hard questions requiring depth of knowledge or analytical thinking.
+- Not obscure trivia — but precise knowledge: exact dates/figures only when they matter, mechanisms, cause-and-effect chains, scientific principles.
+- Good examples: why a specific war was triggered, how a scientific process differs from a similar one, nuanced geographic/cultural facts.
+- The wrong options should be things an educated person would seriously consider.`,
+
+    5: `You generate Level 5 (Diamond/Expert) quiz questions. Rules:
+- Expert-level questions. Only people who have deeply studied the topic should know these.
+- Target advanced specifics: precise scientific data, obscure but important historical decisions, technical mechanisms, exact terminology.
+- Every wrong option should be something a knowledgeable amateur would plausibly choose.
+- These questions should make even smart players sweat. But the answer must always be definitively correct — no ambiguity.`,
+};
+
+const BASE_FORMAT_INSTRUCTIONS = `
 Return ONLY a valid JSON array with no additional text, markdown, or code blocks. Each object must have:
-- "question": the question text
-- "options": array of exactly 4 answer strings
-- "correct": index (0-3) of the correct answer
+- "question": the question text (clear, unambiguous, ends with "?")
+- "options": array of exactly 4 strings — one correct, three plausibly wrong
+- "correct": integer index 0-3 of the correct option
 - "difficulty": "easy", "medium", or "hard"
 
-Example format: [{"question":"...","options":["A","B","C","D"],"correct":0,"difficulty":"medium"}]`;
+Example: [{"question":"What causes the northern lights?","options":["Solar wind hitting atmosphere","Moon reflecting sunlight","Earth's magnetic core glowing","Volcanic gas emissions"],"correct":0,"difficulty":"hard"}]`;
+
+async function generateQuestions(topic, count = 5, difficulty = null, level = null) {
+    let raw = null;
+    try {
+        const levelPrompt = level && LEVEL_PROMPTS[level] ? LEVEL_PROMPTS[level] : '';
+        const difficultyHint = difficulty && !level
+            ? ` All questions should be "${difficulty}" difficulty.`
+            : '';
+
+        const systemPrompt = levelPrompt
+            ? `${levelPrompt}\n\nGenerate exactly ${count} questions about the topic given.${BASE_FORMAT_INSTRUCTIONS}`
+            : `You generate engaging quiz questions that test real, valuable knowledge — not useless trivia.${difficultyHint}\nGenerate exactly ${count} questions about the topic given.${BASE_FORMAT_INSTRUCTIONS}`;
 
         const response = await withTimeout(
             ai.models.generateContent({
                 model: GEMINI_MODEL,
-                contents: `${systemPrompt}\n\nGenerate ${count} questions/problems about: ${topic}`,
+                contents: `${systemPrompt}\n\nTopic: ${topic}`,
                 config: {
-                    temperature: 0.6,
+                    temperature: 0.65,
                     maxOutputTokens: 4096,
                 },
             }),

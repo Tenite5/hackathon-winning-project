@@ -14,6 +14,7 @@
         currentView: 'auth',
         currentPanel: 'home',
         gameTimerInterval: null,
+        _timerRafId: null,
         gameTimeLeft: 0,
         gameTimeLimit: 10,
         dmFriendId: null,
@@ -542,9 +543,12 @@
             btn.innerHTML = `<span class="option-letter">${letters[idx]}</span><span>${opt}</span>`;
             btn.addEventListener('click', () => {
                 if (btn.classList.contains('disabled')) return;
-                // Disable all options
-                optionsEl.querySelectorAll('.game-option').forEach(b => b.classList.add('disabled'));
-                btn.style.borderColor = 'var(--accent-primary)';
+                // Instant visual selection before server responds
+                optionsEl.querySelectorAll('.game-option').forEach(b => {
+                    b.classList.add('disabled');
+                    b.classList.remove('selected');
+                });
+                btn.classList.add('selected');
                 socket.emit('game-answer', { gameId: state.currentGameId, answerIndex: idx });
             });
             optionsEl.appendChild(btn);
@@ -555,12 +559,12 @@
     });
 
     function startGameTimer(limit) {
-        clearInterval(state.gameTimerInterval);
+        if (state._timerRafId) { cancelAnimationFrame(state._timerRafId); state._timerRafId = null; }
+        if (state.gameTimerInterval) { clearInterval(state.gameTimerInterval); state.gameTimerInterval = null; }
         state.gameTimeLeft = limit;
         const fill = $('game-timer-fill');
         const timerBar = fill ? fill.parentElement : null;
 
-        // Infinite time mode — hide the timer bar entirely
         if (limit === 0) {
             if (timerBar) timerBar.style.display = 'none';
             return;
@@ -570,22 +574,30 @@
         fill.style.width = '100%';
         fill.className = 'game-timer-fill';
 
-        const startTime = Date.now();
-        state.gameTimerInterval = setInterval(() => {
-            const elapsed = (Date.now() - startTime) / 1000;
+        const startTime = performance.now();
+
+        function tick(now) {
+            const elapsed = (now - startTime) / 1000;
             const remaining = Math.max(0, limit - elapsed);
             const pct = (remaining / limit) * 100;
 
             fill.style.width = pct + '%';
-            if (pct < 30) fill.className = 'game-timer-fill danger';
-            else if (pct < 60) fill.className = 'game-timer-fill warning';
+            const wantClass = pct < 30 ? 'game-timer-fill danger' : pct < 60 ? 'game-timer-fill warning' : 'game-timer-fill';
+            if (fill.className !== wantClass) fill.className = wantClass;
 
-            if (remaining <= 0) clearInterval(state.gameTimerInterval);
-        }, 50);
+            if (remaining > 0) {
+                state._timerRafId = requestAnimationFrame(tick);
+            } else {
+                state._timerRafId = null;
+            }
+        }
+
+        state._timerRafId = requestAnimationFrame(tick);
     }
 
     socket.on('answer-result', ({ correct, points, correctAnswer, playerScore, timeout }) => {
-        clearInterval(state.gameTimerInterval);
+        if (state._timerRafId) { cancelAnimationFrame(state._timerRafId); state._timerRafId = null; }
+        if (state.gameTimerInterval) { clearInterval(state.gameTimerInterval); state.gameTimerInterval = null; }
 
         $('game-p1-score').textContent = playerScore;
 
@@ -593,6 +605,7 @@
         const options = $('game-options').querySelectorAll('.game-option');
         options.forEach((opt, idx) => {
             opt.classList.add('disabled');
+            opt.classList.remove('selected');
             if (idx === correctAnswer) opt.classList.add('correct');
         });
 

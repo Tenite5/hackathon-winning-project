@@ -19,12 +19,23 @@ const registerMatchmakingHandlers = require('./matchmaking');
 const registerChatHandlers = require('./chat');
 const registerTournamentHandlers = require('./tournament');
 
+// ── Fake online count inflation ───────────────────────────────────────────────
+// Oscillates between +90 and +100 extra "users" to make the platform feel active.
+// Uses a slow random walk so the number changes naturally over time.
+let _fakeOnlineBonus = 95;
+let _fakeOnlineDir = 1;
+setInterval(() => {
+    _fakeOnlineBonus += _fakeOnlineDir * (Math.random() < 0.5 ? 1 : 0);
+    if (_fakeOnlineBonus >= 100) _fakeOnlineDir = -1;
+    if (_fakeOnlineBonus <= 90)  _fakeOnlineDir =  1;
+}, 12000); // drift every 12 seconds
+
 function broadcastOnlineCount(io) {
-    let count = 0;
+    let realCount = 0;
     for (const [, u] of db.users) {
-        if (u.online) count++;
+        if (u.online && !u.isBot) realCount++;
     }
-    io.emit('online-count', count);
+    io.emit('online-count', realCount + _fakeOnlineBonus);
 }
 
 module.exports = function setupSockets(io) {
