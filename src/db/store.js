@@ -78,17 +78,12 @@ const db = {
         console.log(`   Loaded ${db.users.size} users`);
 
         // ── Seed / refresh bots ───────────────────────────────────────────
+        // Wipe ALL old bots from memory and MongoDB, then seed fresh
+        const oldBotIds = [...db.users.entries()].filter(([, u]) => u.isBot).map(([id]) => id);
+        for (const id of oldBotIds) db.users.delete(id);
+        await UserModel.deleteMany({ isBot: true }).catch(() => {});
+
         for (const profile of BOT_PROFILES) {
-            const existing = [...db.users.values()].find(u => u.isBot && u._baseName === profile._baseName);
-            if (existing) {
-                // Refresh in-memory extras (nameVariants, avatar) without touching ELO
-                existing.photoURL = profile.photoURL;
-                existing.nameVariants = profile.nameVariants;
-                existing._baseName = profile._baseName;
-                existing.isDiamondPro = profile.isDiamondPro;
-                continue;
-            }
-            // New bot — create in memory and upsert to MongoDB
             const botId = randomUUID();
             const botUser = {
                 id: botId,
@@ -102,10 +97,10 @@ const db = {
                 photoURL: profile.photoURL,
                 needsSetup: false,
                 elo: profile.elo,
-                stats: { totalWins: 0, totalLosses: 0, totalAnswers: 0, correctAnswers: 0, gamesPlayed: 0, categories: {} },
+                stats: profile.stats,
                 friends: [],
                 friendRequests: [],
-                bio: '',
+                bio: profile.bio || '',
                 matchHistory: [],
                 eloHistory: [],
                 notifications: [],
@@ -119,12 +114,10 @@ const db = {
                 createdAt: Date.now(),
             };
             db.users.set(botId, botUser);
-            // Persist bot to MongoDB (isBot flag stored)
-            UserModel.findOneAndUpdate(
-                { username: profile.username, isBot: true },
-                { _id: botId, ...Object.fromEntries(Object.entries(botUser).filter(([k]) => !['online', 'socketId', '_baseName', 'nameVariants'].includes(k))) },
-                { upsert: true }
-            ).catch(err => console.error('Bot seed error:', err.message));
+            UserModel.create({
+                _id: botId,
+                ...Object.fromEntries(Object.entries(botUser).filter(([k]) => !['online', 'socketId', '_baseName', 'nameVariants'].includes(k))),
+            }).catch(err => console.error('Bot seed error:', err.message));
         }
         console.log(`   Bots loaded: ${[...db.users.values()].filter(u => u.isBot).length}`);
 
