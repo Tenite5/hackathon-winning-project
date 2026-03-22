@@ -8,7 +8,10 @@
       "Bash(mv \"c:/Users/temik/OneDrive/Desktop/hackathon-winning-project/sat\" \"c:/Users/temik/OneDrive/Desktop/hackathon-winning-project/src/presets/sat\")",
       "Bash(node -e \"const config = require\\(''./src/config''\\); console.log\\(''Math questions:'', config.PRESET_QUESTIONS.math.questions.length\\); console.log\\(''SAT questions:'', config.PRESET_QUESTIONS.sat.questions.length\\); console.log\\(''Preset keys:'', Object.keys\\(config.PRESET_QUESTIONS\\)\\); console.log\\(''Sample math:'', JSON.stringify\\(config.PRESET_QUESTIONS.math.questions[0]\\)\\); console.log\\(''Sample SAT:'', JSON.stringify\\(config.PRESET_QUESTIONS.sat.questions[0]\\)\\);\")",
       "Bash(node -e \"JSON.parse\\(require\\(''''fs''''\\).readFileSync\\(''''src/presets/math/math-questions-14.json'''',''''utf8''''\\)\\)\")",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:commons.wikimedia.org)",
+      "WebSearch"
     ]
   }
 }
