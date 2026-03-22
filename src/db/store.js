@@ -46,9 +46,10 @@ const db = {
         await mongoose.connect(uri);
         console.log('✅ Connected to MongoDB');
 
-        // Load users
+        // Load users — skip bots (they'll be re-seeded fresh below)
         const users = await UserModel.find().lean();
         for (const u of users) {
+            if (u.isBot) continue;  // old bots get wiped + re-seeded below
             db.users.set(u._id, {
                 id: u._id,
                 username: u.username,
@@ -78,9 +79,7 @@ const db = {
         console.log(`   Loaded ${db.users.size} users`);
 
         // ── Seed / refresh bots ───────────────────────────────────────────
-        // Wipe ALL old bots from memory and MongoDB, then seed fresh
-        const oldBotIds = [...db.users.entries()].filter(([, u]) => u.isBot).map(([id]) => id);
-        for (const id of oldBotIds) db.users.delete(id);
+        // Wipe ALL old bots from MongoDB, then seed fresh
         await UserModel.deleteMany({ isBot: true }).catch(() => {});
 
         for (const profile of BOT_PROFILES) {
@@ -107,7 +106,7 @@ const db = {
                 isDiamondPro: profile.isDiamondPro,
                 diamondSince: 0,
                 diamondOrderId: '',
-                bioCharacter: 'default',
+                bioCharacter: profile.bioCharacter || 'default',
                 isBot: true,
                 online: false,
                 socketId: null,
