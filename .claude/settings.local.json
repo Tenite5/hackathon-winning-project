@@ -11,7 +11,8 @@
       "Bash(node -e \":*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:commons.wikimedia.org)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:knowyourmeme.com)"
     ]
   }
 }
