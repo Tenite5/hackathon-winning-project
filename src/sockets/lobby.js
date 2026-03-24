@@ -13,6 +13,7 @@ const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText, validateInt } = require('../middleware/validate');
 const { checkAIRateLimit } = require('../middleware/rateLimit');
 const { checkDailyLimit, incrementDailyLimit } = require('../middleware/dailyLimits');
+const { scheduleBotAnswers } = require('../services/botManager');
 
 module.exports = function (io, socket, getCurrentUser) {
 
@@ -148,6 +149,59 @@ module.exports = function (io, socket, getCurrentUser) {
 
         io.to(lobby.id).emit('lobby-updated', lobby);
         io.emit('lobbies-updated');
+
+        // Auto-start bot lobbies after a short delay when a real player joins
+        if (lobby._isBotLobby && !lobby._starting) {
+            setTimeout(() => {
+                if (lobby.status !== 'waiting' || lobby._starting) return;
+                // Only auto-start if there are real (non-bot) players
+                const realPlayers = lobby.players.filter(p => {
+                    const u = db.users.get(p.userId);
+                    return u && !u.isBot;
+                });
+                if (realPlayers.length < 1) return;
+
+                lobby._starting = true;
+                lobby.status = 'playing';
+                io.to(lobby.id).emit('lobby-generating', { topic: lobby.topic });
+
+                const questions = lobby.presetQuestions;
+                if (!questions || !questions.length) { lobby._starting = false; lobby.status = 'waiting'; return; }
+
+                const gameId = uuidv4();
+                const game = {
+                    id: gameId,
+                    type: 'custom',
+                    ranked: false,
+                    lobbyId: lobby.id,
+                    topic: lobby.topic,
+                    players: lobby.players.map(p => ({ ...p, score: 0, answers: [] })),
+                    questions,
+                    currentQuestion: 0,
+                    timeLimit: lobby.timeLimit,
+                    questionStartTime: null,
+                    status: 'playing',
+                    chat: [],
+                    createdAt: Date.now(),
+                };
+
+                db.games.set(gameId, game);
+                lobby.players.forEach(p => {
+                    const s = io.sockets.sockets.get(p.socketId);
+                    if (s) s.join(gameId);
+                });
+
+                io.to(lobby.id).emit('lobby-game-start', { gameId, topic: lobby.topic });
+                io.emit('lobbies-updated');
+                setTimeout(() => startGameQuestion(gameId, io), 2000);
+
+                // Schedule bot answers for all bot players in this game
+                game.players.forEach(p => {
+                    const u = db.users.get(p.userId);
+                    if (u && u.isBot) scheduleBotAnswers(gameId, u.id, io);
+                });
+            }, 3000); // 3 second delay before auto-starting
+        }
     });
 
     socket.on('lobby-ready', ({ lobbyId }) => {

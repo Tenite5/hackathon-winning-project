@@ -17,6 +17,23 @@ const { checkDailyLimit, incrementDailyLimit } = require('../middleware/dailyLim
 
 const router = express.Router();
 
+/**
+ * Fix multer filename encoding — multer decodes originalname as latin1
+ * but browsers send UTF-8 encoded filenames, causing garbled characters.
+ */
+function fixFilename(name) {
+    if (!name) return 'document';
+    try {
+        // Try to re-decode as UTF-8 from latin1
+        const fixed = Buffer.from(name, 'latin1').toString('utf8');
+        // If the result contains the replacement character, the original was fine
+        if (fixed.includes('\uFFFD')) return name;
+        return fixed;
+    } catch {
+        return name;
+    }
+}
+
 // Multer config: 20MB max, memory storage, only PDF and images
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -53,7 +70,8 @@ router.post('/pdf/analyze', requireAuth, upload.single('file'), async (req, res)
             });
         }
 
-        const { buffer, mimetype, originalname } = req.file;
+        const { buffer, mimetype } = req.file;
+        const originalname = fixFilename(req.file.originalname);
         const count = validateInt(req.body.questionCount, 3, 20, 5);
         const userPrompt = (req.body.userPrompt || '').trim().slice(0, 500);
         let pageFrom = parseInt(req.body.pageFrom) || 0;
@@ -157,7 +175,8 @@ router.post('/pdf/save', requireAuth, upload.single('file'), async (req, res) =>
             });
         }
 
-        const { buffer, mimetype, originalname } = req.file;
+        const { buffer, mimetype } = req.file;
+        const originalname = fixFilename(req.file.originalname);
         let totalPages = 1;
         let pageFrom = parseInt(req.body.pageFrom) || 1;
         let pageTo = parseInt(req.body.pageTo) || 1;

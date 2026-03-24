@@ -476,7 +476,7 @@
 
         if (timeout) {
             feedback.classList.add('timeout');
-            feedback.textContent = `⏰ Time's up!`;
+            feedback.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-3px;margin-right:6px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Time's up!`;
         } else if (correct) {
             feedback.classList.add('correct');
             feedback.textContent = `✅ Correct! +${points} points`;
@@ -497,6 +497,10 @@
     });
 
     socket.on('opponent-answered', () => { });
+
+    socket.on('player-left', (data) => {
+        toast(`${data.username} left the game (${data.remainingPlayers} players remaining)`, 'info');
+    });
 
     socket.on('round-summary', (data) => {
         if (!data.playerCount || data.playerCount <= 2) {

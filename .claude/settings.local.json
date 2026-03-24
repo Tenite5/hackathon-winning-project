@@ -12,7 +12,10 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:commons.wikimedia.org)",
       "WebSearch",
-      "WebFetch(domain:knowyourmeme.com)"
+      "WebFetch(domain:knowyourmeme.com)",
+      "Bash(node -e \"try { require\\(''./src/services/botLobbies''\\); console.log\\(''OK''\\); } catch\\(e\\) { console.error\\(e.message\\); }\")",
+      "Bash(node -e \"try { require\\(''./src/services/gameEngine''\\); console.log\\(''OK''\\); } catch\\(e\\) { console.error\\(e.message\\); }\")",
+      "Bash(node -e \"try { require\\(''./src/sockets/lobby''\\); console.log\\(''OK''\\); } catch\\(e\\) { console.error\\(e.message\\); }\")"
     ]
   }
 }

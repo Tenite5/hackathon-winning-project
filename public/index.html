@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>QVIZIO — 1v1 Competitive Trivia</title>
   <meta name="description"
     content="QVIZIO is a real-time 1v1 competitive trivia game. Challenge opponents, climb the leaderboard, and prove your knowledge." />
@@ -421,16 +421,7 @@
               <h3>PDF / Image Mode</h3>
               <p>Upload a PDF or image — AI reads it and creates quiz questions!</p>
               <button class="btn" id="btn-pdf-mode"
-                style="background: linear-gradient(135deg, #00b894, #00cec9);">Upload New</button>
-              <div class="pdf-reuse-section">
-                <p class="pdf-reuse-label">or reuse saved</p>
-                <div class="home-pdf-reuse">
-                  <select id="home-pdf-saved-select" class="qv-select qv-select-sm">
-                    <option value="">Select saved PDF...</option>
-                  </select>
-                  <button class="btn btn-sm btn-ghost" id="btn-home-pdf-reuse" disabled>Reuse</button>
-                </div>
-              </div>
+                style="background: linear-gradient(135deg, #00b894, #00cec9);">Start</button>
             </div>
 
             <!-- Wrong Answers Card -->
@@ -1360,7 +1351,7 @@
   <!-- ═══════════════════════════════════════════ -->
   <div id="modal-pdf-upload" class="modal hidden">
     <div class="modal-backdrop" data-close-modal="modal-pdf-upload"></div>
-    <div class="modal-content glass-card" style="max-width: 560px;">
+    <div class="modal-content glass-card" style="max-width: 560px; max-height: 90vh; overflow-y: auto;">
       <h2>📄 PDF / Image Mode</h2>
 
       <!-- Saved PDFs quick-reuse bar (hidden when empty) -->
@@ -1480,7 +1471,7 @@
   <!-- ═══════════════════════════════════════════ -->
   <div id="modal-pdf-reuse" class="modal hidden">
     <div class="modal-backdrop" data-close-modal="modal-pdf-reuse"></div>
-    <div class="modal-content glass-card" style="max-width: 480px;">
+    <div class="modal-content glass-card" style="max-width: 480px; max-height: 90vh; overflow-y: auto;">
       <h2>📄 Reuse Saved PDF</h2>
       <p id="pdf-reuse-filename" class="text-muted" style="margin-bottom: 1rem;"></p>
       <div class="input-group">

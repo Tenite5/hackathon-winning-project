@@ -20,15 +20,20 @@ const registerChatHandlers = require('./chat');
 const registerTournamentHandlers = require('./tournament');
 
 // ── Fake online count inflation ───────────────────────────────────────────────
-// Oscillates between +90 and +100 extra "users" to make the platform feel active.
-// Uses a slow random walk so the number changes naturally over time.
-let _fakeOnlineBonus = 95;
-let _fakeOnlineDir = 1;
-setInterval(() => {
-    _fakeOnlineBonus += _fakeOnlineDir * (Math.random() < 0.5 ? 1 : 0);
-    if (_fakeOnlineBonus >= 100) _fakeOnlineDir = -1;
-    if (_fakeOnlineBonus <= 90)  _fakeOnlineDir =  1;
-}, 12000); // drift every 12 seconds
+// Oscillates between +100 and +120 extra "users" to make the platform feel active.
+// Uses a weighted random walk with variable step size and timing for natural drift.
+let _fakeOnlineBonus = 107 + Math.floor(Math.random() * 7);
+(function driftOnlineCount() {
+    const r = Math.random();
+    const step = r < 0.6 ? 1 : r < 0.9 ? 2 : 3;
+    // Bias toward center (110) so it doesn't stick at edges
+    const biasFactor = (_fakeOnlineBonus - 110) / 20;
+    const goDown = Math.random() < (0.5 + biasFactor);
+    _fakeOnlineBonus += goDown ? -step : step;
+    if (_fakeOnlineBonus > 120) _fakeOnlineBonus = 118 + Math.floor(Math.random() * 2);
+    if (_fakeOnlineBonus < 100) _fakeOnlineBonus = 101 + Math.floor(Math.random() * 2);
+    setTimeout(driftOnlineCount, 8000 + Math.floor(Math.random() * 7000));
+})();
 
 function broadcastOnlineCount(io) {
     let realCount = 0;

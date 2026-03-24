@@ -81,9 +81,12 @@
                 const isPending = state.pendingChallengeToId === friend.id;
                 const item = document.createElement('div');
                 item.className = 'friend-item';
-                const avatarHtml = friend.photoURL
+                const avatarImg = friend.photoURL
                     ? `<img class="friend-avatar" src="${escapeHtml(friend.photoURL)}" alt="${escapeHtml(friend.username)}" style="object-fit:cover;" />`
                     : `<div class="friend-avatar">${friend.username[0].toUpperCase()}</div>`;
+                const avatarHtml = isPending
+                    ? `<div class="friend-avatar-wrap">${avatarImg}<span class="challenge-dot"></span></div>`
+                    : avatarImg;
                 item.innerHTML = `
                     <div class="friend-item-info" style="cursor:pointer;">
                         ${avatarHtml}

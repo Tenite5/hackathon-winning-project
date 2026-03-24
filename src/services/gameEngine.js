@@ -8,6 +8,7 @@
 const db = require('../db/store');
 const { calculateElo, sanitizeUser } = require('./elo');
 const { generateBio } = require('./ai');
+const { cacheQuestions } = require('./botLobbies');
 
 /**
  * Simple XOR-based obfuscation for question data sent over sockets.
@@ -159,6 +160,7 @@ function startGameQuestion(gameId, io) {
             if (game.currentQuestionId !== questionId) return;
 
             game.players.forEach(p => {
+                if (p.disconnected) return; // skip disconnected players
                 if (p.answers[game.currentQuestion] === undefined) {
                     p.answers[game.currentQuestion] = { answerIndex: -1, isCorrect: false, points: 0, elapsed: game.timeLimit };
                     if (p.socketId) {
@@ -285,6 +287,11 @@ function endGame(gameId, io) {
     if (game.questionTimer) {
         clearTimeout(game.questionTimer);
         game.questionTimer = null;
+    }
+
+    // Cache questions for bot lobby reuse (skip solo and preset/PDF games)
+    if (game.type !== 'solo' && game.questions && game.questions.length >= 3) {
+        cacheQuestions(game.topic, game.questions);
     }
 
     // Tournament match bookkeeping — record winner in bracket
@@ -512,7 +519,8 @@ function handleAnswer(io, socket, currentUser, gameId, answerIndex) {
         }
     });
 
-    const allAnswered = game.players.every(p => p.answers[game.currentQuestion] !== undefined);
+    const activePlayers = game.players.filter(p => !p.disconnected);
+    const allAnswered = activePlayers.every(p => p.answers[game.currentQuestion] !== undefined);
     if (allAnswered) {
         clearTimeout(game.questionTimer);
         proceedToNextQuestion(gameId, io);
@@ -525,9 +533,43 @@ function handleDisconnectFromGames(io, currentUser) {
 
     for (const [, game] of db.games) {
         if (game.status !== 'playing') continue;
-        const player = game.players.find(p => p.userId === currentUser.id);
-        if (!player) continue;
+        const playerIdx = game.players.findIndex(p => p.userId === currentUser.id);
+        if (playerIdx === -1) continue;
 
+        // 3+ players: remove the disconnected player and continue the game
+        if (game.players.length > 2) {
+            const left = game.players[playerIdx];
+            // Fill remaining answers as wrong
+            for (let i = left.answers.length; i < game.questions.length; i++) {
+                left.answers[i] = { answerIndex: -1, isCorrect: false, points: 0, elapsed: 0 };
+            }
+            // Mark player as disconnected (keep in array for scoring, but remove socket)
+            left.disconnected = true;
+            left.socketId = null;
+
+            // Notify remaining players
+            io.to(game.id).emit('player-left', {
+                userId: left.userId,
+                username: left.username,
+                remainingPlayers: game.players.filter(p => !p.disconnected).length,
+            });
+
+            // If current question is waiting for answers, check if all active players answered
+            const activePlayers = game.players.filter(p => !p.disconnected);
+            if (activePlayers.length < 2) {
+                // Only 1 player left — end the game
+                endGame(game.id, io);
+            } else {
+                const allAnswered = activePlayers.every(p => p.answers[game.currentQuestion] !== undefined);
+                if (allAnswered) {
+                    clearTimeout(game.questionTimer);
+                    proceedToNextQuestion(game.id, io);
+                }
+            }
+            continue;
+        }
+
+        // 2-player game: end immediately
         game.status = 'finished';
         clearTimeout(game.questionTimer);
         recordWrongAnswers(game);

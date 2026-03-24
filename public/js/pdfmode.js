@@ -211,7 +211,9 @@
             const gameType = document.querySelector('input[name="pdf-game-type"]:checked').value;
             const rawPdfTime = parseInt($('pdf-time-limit').value);
             const timeLimit = isNaN(rawPdfTime) ? 15 : rawPdfTime;
-            const topic = data.fileInfo.fileName.replace(/\.[^.]+$/, '');
+            const pdfName = data.fileInfo.fileName.replace(/\.[^.]+$/, '');
+            const userFocus = $('pdf-user-prompt').value.trim();
+            const topic = userFocus ? `${pdfName} — ${userFocus}` : pdfName;
 
             if (gameType === 'solo') {
                 socket.emit('pdf-solo-start', {
@@ -411,7 +413,9 @@
             const gameType = document.querySelector('input[name="pdf-reuse-game-type"]:checked').value;
             const rawReuseTime = parseInt($('pdf-reuse-time').value);
             const timeLimit = isNaN(rawReuseTime) ? 15 : rawReuseTime;
-            const topic = data.fileInfo.fileName.replace(/\.[^.]+$/, '');
+            const pdfName = data.fileInfo.fileName.replace(/\.[^.]+$/, '');
+            const userFocus = $('pdf-reuse-prompt').value.trim();
+            const topic = userFocus ? `${pdfName} — ${userFocus}` : pdfName;
 
             if (gameType === 'solo') {
                 socket.emit('pdf-solo-start', {

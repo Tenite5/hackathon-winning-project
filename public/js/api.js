@@ -249,18 +249,20 @@ window.QV = window.QV || {};
     ];
 
     const LOADING_TIPS = [
-        '💡 Your wrong answers are saved — review them in the Mistakes tab after the game.',
-        '⚔️ Quick 1v1 games are ranked. Every match moves your ELO — win streaks climb fast.',
-        '🎯 Spaced repetition is the #1 proven method for retaining knowledge before exams.',
-        '🧠 Super Explain doesn\'t just tell you the answer — it teaches the concept behind it.',
-        '📈 Your ELO chart is live. Every game is a data point on your journey to Grandmaster.',
-        '🏆 Diamond Pro unlocks Tournament hosting — build 4 to 16-player single-elimination brackets.',
-        '📄 Upload any PDF or image and AI turns it into a full quiz. Your notes, your questions.',
-        '🎭 Diamond bios are written by Darth Vader, Gordon Ramsay, Sherlock Holmes, and more.',
-        '🔒 Free users get 50% of preset questions. Diamond unlocks the full SAT + Math exam banks.',
-        '⚡ Diamond Pro starts AI generation the moment a lobby is opened — zero wait on game start.',
-        '💡 The best quiz players don\'t just play — they obsess over the questions they got wrong.',
-        '🌍 Geography, Science, History, Pop Culture — Quick Match topics rotate randomly every game.',
+        '💎 Diamond Pro unlocks Tournament hosting — create 4, 8, or 16-player single-elimination brackets!',
+        '💎 Diamond members get 60 AI game generations per day — 4x more than free accounts.',
+        '💎 With Diamond Pro, AI pre-generates questions the moment you open a lobby — zero wait time.',
+        '💎 Diamond Pro unlocks 6 unique bio voices — Darth Vader, Gordon Ramsay, Sherlock Holmes & more.',
+        '💎 Free users only see 50% of preset questions. Diamond unlocks the full SAT + Math exam banks.',
+        '💎 Diamond Pro lets you save up to 20 PDFs for instant reuse — free accounts get only 2 slots.',
+        '💎 Diamond members get the exclusive animated avatar border and ♦ badge on their profile.',
+        '💎 Super Explain gives Diamond users deep AI breakdowns of every wrong answer — learn faster.',
+        '💎 Diamond Pro members get 20 PDF quiz generations per day — 10x more than free users.',
+        '💎 With Diamond, your wrong answer log stores every mistake so you can review and improve.',
+        '💎 Diamond Pro gives you priority AI access — your questions generate before everyone else\'s.',
+        '💎 Upgrade to Diamond and track your full ELO history with detailed rank progression charts.',
+        '💎 Diamond members can host public and private custom lobbies on any topic with AI questions.',
+        '💎 Diamond Pro includes all future features — new game modes, AI models, and perks added free.',
     ];
     let _tipInterval = null;
     let _perkInterval = null;

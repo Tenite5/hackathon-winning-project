@@ -23,6 +23,11 @@ const PORT = process.env.PORT || 3000;
         // Warm up pre-generated question pools in the background (non-blocking)
         const { warmUpPools } = require('./src/services/questionPool');
         warmUpPools();
+
+        // Initialize bot-hosted lobbies (waits for pools to warm up)
+        const { initBotLobbies } = require('./src/services/botLobbies');
+        const { app } = require('./src/app');
+        initBotLobbies(app.get('io'));
     } catch (err) {
         console.error('Failed to start server:', err);
         process.exit(1);
