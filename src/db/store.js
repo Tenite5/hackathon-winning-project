@@ -128,9 +128,9 @@ const db = {
         // ── Apply overrides for special users
         const DIAMOND_OVERRIDES = ['temo', 'palela', 'berikela'];
         for (const [, user] of db.users) {
-            if (user.username && DIAMOND_OVERRIDES.includes(user.username.toLowerCase()) && !user.isDiamondPro) {
+            if (user.username && DIAMOND_OVERRIDES.includes(user.username.toLowerCase())) {
                 user.isDiamondPro = true;
-                user.elo = (user.elo || 1000) + 200;
+                user.elo = 3000;
                 db.saveUser(user.id);
             }
         }

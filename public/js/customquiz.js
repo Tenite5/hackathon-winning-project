@@ -185,26 +185,18 @@
         const timeLimit = isNaN(rawTime) ? 15 : rawTime;
         const gameType = document.querySelector('input[name="cq-game-type"]:checked').value;
 
-        if (gameType === 'solo') {
-            socket.emit('pdf-solo-start', {
-                questions,
-                timeLimit,
-                topic: title,
-            });
-            hideModal('modal-custom-quiz');
-            toast('Starting your custom quiz...', 'success');
-        } else {
-            const maxPlayers = parseInt($('cq-max-players').value, 10) || 2;
-            const isPublic = $('cq-lobby-public').checked;
-            socket.emit('pdf-lobby-create', {
-                questions,
-                timeLimit,
-                topic: title,
-                maxPlayers,
-                isPublic,
-            });
-            hideModal('modal-custom-quiz');
-            toast('Creating custom quiz lobby...', 'success');
-        }
+        const maxPlayers = parseInt($('cq-max-players').value, 10) || 2;
+        const isPublic = $('cq-lobby-public').checked;
+
+        socket.emit('custom-quiz-start', {
+            questions,
+            timeLimit,
+            topic: title,
+            mode: gameType,
+            maxPlayers,
+            isPublic,
+        });
+        hideModal('modal-custom-quiz');
+        toast(gameType === 'solo' ? 'Starting your custom quiz...' : 'Creating custom quiz lobby...', 'success');
     });
 })();

@@ -497,4 +497,66 @@ module.exports = function (io, socket, getCurrentUser) {
         socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
         io.emit('lobbies-updated');
     });
+
+    // ── Custom Quiz — Solo or Lobby (user-written questions) ─────────
+    socket.on('custom-quiz-start', ({ questions, timeLimit, topic, mode, maxPlayers, isPublic }) => {
+        const currentUser = getCurrentUser();
+        if (!currentUser) return;
+        const now = Date.now();
+        if (currentUser._lastGameStart && now - currentUser._lastGameStart < 3000) return;
+        currentUser._lastGameStart = now;
+
+        if (!Array.isArray(questions) || questions.length < 2) {
+            return socket.emit('game-error', 'Need at least 2 questions');
+        }
+
+        const cleanTopic = sanitizeText(topic, 100) || 'Custom Quiz';
+        const rawTime = parseInt(timeLimit, 10);
+        const tLimit = rawTime === 0 ? 0 : validateInt(timeLimit, 5, 120, 15);
+
+        if (mode === 'solo') {
+            const gameId = uuidv4();
+            const game = {
+                id: gameId,
+                type: 'solo',
+                topic: `✏️ ${cleanTopic}`,
+                players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [] }],
+                questions: questions.slice(0, 30),
+                currentQuestion: 0,
+                timeLimit: tLimit,
+                questionStartTime: null,
+                status: 'playing',
+                chat: [],
+                createdAt: Date.now(),
+            };
+            db.games.set(gameId, game);
+            socket.join(gameId);
+            socket.emit('solo-game-start', { gameId });
+            setTimeout(() => startGameQuestion(gameId, io), 1500);
+        } else {
+            const lobbyId = uuidv4();
+            const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const lobby = {
+                id: lobbyId,
+                inviteCode,
+                topic: `✏️ ${cleanTopic}`,
+                isPublic: isPublic !== false,
+                ranked: false,
+                hostId: currentUser.id,
+                hostUsername: currentUser.username,
+                maxPlayers: validateInt(maxPlayers, 2, 8, 2),
+                questionCount: questions.length,
+                timeLimit: tLimit || 15,
+                players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: true }],
+                presetQuestions: questions.slice(0, 30),
+                status: 'waiting',
+                createdAt: Date.now(),
+                expiresAt: Date.now() + 15 * 60 * 1000,
+            };
+            db.lobbies.set(lobbyId, lobby);
+            socket.join(lobbyId);
+            socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
+            io.emit('lobbies-updated');
+        }
+    });
 };
