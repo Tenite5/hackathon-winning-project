@@ -14,6 +14,7 @@ const { sanitizeText, validateInt } = require('../middleware/validate');
 const { checkAIRateLimit } = require('../middleware/rateLimit');
 const { checkDailyLimit, incrementDailyLimit } = require('../middleware/dailyLimits');
 const { scheduleBotAnswers } = require('../services/botManager');
+const { stripFillerBots } = require('../services/botLobbies');
 
 module.exports = function (io, socket, getCurrentUser) {
 
@@ -141,8 +142,14 @@ module.exports = function (io, socket, getCurrentUser) {
 
         if (!lobby) return socket.emit('lobby-error', 'Lobby not found');
         if (lobby.status !== 'waiting') return socket.emit('lobby-error', 'Game already in progress');
-        if (lobby.players.length >= lobby.maxPlayers) return socket.emit('lobby-error', 'Lobby full');
         if (lobby.players.find(p => p.userId === currentUser.id)) return socket.emit('lobby-error', 'Already in lobby');
+
+        // For bot lobbies: strip filler bots to make room for real players
+        if (lobby._isBotLobby) {
+            stripFillerBots(lobby);
+        }
+
+        if (lobby.players.length >= lobby.maxPlayers) return socket.emit('lobby-error', 'Lobby full');
 
         lobby.players.push({ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: false });
         socket.join(lobby.id);
@@ -245,7 +252,18 @@ module.exports = function (io, socket, getCurrentUser) {
             if (lobby._preGenPromise) {
                 try { await lobby._preGenPromise; } catch (e) { /* handled below */ }
             }
-            questions = lobby._preGenQuestions || await generateQuestions(lobby.topic, lobby.questionCount);
+            if (lobby._preGenQuestions) {
+                questions = lobby._preGenQuestions;
+            } else {
+                try {
+                    questions = await generateQuestions(lobby.topic, lobby.questionCount);
+                } catch (err) {
+                    console.error('Lobby question generation failed:', err.message);
+                    lobby._starting = false;
+                    lobby.status = 'waiting';
+                    return socket.emit('lobby-error', 'Failed to generate questions. Please try again.');
+                }
+            }
             // Increment daily counter for non-Diamond (Diamond already incremented in pre-gen)
             if (!currentUser.isDiamondPro) {
                 incrementDailyLimit(currentUser.id, 'aiGen');
@@ -316,7 +334,13 @@ module.exports = function (io, socket, getCurrentUser) {
 
         socket.emit('solo-generating', { topic: cleanTopic });
 
-        const questions = await generateQuestions(cleanTopic, qCount);
+        let questions;
+        try {
+            questions = await generateQuestions(cleanTopic, qCount);
+        } catch (err) {
+            console.error('Solo question generation failed:', err.message);
+            return socket.emit('game-error', 'Failed to generate questions. Please try again.');
+        }
         incrementDailyLimit(currentUser.id, 'aiGen');
         const gameId = uuidv4();
 

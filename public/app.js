@@ -354,6 +354,7 @@
         $('generating-title').textContent = 'Generating Questions...';
         $('generating-topic-text').textContent = `Topic: ${topic}`;
         $('overlay-generating').classList.remove('hidden');
+        if (typeof QV !== 'undefined' && QV.startLoadingTips) QV.startLoadingTips();
     });
 
     function showLobbyView(lobby, code) {

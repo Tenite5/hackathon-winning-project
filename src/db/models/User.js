@@ -33,7 +33,9 @@ const userSchema = new mongoose.Schema({
     notifications: { type: Array, default: [] },         // recent notifications
     isDiamondPro: { type: Boolean, default: false },
     diamondSince: { type: Number, default: 0 },
+    diamondExpiresAt: { type: Number, default: 0 },
     diamondOrderId: { type: String, default: '' },
+    paypalSubscriptionId: { type: String, default: '' },
     bioCharacter: { type: String, default: 'default' },
     isBot: { type: Boolean, default: false },
     createdAt: { type: Number, default: Date.now },

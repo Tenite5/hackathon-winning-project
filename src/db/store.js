@@ -69,7 +69,9 @@ const db = {
                 notifications: u.notifications || [],
                 isDiamondPro: !!u.isDiamondPro,
                 diamondSince: u.diamondSince || 0,
+                diamondExpiresAt: u.diamondExpiresAt || 0,
                 diamondOrderId: u.diamondOrderId || '',
+                paypalSubscriptionId: u.paypalSubscriptionId || '',
                 bioCharacter: u.bioCharacter || 'default',
                 online: false,
                 socketId: null,
@@ -133,6 +135,20 @@ const db = {
             }
         }
 
+        // ── Expire lapsed Diamond Pro subscriptions on startup
+        const now = Date.now();
+        for (const [, user] of db.users) {
+            if (user.isDiamondPro && user.diamondExpiresAt && user.diamondExpiresAt < now) {
+                // Skip override users — they keep diamond forever
+                if (DIAMOND_OVERRIDES.includes((user.username || '').toLowerCase())) continue;
+                user.isDiamondPro = false;
+                user.diamondExpiresAt = 0;
+                user.paypalSubscriptionId = '';
+                db.saveUser(user.id);
+                console.log(`   ✦ Diamond Pro expired for ${user.username}`);
+            }
+        }
+
         // Load sessions
         const sessions = await SessionModel.find().lean();
         for (const s of sessions) {
@@ -182,7 +198,9 @@ const db = {
             notifications: u.notifications || [],
             isDiamondPro: !!u.isDiamondPro,
             diamondSince: u.diamondSince || 0,
+            diamondExpiresAt: u.diamondExpiresAt || 0,
             diamondOrderId: u.diamondOrderId || '',
+            paypalSubscriptionId: u.paypalSubscriptionId || '',
             bioCharacter: u.bioCharacter || 'default',
             createdAt: u.createdAt,
         };

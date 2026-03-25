@@ -246,13 +246,17 @@
     socket.on('queue-error', ({ message }) => {
         hideQueueOverlay();
         $('overlay-generating').classList.add('hidden');
+        if (typeof QV !== 'undefined' && QV.stopLoadingTips) QV.stopLoadingTips();
         toast(message || 'Matchmaking failed. Please try again.', 'error');
     });
 
     socket.on('game-error', (message) => {
         $('overlay-generating').classList.add('hidden');
+        if (typeof QV !== 'undefined' && QV.stopLoadingTips) QV.stopLoadingTips();
         state.isStartingGame = false;
         $('btn-start-solo').disabled = false;
+        showView('view-dashboard');
+        showPanel('home');
         toast(typeof message === 'string' ? message : 'Something went wrong. Please try again.', 'error');
     });
 
@@ -309,6 +313,11 @@
         clearGameState();
         showView('view-game');
         $('game-question-text').textContent = 'AI is generating questions...';
+        // Show loading overlay with tips
+        $('generating-title').textContent = 'Generating Questions...';
+        $('generating-topic-text').textContent = 'AI is crafting your quiz — hang tight!';
+        $('overlay-generating').classList.remove('hidden');
+        if (typeof QV !== 'undefined' && QV.startLoadingTips) QV.startLoadingTips();
     });
 
     socket.on('solo-game-start', ({ gameId }) => {

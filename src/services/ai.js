@@ -70,57 +70,68 @@ Return ONLY a valid JSON array with no additional text, markdown, or code blocks
 
 Example: [{"question":"What causes the northern lights?","options":["Solar wind hitting atmosphere","Moon reflecting sunlight","Earth's magnetic core glowing","Volcanic gas emissions"],"correct":0,"difficulty":"hard"}]`;
 
+async function _tryGenerateQuestions(topic, count, difficulty, level) {
+    const levelPrompt = level && LEVEL_PROMPTS[level] ? LEVEL_PROMPTS[level] : '';
+    const difficultyHint = difficulty && !level
+        ? ` All questions should be "${difficulty}" difficulty.`
+        : '';
+
+    const systemPrompt = levelPrompt
+        ? `${levelPrompt}\n\nGenerate exactly ${count} questions about the topic given.${BASE_FORMAT_INSTRUCTIONS}`
+        : `You generate engaging quiz questions that test real, valuable knowledge — not useless trivia.${difficultyHint}\nGenerate exactly ${count} questions about the topic given.${BASE_FORMAT_INSTRUCTIONS}`;
+
+    const response = await withTimeout(
+        ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: `${systemPrompt}\n\nTopic: ${topic}`,
+            config: {
+                temperature: 0.65,
+                maxOutputTokens: 4096,
+            },
+        }),
+        15000
+    );
+
+    const raw = response.text.trim();
+    let jsonStr = raw;
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (match) jsonStr = match[0];
+    const questions = JSON.parse(jsonStr);
+
+    // Validate we got real questions, not empty/garbage
+    const parsed = questions.slice(0, count).map(q => ({
+        question: String(q.question || ''),
+        options: Array.isArray(q.options) && q.options.length === 4
+            ? q.options.map(String)
+            : null,
+        correct: (typeof q.correct === 'number' && q.correct >= 0 && q.correct <= 3)
+            ? q.correct
+            : 0,
+        difficulty: q.difficulty || 'medium',
+    }));
+
+    // If any question has null options (bad format), reject the whole batch
+    if (parsed.some(q => !q.options || !q.question)) {
+        throw new Error('AI returned malformed questions');
+    }
+
+    return parsed;
+}
+
 async function generateQuestions(topic, count = 5, difficulty = null, level = null) {
-    let raw = null;
+    // Attempt 1
     try {
-        const levelPrompt = level && LEVEL_PROMPTS[level] ? LEVEL_PROMPTS[level] : '';
-        const difficultyHint = difficulty && !level
-            ? ` All questions should be "${difficulty}" difficulty.`
-            : '';
+        return await _tryGenerateQuestions(topic, count, difficulty, level);
+    } catch (err1) {
+        console.error('AI generation attempt 1 failed:', err1.message);
+    }
 
-        const systemPrompt = levelPrompt
-            ? `${levelPrompt}\n\nGenerate exactly ${count} questions about the topic given.${BASE_FORMAT_INSTRUCTIONS}`
-            : `You generate engaging quiz questions that test real, valuable knowledge — not useless trivia.${difficultyHint}\nGenerate exactly ${count} questions about the topic given.${BASE_FORMAT_INSTRUCTIONS}`;
-
-        const response = await withTimeout(
-            ai.models.generateContent({
-                model: GEMINI_MODEL,
-                contents: `${systemPrompt}\n\nTopic: ${topic}`,
-                config: {
-                    temperature: 0.65,
-                    maxOutputTokens: 4096,
-                },
-            }),
-            15000
-        );
-
-        raw = response.text.trim();
-        let jsonStr = raw;
-        const match = raw.match(/\[[\s\S]*\]/);
-        if (match) jsonStr = match[0];
-        const questions = JSON.parse(jsonStr);
-        return questions.slice(0, count).map(q => ({
-            question: String(q.question || ''),
-            options: Array.isArray(q.options) && q.options.length === 4
-                ? q.options.map(String)
-                : ['Option A', 'Option B', 'Option C', 'Option D'],
-            correct: (typeof q.correct === 'number' && q.correct >= 0 && q.correct <= 3)
-                ? q.correct
-                : 0,
-            difficulty: q.difficulty || 'medium',
-        }));
-    } catch (err) {
-        if (raw !== null) {
-            console.error('AI parse error:', err.message, '| Raw snippet:', raw.slice(0, 300));
-        } else {
-            console.error('AI generation error:', err.message);
-        }
-        return Array.from({ length: count }, (_, i) => ({
-            question: `Sample question ${i + 1} about ${topic}?`,
-            options: ['Option A', 'Option B', 'Option C', 'Option D'],
-            correct: 0,
-            difficulty: difficulty || 'medium',
-        }));
+    // Attempt 2 (retry once)
+    try {
+        return await _tryGenerateQuestions(topic, count, difficulty, level);
+    } catch (err2) {
+        console.error('AI generation attempt 2 failed:', err2.message);
+        throw new Error('Failed to generate questions after 2 attempts');
     }
 }
 

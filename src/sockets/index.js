@@ -165,6 +165,16 @@ module.exports = function setupSockets(io) {
             }
         }
 
+        // Expire lapsed Diamond Pro subscriptions
+        for (const [, user] of db.users) {
+            if (user.isDiamondPro && user.diamondExpiresAt && user.diamondExpiresAt < now && !user.isBot) {
+                user.isDiamondPro = false;
+                user.diamondExpiresAt = 0;
+                user.paypalSubscriptionId = '';
+                db.saveUser(user.id);
+            }
+        }
+
         if (lobbiesRemoved || tourneysRemoved) {
             io.emit('lobbies-updated');
             io.emit('tournaments-updated');

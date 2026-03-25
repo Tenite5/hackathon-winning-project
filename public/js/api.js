@@ -232,6 +232,68 @@ window.QV = window.QV || {};
         }
     };
 
+    /** Fetch subscription status and update the Diamond panel manage area */
+    QV.refreshDiamondStatus = async function () {
+        try {
+            const res = await fetch('/api/subscription/status', {
+                headers: { 'Authorization': `Bearer ${QV.state.token}` },
+            });
+            const data = await res.json();
+            const expiryEl = document.getElementById('diamond-expiry-text');
+            const methodEl = document.getElementById('diamond-method-text');
+            const activeText = document.getElementById('diamond-active-text');
+            if (data.diamondExpiresAt && expiryEl) {
+                const d = new Date(data.diamondExpiresAt);
+                expiryEl.textContent = `Renews: ${d.toLocaleDateString()}`;
+                if (!data.isRecurring) {
+                    expiryEl.textContent = `Expires: ${d.toLocaleDateString()}`;
+                }
+            }
+            if (methodEl) {
+                if (data.isRecurring) {
+                    methodEl.textContent = 'Auto-renewing via PayPal';
+                } else if (data.method === 'bog') {
+                    methodEl.textContent = 'Paid via BOG (manual renewal)';
+                } else {
+                    methodEl.textContent = '';
+                }
+            }
+            if (activeText) {
+                activeText.textContent = data.isRecurring
+                    ? 'Diamond Pro Active — Recurring'
+                    : 'Diamond Pro Active';
+            }
+            // Show/hide cancel button based on whether it's recurring
+            const cancelBtn = document.getElementById('btn-cancel-diamond');
+            if (cancelBtn) {
+                cancelBtn.style.display = data.isRecurring ? '' : 'none';
+            }
+        } catch (e) { /* silent */ }
+    };
+
+    /** Cancel the user's Diamond Pro subscription */
+    QV.cancelDiamondSubscription = async function () {
+        if (!confirm('Are you sure you want to cancel your Diamond Pro subscription? Your access will remain active until the end of the current billing period.')) return;
+        const btn = document.getElementById('btn-cancel-diamond');
+        if (btn) { btn.disabled = true; btn.textContent = 'Cancelling...'; }
+        try {
+            const res = await fetch('/api/subscription/cancel', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${QV.state.token}` },
+            });
+            const data = await res.json();
+            if (res.ok) {
+                QV.showToast('Subscription cancelled. Access active for 2 more days.', 'info');
+                QV.refreshDiamondStatus();
+            } else {
+                QV.showToast(data.error || 'Failed to cancel. Try again.', 'error');
+            }
+        } catch (e) {
+            QV.showToast('Network error. Please try again.', 'error');
+        }
+        if (btn) { btn.disabled = false; btn.textContent = 'Cancel Subscription'; }
+    };
+
     // ── Loading Screen — Pro perks + tips ───────────────────────
     const DIAMOND_PERKS = [
         { icon: '🏆', label: 'Host Tournaments',    desc: '4 / 8 / 16-player brackets' },
@@ -248,22 +310,41 @@ window.QV = window.QV || {};
         { icon: '🌐', label: 'Public Lobby Browser', desc: 'Join or host open games for anyone' },
     ];
 
-    const LOADING_TIPS = [
-        '💎 Diamond Pro unlocks Tournament hosting — create 4, 8, or 16-player single-elimination brackets!',
-        '💎 Diamond members get 60 AI game generations per day — 4x more than free accounts.',
-        '💎 With Diamond Pro, AI pre-generates questions the moment you open a lobby — zero wait time.',
-        '💎 Diamond Pro unlocks 6 unique bio voices — Darth Vader, Gordon Ramsay, Sherlock Holmes & more.',
-        '💎 Free users only see 50% of preset questions. Diamond unlocks the full SAT + Math exam banks.',
-        '💎 Diamond Pro lets you save up to 20 PDFs for instant reuse — free accounts get only 2 slots.',
-        '💎 Diamond members get the exclusive animated avatar border and ♦ badge on their profile.',
-        '💎 Super Explain gives Diamond users deep AI breakdowns of every wrong answer — learn faster.',
-        '💎 Diamond Pro members get 20 PDF quiz generations per day — 10x more than free users.',
-        '💎 With Diamond, your wrong answer log stores every mistake so you can review and improve.',
-        '💎 Diamond Pro gives you priority AI access — your questions generate before everyone else\'s.',
-        '💎 Upgrade to Diamond and track your full ELO history with detailed rank progression charts.',
-        '💎 Diamond members can host public and private custom lobbies on any topic with AI questions.',
-        '💎 Diamond Pro includes all future features — new game modes, AI models, and perks added free.',
+    const LOADING_TIPS_TRIVIA = [
+        '🧠 Octopuses have three hearts and blue blood.',
+        '🧠 Honey never spoils — archaeologists found 3,000-year-old honey in Egyptian tombs still edible.',
+        '🧠 A group of flamingos is called a "flamboyance."',
+        '🧠 Bananas are technically berries, but strawberries are not.',
+        '🧠 The Eiffel Tower can grow up to 6 inches taller in summer due to thermal expansion.',
+        '🧠 Venus is the only planet that spins clockwise.',
+        '🧠 The shortest war in history lasted 38-45 minutes — between Britain and Zanzibar in 1896.',
+        '🧠 A bolt of lightning is five times hotter than the surface of the sun.',
+        '🧠 The human nose can detect over 1 trillion different scents.',
+        '🧠 Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid.',
+        '🧠 Water can boil and freeze at the same time — it\'s called the "triple point."',
+        '🧠 There are more possible chess games than atoms in the observable universe.',
+        '🧠 An astronaut\'s footprint on the Moon could last for 100 million years.',
+        '🧠 The inventor of the Pringles can is buried in one.',
+        '🧠 Scotland\'s national animal is the unicorn.',
+        '🧠 Wombat poop is cube-shaped.',
+        '🧠 The total weight of all ants on Earth roughly equals the total weight of all humans.',
+        '🧠 Oxford University is older than the Aztec Empire.',
+        '🧠 A jiffy is an actual unit of time — 1/100th of a second.',
+        '🧠 Sharks have been around longer than trees.',
     ];
+    const LOADING_TIPS_GAME = [
+        '⚡ Tip: Answering faster earns more points — up to 30 bonus points for speed!',
+        '⚡ Tip: Your ELO only changes in ranked 1v1 matches.',
+        '⚡ Tip: Check your Wrong Answers log to study the questions you missed.',
+        '⚡ Tip: Challenge friends directly from the Friends tab for a quick rematch.',
+        '⚡ Tip: You can upload a PDF and generate a quiz from it — great for studying!',
+        '💎 Diamond Pro unlocks Tournament hosting — create 4, 8, or 16-player brackets!',
+        '💎 Diamond members get 60 AI game generations per day — 4x more than free accounts.',
+        '💎 Diamond Pro unlocks unique bio voices — Darth Vader, Gordon Ramsay & more.',
+        '💎 Super Explain gives Diamond users deep AI breakdowns of every wrong answer.',
+        '💎 Diamond Pro includes all future features — new game modes, AI models, and perks.',
+    ];
+    const LOADING_TIPS = [...LOADING_TIPS_TRIVIA, ...LOADING_TIPS_GAME];
     let _tipInterval = null;
     let _perkInterval = null;
     let _tipIndex = 0;

@@ -920,9 +920,9 @@
             <div class="diamond-plan-card" id="diamond-cta-area">
               <div class="diamond-plan-header">
                 <span class="diamond-plan-name">Diamond Pro</span>
-                <span class="diamond-plan-tag">LIFETIME</span>
+                <span class="diamond-plan-tag">MONTHLY</span>
               </div>
-              <p class="diamond-plan-desc">One-time payment. Unlimited access forever. No subscriptions, no hidden fees.</p>
+              <p class="diamond-plan-desc">Monthly subscription. Cancel anytime — your access stays active until the end of the billing period.</p>
               <ul class="diamond-plan-perks">
                 <li>All premium features unlocked</li>
                 <li>Super Explain with Gemini AI</li>
@@ -933,21 +933,26 @@
               <div class="diamond-payment-btns">
                 <button class="btn diamond-upgrade-btn" id="btn-upgrade-paypal" onclick="QV.startDiamondCheckout('paypal')">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><polygon points="12 2 22 9 18 21 6 21 2 9" fill="white" stroke="none"/><polygon points="12 2 22 9 12 7" fill="rgba(0,0,0,0.2)" stroke="none"/></svg>
-                  PayPal / Card — $4.99
+                  PayPal / Card — $4.99/mo
                 </button>
                 <button class="btn diamond-upgrade-btn diamond-bog-btn" id="btn-upgrade-bog" onclick="QV.startDiamondCheckout('bog')">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><rect x="2" y="5" width="20" height="14" rx="2" fill="white" opacity="0.9"/><path d="M2 10h20" stroke="rgba(0,0,0,0.15)" stroke-width="2"/></svg>
-                  BOG Pay — 10 GEL
+                  BOG Pay — 10 GEL/mo
                 </button>
               </div>
-              <p class="diamond-cta-note">One-time payment. Credit &amp; debit cards accepted.</p>
+              <p class="diamond-cta-note">Recurring monthly subscription. Credit &amp; debit cards accepted. Cancel anytime.</p>
             </div>
             <div id="diamond-active-badge" class="diamond-active-badge hidden">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <polygon points="12 2 22 9 18 21 6 21 2 9" fill="url(#activeBadgeGrad)" stroke="none"/>
                 <defs><linearGradient id="activeBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient></defs>
               </svg>
-              Diamond Pro Active ✦
+              <span id="diamond-active-text">Diamond Pro Active</span>
+            </div>
+            <div id="diamond-manage-area" class="diamond-manage-area hidden">
+              <p id="diamond-expiry-text" class="diamond-expiry-text"></p>
+              <p id="diamond-method-text" class="diamond-method-text"></p>
+              <button class="btn diamond-cancel-btn" id="btn-cancel-diamond" onclick="QV.cancelDiamondSubscription()">Cancel Subscription</button>
             </div>
           </div>
 

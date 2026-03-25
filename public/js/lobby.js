@@ -56,11 +56,15 @@
         }
     });
 
-    socket.on('lobby-generating', () => {
+    socket.on('lobby-generating', ({ topic }) => {
         if (QV.clearGameState) QV.clearGameState();
         showView('view-game');
         const qt = $('game-question-text');
         if (qt) qt.textContent = 'AI is generating questions...';
+        $('generating-title').textContent = 'Generating Questions...';
+        $('generating-topic-text').textContent = topic ? `Topic: ${topic}` : 'Preparing your game...';
+        $('overlay-generating').classList.remove('hidden');
+        if (typeof QV !== 'undefined' && QV.startLoadingTips) QV.startLoadingTips();
     });
 
     socket.on('lobby-game-start', ({ gameId }) => {

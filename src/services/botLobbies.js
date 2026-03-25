@@ -6,6 +6,7 @@
  * - Questions come from: (1) cached user-generated questions, (2) question pool, (3) live AI generation
  * - When a lobby is played or expires, a new one replaces it
  * - User-generated questions are saved to a cache for later reuse
+ * - Bot lobbies simulate activity: topics rotate, fake player counts fluctuate
  */
 
 'use strict';
@@ -35,12 +36,26 @@ const BOT_LOBBY_TOPICS = [
     'Music Legends & Iconic Albums',
     'Cars & Motorsport',
     'Artificial Intelligence & Robots',
+    'Psychology & Human Behavior',
+    'Cryptography & Codes',
+    'Famous Battles in History',
+    'Extreme Weather & Natural Disasters',
+    'World Cuisines & Food Origins',
+    'Classic Literature & Authors',
+    'The Solar System & Planets',
+    'Olympic Games History',
+    'Conspiracy Theories Debunked',
+    'Weird Animal Facts',
+    'History of the Internet',
+    'Unsolved Mysteries of Science',
 ];
 
 const TARGET_BOT_LOBBIES = 6;    // maintain this many bot lobbies
-const LOBBY_LIFETIME = 8 * 60 * 1000;  // 8 minutes before replacement
+const LOBBY_LIFETIME = 3 * 60 * 1000;  // 3 minutes before topic rotation
 const QUESTION_COUNT = 7;
 const TIME_LIMIT = 12;
+const PLAYER_SHUFFLE_INTERVAL = 20 * 1000; // shuffle fake players every 20s
+const TOPIC_ROTATE_INTERVAL = 45 * 1000;   // rotate 1-2 lobby topics every 45s
 
 // ── Question cache (in-memory mirror of MongoDB) ────────────────────────────
 const questionCache = new Map(); // topic -> [{questions, createdAt}]
@@ -108,6 +123,16 @@ function pickBotHost() {
     return available[Math.floor(Math.random() * available.length)];
 }
 
+/** Pick a random bot that is NOT already in this lobby. */
+function pickFillerBot(lobby) {
+    const bots = [...db.users.values()].filter(u => u.isBot);
+    if (!bots.length) return null;
+    const inLobby = new Set(lobby.players.map(p => p.userId));
+    const available = bots.filter(b => !inLobby.has(b.id));
+    if (!available.length) return null;
+    return available[Math.floor(Math.random() * available.length)];
+}
+
 /** Pick a topic not currently used by another bot lobby. */
 function pickTopic() {
     const usedTopics = new Set();
@@ -117,6 +142,19 @@ function pickTopic() {
     const available = BOT_LOBBY_TOPICS.filter(t => !usedTopics.has(t));
     if (!available.length) return BOT_LOBBY_TOPICS[Math.floor(Math.random() * BOT_LOBBY_TOPICS.length)];
     return available[Math.floor(Math.random() * available.length)];
+}
+
+/** Check if a lobby has any real (non-bot) players. */
+function hasRealPlayers(lobby) {
+    return lobby.players.some(p => {
+        const u = db.users.get(p.userId);
+        return u && !u.isBot;
+    });
+}
+
+/** Remove all fake filler bots from a lobby (keep only the host bot). */
+function stripFillerBots(lobby) {
+    lobby.players = lobby.players.filter(p => p.userId === lobby.hostId);
 }
 
 /** Create a single bot lobby with pre-generated questions. */
@@ -141,6 +179,15 @@ async function createBotLobby(io) {
     const lobbyId = randomUUID();
     const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    // Start with 1-2 fake players for variety
+    const initialPlayers = [{ userId: bot.id, username: bot.username, socketId: null, score: 0, answers: [], ready: true }];
+    if (Math.random() < 0.5) {
+        const filler = pickFillerBot({ players: initialPlayers });
+        if (filler) {
+            initialPlayers.push({ userId: filler.id, username: filler.username, socketId: null, score: 0, answers: [], ready: true, _isFiller: true });
+        }
+    }
+
     const lobby = {
         id: lobbyId,
         inviteCode,
@@ -152,7 +199,7 @@ async function createBotLobby(io) {
         maxPlayers: 4,
         questionCount: questions.length,
         timeLimit: TIME_LIMIT,
-        players: [{ userId: bot.id, username: bot.username, socketId: null, score: 0, answers: [], ready: true }],
+        players: initialPlayers,
         presetQuestions: questions,
         status: 'waiting',
         createdAt: Date.now(),
@@ -186,6 +233,100 @@ async function replenishBotLobbies(io) {
     }
 }
 
+/**
+ * Shuffle fake player counts on bot lobbies.
+ * Purely in-memory — no network, no AI, no DB writes.
+ */
+function shuffleFakePlayers(io) {
+    let changed = false;
+    for (const [, lobby] of db.lobbies) {
+        if (!lobby._isBotLobby || lobby.status !== 'waiting') continue;
+        if (hasRealPlayers(lobby)) continue; // don't mess with lobbies that have real users
+
+        const currentFake = lobby.players.filter(p => p._isFiller).length;
+        // Target: 0-2 filler bots (host is always there, so total 1-3)
+        const target = Math.floor(Math.random() * 3); // 0, 1, or 2
+
+        if (target > currentFake) {
+            // Add filler bots
+            for (let i = currentFake; i < target; i++) {
+                const filler = pickFillerBot(lobby);
+                if (filler) {
+                    lobby.players.push({ userId: filler.id, username: filler.username, socketId: null, score: 0, answers: [], ready: true, _isFiller: true });
+                    changed = true;
+                }
+            }
+        } else if (target < currentFake) {
+            // Remove some filler bots
+            let toRemove = currentFake - target;
+            lobby.players = lobby.players.filter(p => {
+                if (toRemove > 0 && p._isFiller) { toRemove--; return false; }
+                return true;
+            });
+            changed = true;
+        }
+    }
+    if (changed && io) io.emit('lobbies-updated');
+}
+
+/**
+ * Rotate topics on 1-2 bot lobbies that have been sitting idle.
+ * Uses cached questions only — no AI calls, no network cost.
+ * If no cached questions are available for the new topic, the lobby is
+ * simply deleted and replenishBotLobbies will recreate it later.
+ */
+function rotateTopics(io) {
+    const botLobbies = [];
+    for (const [, lobby] of db.lobbies) {
+        if (lobby._isBotLobby && lobby.status === 'waiting' && !hasRealPlayers(lobby)) {
+            botLobbies.push(lobby);
+        }
+    }
+    if (!botLobbies.length) return;
+
+    // Sort oldest first — rotate the stalest ones
+    botLobbies.sort((a, b) => a.createdAt - b.createdAt);
+
+    // Rotate 1-2 lobbies per tick
+    const rotateCount = Math.min(1 + Math.floor(Math.random() * 2), botLobbies.length);
+
+    let changed = false;
+    for (let i = 0; i < rotateCount; i++) {
+        const lobby = botLobbies[i];
+        // Only rotate if older than 90 seconds (avoid thrashing brand new lobbies)
+        if (Date.now() - lobby.createdAt < 90 * 1000) continue;
+
+        const newTopic = pickTopic();
+        const cachedQ = getCachedQuestions(newTopic);
+
+        if (cachedQ && cachedQ.length >= 3) {
+            // Swap topic and questions in-place — zero cost
+            lobby.topic = newTopic;
+            lobby.presetQuestions = cachedQ;
+            lobby.questionCount = cachedQ.length;
+            lobby.createdAt = Date.now();
+            lobby.expiresAt = Date.now() + LOBBY_LIFETIME;
+            lobby.inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            // Refresh host bot
+            const newHost = pickBotHost();
+            if (newHost) {
+                lobby.hostId = newHost.id;
+                lobby.hostUsername = newHost.username;
+                // Rebuild players (host + random fillers)
+                stripFillerBots(lobby);
+                lobby.players = [{ userId: newHost.id, username: newHost.username, socketId: null, score: 0, answers: [], ready: true }];
+            }
+            changed = true;
+        } else {
+            // No cached questions — just delete and let replenish handle it
+            db.lobbies.delete(lobby.id);
+            changed = true;
+        }
+    }
+
+    if (changed && io) io.emit('lobbies-updated');
+}
+
 /** Initialize bot lobbies — called after server starts and pools are warm. */
 function initBotLobbies(io) {
     // Load cached questions first, then create initial lobbies
@@ -199,6 +340,16 @@ function initBotLobbies(io) {
         setInterval(() => {
             replenishBotLobbies(io).catch(() => {});
         }, 60000);
+
+        // Shuffle fake player counts every 20s (pure in-memory, no cost)
+        setInterval(() => {
+            shuffleFakePlayers(io);
+        }, PLAYER_SHUFFLE_INTERVAL);
+
+        // Rotate 1-2 lobby topics every 45s (uses cached questions, no AI)
+        setInterval(() => {
+            rotateTopics(io);
+        }, TOPIC_ROTATE_INTERVAL);
     });
 }
 
@@ -206,4 +357,5 @@ module.exports = {
     initBotLobbies,
     cacheQuestions,
     loadQuestionCache,
+    stripFillerBots,
 };

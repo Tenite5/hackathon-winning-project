@@ -456,12 +456,17 @@
         // Update Diamond panel CTA state
         const ctaArea = document.getElementById('diamond-cta-area');
         const activeBadge = document.getElementById('diamond-active-badge');
+        const manageArea = document.getElementById('diamond-manage-area');
         if (state.user.isDiamondPro) {
             if (ctaArea) ctaArea.style.display = 'none';
             if (activeBadge) activeBadge.classList.remove('hidden');
+            if (manageArea) manageArea.classList.remove('hidden');
+            // Fetch and show subscription details
+            QV.refreshDiamondStatus();
         } else {
             if (ctaArea) ctaArea.style.display = '';
             if (activeBadge) activeBadge.classList.add('hidden');
+            if (manageArea) manageArea.classList.add('hidden');
         }
         const img = $('settings-avatar-img');
         const zone = $('settings-avatar-zone');
@@ -664,11 +669,12 @@
                 if (data.isDiamondPro && state.user) {
                     state.user.isDiamondPro = true;
                     state.user.diamondSince = data.diamondSince;
+                    state.user.diamondExpiresAt = data.diamondExpiresAt;
                     QV.updateNavUser();
                     QV.updateProfile();
                     QV.loadSettings();
                     QV.showPanel('diamond');
-                    toast('🎉 Welcome to Diamond Pro! Your subscription is active.', 'success');
+                    toast('🎉 Welcome to Diamond Pro! Your monthly subscription is active.', 'success');
                 } else {
                     QV.showPanel('diamond');
                     toast('Payment received! Your Diamond Pro status will activate shortly.', 'info');
