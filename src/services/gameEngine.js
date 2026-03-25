@@ -584,9 +584,10 @@ function handleDisconnectFromGames(io, currentUser) {
             const winnerUser = db.users.get(winner.userId);
             const loserUser = db.users.get(currentUser.id);
             if (winnerUser && loserUser) {
-                const K_ABANDON = 48;
+                const K_ABANDON = 250;
                 const expected = 1 / (1 + Math.pow(10, (loserUser.elo - winnerUser.elo) / 400));
-                const winnerNew = Math.round(winnerUser.elo + K_ABANDON * (1 - expected));
+                const winnerGain = Math.max(120, Math.round(K_ABANDON * (1 - expected)));
+                const winnerNew = Math.round(winnerUser.elo + winnerGain);
                 const loserNew = Math.round(loserUser.elo + K_ABANDON * (0 - (1 - expected)));
                 const eloDelta = winnerNew - winnerUser.elo;
 

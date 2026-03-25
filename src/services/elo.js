@@ -12,11 +12,13 @@ function getRank(elo) {
 }
 
 function calculateElo(winnerElo, loserElo) {
-    const K = 32;
+    const K = 200;
     const expected = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
+    const winnerGain = Math.max(100, Math.round(K * (1 - expected)));
+    const loserLoss = Math.round(K * (0 - (1 - expected)));
     return {
-        winnerNew: Math.round(winnerElo + K * (1 - expected)),
-        loserNew: Math.round(loserElo + K * (0 - (1 - expected))),
+        winnerNew: Math.round(winnerElo + winnerGain),
+        loserNew: Math.round(loserElo + loserLoss),
     };
 }
 
