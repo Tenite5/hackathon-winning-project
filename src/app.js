@@ -59,6 +59,13 @@ app.use('/api', apiLimit, tournamentsRoutes);
 app.use('/api', apiLimit, questionsRoutes);
 app.use('/api', apiLimit, pdfRoutes);
 app.use('/api/subscription', subscriptionRoutes);
+// Admin panel (local-only, enabled via ADMIN_ENABLED env var)
+if (process.env.ADMIN_ENABLED === 'true') {
+    const adminRoutes = require('./routes/admin');
+    app.use('/api/admin', adminRoutes);
+    app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
+    console.log('🔧 Admin panel enabled at /admin');
+}
 
 // SPA catch-all
 app.get('/{*path}', (req, res) => {

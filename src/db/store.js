@@ -125,22 +125,10 @@ const db = {
         // ── Load question pools from MongoDB ─────────────────────────────
         await loadPoolsFromDB();
 
-        // ── Apply overrides for special users
-        const DIAMOND_OVERRIDES = ['temo', 'palela', 'berikela'];
-        for (const [, user] of db.users) {
-            if (user.username && DIAMOND_OVERRIDES.includes(user.username.toLowerCase())) {
-                user.isDiamondPro = true;
-                user.elo = 3000;
-                db.saveUser(user.id);
-            }
-        }
-
         // ── Expire lapsed Diamond Pro subscriptions on startup
         const now = Date.now();
         for (const [, user] of db.users) {
             if (user.isDiamondPro && user.diamondExpiresAt && user.diamondExpiresAt < now) {
-                // Skip override users — they keep diamond forever
-                if (DIAMOND_OVERRIDES.includes((user.username || '').toLowerCase())) continue;
                 user.isDiamondPro = false;
                 user.diamondExpiresAt = 0;
                 user.paypalSubscriptionId = '';
