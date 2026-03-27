@@ -423,7 +423,7 @@
 
 
         // Sync theme selector cards with current theme
-        const currentTheme = localStorage.getItem('qvizio_theme') || 'default';
+        const currentTheme = localStorage.getItem('quizio_theme') || 'default';
         document.querySelectorAll('#theme-selector-grid .theme-card').forEach(card => {
             card.classList.toggle('active', card.dataset.theme === currentTheme);
         });
@@ -589,7 +589,7 @@
             document.documentElement.setAttribute('data-theme', theme);
         }
         // Save to localStorage
-        localStorage.setItem('qvizio_theme', theme);
+        localStorage.setItem('quizio_theme', theme);
         // Sync active states
         document.querySelectorAll('#theme-selector-grid .theme-card').forEach(c => {
             c.classList.toggle('active', c.dataset.theme === theme);

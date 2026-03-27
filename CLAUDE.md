@@ -15,7 +15,7 @@ npm run dev        # Same as npm start (no hot reload)
 
 ## Architecture
 
-QVIZIO RANKED is a real-time competitive trivia game with ELO ranking. Node.js + Express 5 + Socket.io 4 + MongoDB (Mongoose 9). Vanilla JS SPA client. Language mix: Georgian presets, English UI.
+QUIZIO RANKED is a real-time competitive trivia game with ELO ranking. Node.js + Express 5 + Socket.io 4 + MongoDB (Mongoose 9). Vanilla JS SPA client. Language mix: Georgian presets, English UI.
 
 ### Server
 

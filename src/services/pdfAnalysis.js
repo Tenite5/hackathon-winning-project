@@ -126,7 +126,7 @@ Example non-STEM: [{"question":"According to the treaty, which nation gained con
 
         // Write buffer to temp file for Gemini upload
         const tmpDir = os.tmpdir();
-        const tmpFile = path.join(tmpDir, `qvizio_${randomUUID()}${getExtension(mimeType)}`);
+        const tmpFile = path.join(tmpDir, `quizio_${randomUUID()}${getExtension(mimeType)}`);
         fs.writeFileSync(tmpFile, bufferToSend);
 
         try {
@@ -148,7 +148,7 @@ Example non-STEM: [{"question":"According to the treaty, which nation gained con
                                 role: 'user',
                                 parts: [{ fileData: { fileUri: uploadedFile.uri, mimeType } }],
                             }],
-                            displayName: `qvizio-pdf-${pdfId}`,
+                            displayName: `quizio-pdf-${pdfId}`,
                             ttl: '3600s',
                         },
                     });

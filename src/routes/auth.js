@@ -44,7 +44,7 @@ function findUserByFirebaseUid(uid) {
     return null;
 }
 
-// ── Helper: create a new QVIZIO user from Firebase decoded token ──
+// ── Helper: create a new QUIZIO user from Firebase decoded token ──
 function createNewUser({ uid, email, picture }) {
     const id = uuidv4();
     // Temporary username — will be overwritten during profile setup

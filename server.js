@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
     try {
         await db.init();
         server.listen(PORT, () => {
-            console.log(`QVIZIO server running on http://localhost:${PORT}`);
+            console.log(`QUIZIO server running on http://localhost:${PORT}`);
         });
 
         // Warm up pre-generated question pools in the background (non-blocking)

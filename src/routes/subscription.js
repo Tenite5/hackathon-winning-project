@@ -146,7 +146,7 @@ router.post('/checkout', requireAuth, async (req, res) => {
                     plan_id: process.env.PAYPAL_PLAN_ID,
                     custom_id: user.id,
                     application_context: {
-                        brand_name: 'QVIZIO RANKED',
+                        brand_name: 'QUIZIO RANKED',
                         user_action: 'SUBSCRIBE_NOW',
                         landing_page: 'BILLING',
                         return_url: `${baseUrl}/api/subscription/capture`,

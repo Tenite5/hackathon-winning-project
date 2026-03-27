@@ -1,6 +1,6 @@
 /**
  * @file public/js/api.js
- * @description Shared namespace, state, socket, and utility functions for the QVIZIO frontend.
+ * @description Shared namespace, state, socket, and utility functions for the QUIZIO frontend.
  * Must be loaded FIRST among all JS files.
  */
 
@@ -12,7 +12,7 @@ window.QV = window.QV || {};
 
     // ── State ──────────────────────────────────────────────────
     QV.state = {
-        token: localStorage.getItem('qvizio_token') || null,
+        token: (function() { var t = localStorage.getItem('quizio_token'); if (!t) { t = localStorage.getItem('qvizio_token'); if (t) { localStorage.setItem('quizio_token', t); localStorage.removeItem('qvizio_token'); } } return t; })() || null,
         user: null,
         currentGameId: null,
         currentLobbyId: null,

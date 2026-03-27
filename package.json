@@ -1,5 +1,5 @@
 {
-  "name": "qvizio",
+  "name": "quizio",
   "version": "1.0.0",
   "description": "1v1 Competitive Trivia Game",
   "main": "server.js",

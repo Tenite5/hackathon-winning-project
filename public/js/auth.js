@@ -89,7 +89,7 @@
         });
         state.token = data.token;
         state.user = data.user;
-        localStorage.setItem('qvizio_token', data.token);
+        localStorage.setItem('quizio_token', data.token);
 
         if (data.needsSetup) {
             showProfileSetup(firebaseUser);
@@ -386,6 +386,7 @@
         try { if (auth) await auth.signOut(); } catch (_) { /* ignore */ }
         state.token = null;
         state.user = null;
+        localStorage.removeItem('quizio_token');
         localStorage.removeItem('qvizio_token');
         QV.socket.disconnect();
         QV.socket.connect();

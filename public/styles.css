@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   QVIZIO — Notebook / Paper Theme
+   QUIZIO — Notebook / Paper Theme
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── CSS Variables ─────────────────────────────────────────── */
@@ -527,7 +527,7 @@ input::placeholder {
   display: none;
 }
 
-/* ── QVIZIO Auth Components ────────────────────────────────── */
+/* ── QUIZIO Auth Components ────────────────────────────────── */
 .qv-google-btn {
   display: flex;
   align-items: center;
@@ -6433,6 +6433,92 @@ input::placeholder {
 }
 [data-theme="dark"] .tournament-card:hover {
   border-color: rgba(140,140,200,0.2);
+}
+
+/* ── Dark: Game Over View ───────────────────────────── */
+[data-theme="dark"] #view-game-over {
+  background-color: #0f0f1a;
+  background-image: linear-gradient(rgba(120,120,180,0.06) 1px, transparent 1px);
+  background-size: 100% 2rem;
+}
+[data-theme="dark"] .game-over-card {
+  background: #1c1c32;
+  border-color: rgba(255,255,255,0.08);
+  color: #dcdce8;
+}
+[data-theme="dark"] .go-score-card {
+  background: #16162a;
+  border-color: rgba(255,255,255,0.08);
+  color: #dcdce8;
+}
+[data-theme="dark"] .go-score-card.winner {
+  border-color: #50b88a;
+  background: rgba(80,184,138,0.08);
+}
+[data-theme="dark"] .go-score-name {
+  color: #b8b8d8;
+}
+[data-theme="dark"] .review-item {
+  background: #16162a;
+  border-color: rgba(255,255,255,0.08);
+  color: #dcdce8;
+}
+[data-theme="dark"] .review-item.review-correct {
+  border-left-color: #50b88a;
+}
+[data-theme="dark"] .review-item.review-wrong {
+  border-left-color: #e07070;
+}
+[data-theme="dark"] .review-item.review-timeout {
+  border-left-color: #d4a54a;
+}
+[data-theme="dark"] .review-question {
+  color: #dcdce8;
+}
+[data-theme="dark"] .review-your-answer {
+  color: #e07070;
+}
+[data-theme="dark"] .review-correct-answer {
+  color: #50b88a;
+}
+[data-theme="dark"] .game-over-review h3 {
+  color: #9a9ab4;
+}
+[data-theme="dark"] .game-over-actions .btn-ghost {
+  background: #1c1c32;
+  color: #9a9ab4;
+  border-color: rgba(255,255,255,0.08);
+}
+[data-theme="dark"] .game-over-actions .btn-ghost:hover {
+  border-color: #7c7cbf;
+  color: #b8b8d8;
+}
+
+/* ── Dark: Lobby Items ──────────────────────────────── */
+[data-theme="dark"] .lobby-item {
+  background: #1c1c32;
+  border-color: rgba(255,255,255,0.08);
+  color: #dcdce8;
+}
+[data-theme="dark"] .lobby-item:hover {
+  background: #22224a;
+  border-color: rgba(140,140,200,0.2);
+}
+
+/* ── Dark: Empty State ──────────────────────────────── */
+[data-theme="dark"] .empty-state {
+  background: rgba(28,28,50,0.6);
+  border-color: rgba(255,255,255,0.08);
+  color: #5f5f78;
+}
+
+/* ── Dark: Notif Panel ──────────────────────────────── */
+[data-theme="dark"] .notif-panel {
+  background: #1c1c32;
+  border-color: rgba(255,255,255,0.08);
+}
+[data-theme="dark"] .notif-item {
+  border-bottom-color: rgba(255,255,255,0.06);
 }
 
 /* ═══════════════════════════════════════════════════════════════

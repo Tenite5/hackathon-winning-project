@@ -1,4 +1,4 @@
-# QVIZIO RANKED — Project Context for AI Assistants
+# QUIZIO RANKED — Project Context for AI Assistants
 
 > **Read this file at the start of every session.** It contains everything you need to understand the project without re-reading the entire codebase.
 
@@ -6,7 +6,7 @@
 
 ## What Is This?
 
-QVIZIO is a **real-time competitive trivia game** with ELO ranking. Players can:
+QUIZIO is a **real-time competitive trivia game** with ELO ranking. Players can:
 
 - Play **quick 1v1 ranked matches** (AI-generated questions, random topic)
 - Create **custom lobbies** (up to 8 players, custom topic/settings)

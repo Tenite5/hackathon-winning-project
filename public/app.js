@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// QVIZIO — Client Application
+// QUIZIO — Client Application
 // ═══════════════════════════════════════════════════════════════
 
 (() => {
@@ -7,7 +7,7 @@
 
     // ── State ──────────────────────────────────────────────────
     const state = {
-        token: localStorage.getItem('qvizio_token') || null,
+        token: localStorage.getItem('quizio_token') || localStorage.getItem('qvizio_token') || null,
         user: null,
         currentGameId: null,
         currentLobbyId: null,
@@ -196,7 +196,7 @@
             });
             state.token = data.token;
             state.user = data.user;
-            localStorage.setItem('qvizio_token', data.token);
+            localStorage.setItem('quizio_token', data.token);
             onAuthenticated();
         } catch (err) {
             showAuthError(err.message);
@@ -216,7 +216,7 @@
             });
             state.token = data.token;
             state.user = data.user;
-            localStorage.setItem('qvizio_token', data.token);
+            localStorage.setItem('quizio_token', data.token);
             onAuthenticated();
         } catch (err) {
             showAuthError(err.message);
@@ -226,6 +226,7 @@
     $('btn-logout').addEventListener('click', () => {
         state.token = null;
         state.user = null;
+        localStorage.removeItem('quizio_token');
         localStorage.removeItem('qvizio_token');
         socket.disconnect();
         socket.connect();
@@ -240,6 +241,7 @@
             state.user = data.user;
             onAuthenticated();
         } catch {
+            localStorage.removeItem('quizio_token');
             localStorage.removeItem('qvizio_token');
             state.token = null;
         }
@@ -1061,6 +1063,7 @@
     });
 
     socket.on('auth-error', () => {
+        localStorage.removeItem('quizio_token');
         localStorage.removeItem('qvizio_token');
         state.token = null;
         showView('view-auth');

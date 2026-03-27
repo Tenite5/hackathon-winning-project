@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>QVIZIO — 1v1 Competitive Trivia</title>
+  <title>QUIZIO — 1v1 Competitive Trivia</title>
   <meta name="description"
-    content="QVIZIO is a real-time 1v1 competitive trivia game. Challenge opponents, climb the leaderboard, and prove your knowledge." />
+    content="QUIZIO is a real-time 1v1 competitive trivia game. Challenge opponents, climb the leaderboard, and prove your knowledge." />
   <link rel="icon" type="image/svg+xml"
     href="data:image/svg+xml,%3Csvg viewBox='0 0 64 64' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='64' y2='64'%3E%3Cstop offset='0%25' stop-color='%236C5CE7'/%3E%3Cstop offset='100%25' stop-color='%2300CEFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='44' text-anchor='middle' fill='white' font-size='30' font-weight='800' font-family='sans-serif'%3EQ%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,7 +19,10 @@
   <script>
     // Apply saved theme immediately to prevent flash
     (function() {
-      var t = localStorage.getItem('qvizio_theme');
+      // Migrate old key
+      var old = localStorage.getItem('qvizio_theme');
+      if (old && !localStorage.getItem('quizio_theme')) { localStorage.setItem('quizio_theme', old); localStorage.removeItem('qvizio_theme'); }
+      var t = localStorage.getItem('quizio_theme');
       if (t && t !== 'default') document.documentElement.setAttribute('data-theme', t);
     })();
   </script>
@@ -54,7 +57,7 @@
               font-family="Outfit">Q</text>
           </svg>
         </div>
-        <h1 class="logo-text">QVIZIO</h1>
+        <h1 class="logo-text">QUIZIO</h1>
         <p class="logo-tagline">Real-Time Competitive Trivia</p>
       </div>
 
@@ -223,7 +226,7 @@
           <text x="32" y="44" text-anchor="middle" fill="white" font-size="30" font-weight="800"
             font-family="Outfit">Q</text>
         </svg>
-        <span class="brand-text">QVIZIO</span>
+        <span class="brand-text">QUIZIO</span>
       </div>
       <div class="nav-user">
         <div class="nav-avatar" id="nav-avatar">
@@ -928,7 +931,7 @@
                 </defs>
               </svg>
             </div>
-            <h1 class="diamond-hero-title">QVIZIO <span class="diamond-gradient-text">Diamond</span></h1>
+            <h1 class="diamond-hero-title">QUIZIO <span class="diamond-gradient-text">Diamond</span></h1>
             <p class="diamond-hero-sub">Unlock a whole new level of education and exam preparation. Built for students who don't just want to pass — they want to dominate every subject.</p>
 
             <div class="diamond-plan-card" id="diamond-cta-area">

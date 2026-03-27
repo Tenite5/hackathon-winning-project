@@ -1,6 +1,6 @@
-# QVIZIO — The Ultimate 1v1 AI-Powered Trivia Duel
+# QUIZIO — The Ultimate 1v1 AI-Powered Trivia Duel
 
-**QVIZIO** is a high-stakes, real-time 1v1 trivia platform where intellect meets speed. Players challenge each other in dynamic trivia battles, climb a competitive ranking system, and leverage AI to master various subjects.
+**QUIZIO** is a high-stakes, real-time 1v1 trivia platform where intellect meets speed. Players challenge each other in dynamic trivia battles, climb a competitive ranking system, and leverage AI to master various subjects.
 
 ---
 
