@@ -1892,6 +1892,13 @@ input::placeholder {
   margin: 0 auto 0.35rem;
 }
 
+/* Full profile modal — scrollable, wider */
+.modal-full-profile {
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
 .go-score-avatar-letter {
   display: flex;
   align-items: center;

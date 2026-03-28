@@ -154,6 +154,30 @@ router.delete('/profile/notifications/:index', requireAuth, (req, res) => {
     res.json({ ok: true });
 });
 
+/**
+ * GET /profile/:userId/match-history?page=1&limit=10
+ * Public match history for any user.
+ */
+router.get('/profile/:userId/match-history', (req, res) => {
+    const user = db.users.get(req.params.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const all = user.matchHistory || [];
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+    const start = (page - 1) * limit;
+    res.json({ matches: all.slice(start, start + limit), total: all.length, page, limit });
+});
+
+/**
+ * GET /profile/:userId/elo-history
+ * Public ELO history for any user.
+ */
+router.get('/profile/:userId/elo-history', (req, res) => {
+    const user = db.users.get(req.params.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ history: user.eloHistory || [] });
+});
+
 // ⚠️ IMPORTANT: This wildcard route MUST come AFTER all specific /profile/* routes
 // otherwise Express will match "match-history", "elo-history", "notifications" as a :userId
 router.get('/profile/:userId', (req, res) => {

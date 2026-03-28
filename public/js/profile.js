@@ -465,6 +465,7 @@
     // PUBLIC PROFILE VIEWER
     // ═══════════════════════════════════════════════════════════════
     QV.openUserProfile = async function openUserProfile(userId) {
+        QV._viewingProfileUserId = userId;
         try {
             const data = await api(`/profile/${userId}`);
             const u = data.user;
@@ -497,11 +498,179 @@
                 : 0;
             $('modal-stat-accuracy').textContent = acc + '%';
 
+            // Show add-friend button (hide if own profile or already friends)
+            const addFriendBtn = $('btn-modal-add-friend');
+            if (addFriendBtn && state.user && userId !== state.user.id) {
+                const alreadyFriend = state.user.friends && state.user.friends.includes(userId);
+                addFriendBtn.classList.remove('hidden');
+                addFriendBtn.disabled = alreadyFriend;
+                addFriendBtn.textContent = alreadyFriend ? 'Friends ✓' : 'Add Friend';
+            } else if (addFriendBtn) {
+                addFriendBtn.classList.add('hidden');
+            }
+
             showModal('modal-user-profile');
+
+            // Load match history and ELO chart for this user
+            loadModalMatchHistory(userId);
+            loadModalEloChart(userId);
         } catch (err) {
             toast('Could not load profile: ' + err.message, 'error');
         }
     };
+
+    // ── Public profile match history ──────────────────────────
+    async function loadModalMatchHistory(userId) {
+        const list = $('modal-match-history-list');
+        list.innerHTML = '<p class="text-muted" style="text-align:center;padding:1rem;">Loading...</p>';
+        try {
+            const data = await api(`/profile/${userId}/match-history?page=1&limit=10`);
+            const matches = data.matches || [];
+            if (!matches.length) {
+                list.innerHTML = '<p class="text-muted" style="text-align:center;padding:1rem;">No matches yet.</p>';
+                return;
+            }
+            list.innerHTML = '';
+            matches.forEach(m => {
+                const row = document.createElement('div');
+                row.className = `mh-row mh-${m.result}`;
+                const resultEmoji = m.result === 'win' ? '🏆' : m.result === 'loss' ? '💀' : '🤝';
+                const resultLabel = m.result === 'win' ? 'Victory' : m.result === 'loss' ? 'Defeat' : 'Draw';
+                const opponentName = m.opponents && m.opponents.length > 0 ? m.opponents.map(o => escapeHtml(o.username)).join(', ') : 'Unknown';
+                const opponentScore = m.opponents && m.opponents.length === 1 ? m.opponents[0].score : '';
+                const eloStr = m.eloChange
+                    ? `<span class="mh-elo ${m.eloChange > 0 ? 'positive' : 'negative'}">${m.eloChange > 0 ? '+' : ''}${m.eloChange}</span>`
+                    : '';
+                const dateStr = new Date(m.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                row.innerHTML = `
+                    <div class="mh-result-badge">${resultEmoji}</div>
+                    <div class="mh-details">
+                        <div class="mh-opponent">vs ${opponentName}</div>
+                        <div class="mh-meta"><span class="mh-topic">${escapeHtml(m.topic || 'General')}</span><span class="mh-type">${m.type || 'quick'}</span></div>
+                    </div>
+                    <div class="mh-scores"><span class="mh-my-score">${m.myScore}</span>${opponentScore !== '' ? `<span class="mh-separator">-</span><span class="mh-opp-score">${opponentScore}</span>` : ''}</div>
+                    <div class="mh-right">
+                        <div class="mh-result-label ${m.result}">${resultLabel}</div>
+                        ${eloStr}
+                        <div class="mh-date">${dateStr}</div>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        } catch (err) {
+            list.innerHTML = '<p class="text-muted" style="text-align:center;padding:1rem;">Could not load match history.</p>';
+        }
+    }
+
+    // ── Public profile ELO chart ──────────────────────────────
+    async function loadModalEloChart(userId) {
+        const canvas = $('modal-elo-chart');
+        const emptyMsg = $('modal-elo-chart-empty');
+        try {
+            const data = await api(`/profile/${userId}/elo-history`);
+            const history = data.history || [];
+            if (!history.length || history.length < 2) {
+                canvas.style.display = 'none';
+                emptyMsg.classList.remove('hidden');
+                return;
+            }
+            canvas.style.display = 'block';
+            emptyMsg.classList.add('hidden');
+            drawMiniEloChart(canvas, history);
+        } catch (err) {
+            canvas.style.display = 'none';
+            emptyMsg.classList.remove('hidden');
+        }
+    }
+
+    function drawMiniEloChart(canvas, history) {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const accentColor = isDark ? '#818cf8' : '#4F46E5';
+        const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+        const labelColor = isDark ? '#888' : '#999';
+        const dotStroke = isDark ? '#1e1e2e' : '#fff';
+
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = 180 * dpr;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = '180px';
+        ctx.scale(dpr, dpr);
+
+        const W = rect.width, H = 180;
+        const PAD = { top: 20, right: 20, bottom: 28, left: 45 };
+        const cW = W - PAD.left - PAD.right;
+        const cH = H - PAD.top - PAD.bottom;
+
+        const elos = history.map(h => h.elo);
+        const minElo = Math.min(...elos) - 20;
+        const maxElo = Math.max(...elos) + 20;
+        const eloRange = maxElo - minElo || 1;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Grid
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 3; i++) {
+            const y = PAD.top + (cH / 3) * i;
+            ctx.beginPath(); ctx.setLineDash([4, 4]);
+            ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y);
+            ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = labelColor;
+            ctx.font = '10px Inter, system-ui, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(Math.round(maxElo - (eloRange / 3) * i), PAD.left - 6, y + 4);
+        }
+
+        // Points
+        const points = history.map((h, i) => ({
+            x: PAD.left + (i / (history.length - 1)) * cW,
+            y: PAD.top + cH - ((h.elo - minElo) / eloRange) * cH,
+        }));
+
+        // Fill
+        const grad = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
+        grad.addColorStop(0, isDark ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.15)');
+        grad.addColorStop(1, 'rgba(79,70,229,0.01)');
+        ctx.beginPath(); ctx.moveTo(points[0].x, H - PAD.bottom);
+        points.forEach((p, i) => {
+            if (i === 0) { ctx.lineTo(p.x, p.y); return; }
+            const cpx = (points[i - 1].x + p.x) / 2;
+            ctx.bezierCurveTo(cpx, points[i - 1].y, cpx, p.y, p.x, p.y);
+        });
+        ctx.lineTo(points[points.length - 1].x, H - PAD.bottom);
+        ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+
+        // Line
+        ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            const cpx = (points[i - 1].x + points[i].x) / 2;
+            ctx.bezierCurveTo(cpx, points[i - 1].y, cpx, points[i].y, points[i].x, points[i].y);
+        }
+        ctx.strokeStyle = accentColor; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+
+        // Dots
+        const dotR = points.length > 25 ? 1.5 : 3;
+        points.forEach(p => {
+            ctx.beginPath(); ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
+            ctx.fillStyle = accentColor; ctx.fill();
+            ctx.strokeStyle = dotStroke; ctx.lineWidth = 1; ctx.stroke();
+        });
+
+        // Last ELO label
+        const last = points[points.length - 1];
+        ctx.fillStyle = accentColor; ctx.font = 'bold 11px Inter, system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(elos[elos.length - 1], last.x, last.y - 8);
+
+        // X-axis dates
+        ctx.fillStyle = labelColor; ctx.font = '9px Inter, system-ui, sans-serif';
+        const fmtD = ts => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        ctx.textAlign = 'left'; ctx.fillText(fmtD(history[0].timestamp), PAD.left, H - 4);
+        ctx.textAlign = 'right'; ctx.fillText(fmtD(history[history.length - 1].timestamp), W - PAD.right, H - 4);
+    }
 
     // ═══════════════════════════════════════════════════════════════
     // LEADERBOARD

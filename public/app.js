@@ -1170,9 +1170,10 @@
     const btnModalAddFriend = $('btn-modal-add-friend');
     if (btnModalAddFriend) {
         btnModalAddFriend.addEventListener('click', async () => {
-            if (!_modalProfileUserId) return;
+            const targetId = _modalProfileUserId || QV._viewingProfileUserId;
+            if (!targetId) return;
             try {
-                await api(`/friends/request/${_modalProfileUserId}`, { method: 'POST' });
+                await api(`/friends/request/${targetId}`, { method: 'POST' });
                 toast('Friend request sent!', 'success');
                 btnModalAddFriend.textContent = 'Sent ✓';
                 btnModalAddFriend.disabled = true;

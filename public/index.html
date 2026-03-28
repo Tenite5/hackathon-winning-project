@@ -1784,7 +1784,7 @@
   <!-- ═══════════════════════════════════════════ -->
   <div id="modal-user-profile" class="modal hidden">
     <div class="modal-backdrop" data-close-modal="modal-user-profile"></div>
-    <div class="modal-content glass-card">
+    <div class="modal-content glass-card modal-full-profile">
       <div class="profile-header" style="margin-bottom: 1rem;">
         <div class="profile-avatar" id="modal-profile-avatar">
           <img id="modal-profile-avatar-img" src="" alt="" class="profile-avatar-img hidden" />
@@ -1824,6 +1824,24 @@
           <span class="stat-label">Games</span>
         </div>
       </div>
+
+      <!-- ELO History (public profile) -->
+      <div class="profile-section glass-card" id="modal-elo-history-section" style="margin-bottom: 1rem;">
+        <div class="section-header"><h3>📈 ELO History</h3></div>
+        <div class="elo-chart-container">
+          <canvas id="modal-elo-chart" width="600" height="200"></canvas>
+          <div class="elo-chart-empty hidden" id="modal-elo-chart-empty">
+            <p>No ranked games yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Match History (public profile) -->
+      <div class="profile-section glass-card" id="modal-match-history-section" style="margin-bottom: 1rem;">
+        <div class="section-header"><h3>🏆 Match History</h3></div>
+        <div id="modal-match-history-list" class="match-history-list"></div>
+      </div>
+
       <div class="modal-actions">
         <button class="btn btn-primary btn-sm hidden" id="btn-modal-add-friend">Add Friend</button>
         <button class="btn btn-ghost" data-close-modal="modal-user-profile">Close</button>
