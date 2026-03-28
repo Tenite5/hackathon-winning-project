@@ -36,7 +36,7 @@
         const el = document.createElement('div');
         el.className = 'chat-msg';
         el.innerHTML = `
-            <span class="chat-msg-author">${escapeHtml(msg.username)}:</span>
+            ${QV.userBadgeHtml(msg.userId, msg.username, msg.photoURL, 22)}
             <span class="chat-msg-text">${escapeHtml(msg.text)}</span>
             <span class="chat-msg-time">${formatTime(msg.ts)}</span>
         `;
@@ -67,7 +67,7 @@
     socket.on('game-chat-msg', (msg) => {
         const el = document.createElement('div');
         el.className = 'chat-msg';
-        el.innerHTML = `<span class="chat-msg-author">${msg.username}:</span> <span class="chat-msg-text">${escapeHtml(msg.text)}</span>`;
+        el.innerHTML = `${QV.userBadgeHtml(msg.userId, msg.username, msg.photoURL, 20)} <span class="chat-msg-text">${escapeHtml(msg.text)}</span>`;
         $('game-chat-messages').appendChild(el);
         $('game-chat-messages').scrollTop = $('game-chat-messages').scrollHeight;
     });

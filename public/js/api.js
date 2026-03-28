@@ -74,6 +74,27 @@ window.QV = window.QV || {};
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    /** Build a small clickable avatar+username HTML fragment. */
+    QV.userBadgeHtml = function (userId, username, photoURL, size) {
+        size = size || 24;
+        const esc = QV.escapeHtml(username || '?');
+        const letter = (username || '?')[0].toUpperCase();
+        const img = photoURL
+            ? `<img class="chat-avatar" src="${QV.escapeHtml(photoURL)}" alt="" style="width:${size}px;height:${size}px" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="chat-avatar-letter" style="width:${size}px;height:${size}px;display:none">${letter}</span>`
+            : `<span class="chat-avatar-letter" style="width:${size}px;height:${size}px">${letter}</span>`;
+        return `<span class="clickable-user" data-user-id="${QV.escapeHtml(userId || '')}">${img}<span class="clickable-user-name">${esc}</span></span>`;
+    };
+
+    /** Delegate: clicking any .clickable-user opens the profile popup */
+    document.addEventListener('click', (e) => {
+        const el = e.target.closest('.clickable-user[data-user-id]');
+        if (!el) return;
+        const uid = el.dataset.userId;
+        if (uid && typeof QV.openUserProfile === 'function') {
+            QV.openUserProfile(uid);
+        }
+    });
+
     QV.getRankColor = function (elo) {
         if (elo >= 2000) return '#e74c3c';
         if (elo >= 1800) return '#9b59b6';

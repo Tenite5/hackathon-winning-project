@@ -101,11 +101,16 @@ router.post('/profile/update-settings', requireAuth, (req, res) => {
 });
 
 /**
- * GET /profile/match-history
- * Returns the authenticated user's match history.
+ * GET /profile/match-history?page=1&limit=10
+ * Returns the authenticated user's match history, paginated.
  */
 router.get('/profile/match-history', requireAuth, (req, res) => {
-    res.json({ matches: req.user.matchHistory || [] });
+    const all = req.user.matchHistory || [];
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+    const start = (page - 1) * limit;
+    const matches = all.slice(start, start + limit);
+    res.json({ matches, total: all.length, page, limit });
 });
 
 /**

@@ -174,6 +174,20 @@
         }
     }
 
+    $('btn-igp-view-full').addEventListener('click', () => {
+        if (_igpUserId) {
+            QV.hideModal('modal-ingame-profile');
+            QV.openUserProfile(_igpUserId);
+        }
+    });
+
+    $('igp-username').addEventListener('click', () => {
+        if (_igpUserId) {
+            QV.hideModal('modal-ingame-profile');
+            QV.openUserProfile(_igpUserId);
+        }
+    });
+
     $('btn-igp-add-friend').addEventListener('click', async () => {
         if (!_igpUserId) return;
         try {
@@ -327,6 +341,26 @@
         clearGameState();
         showView('view-game');
         toast('Game starting!', 'info');
+    });
+
+    // ── Cancel / Leave from generating overlay ────────────────
+    $('btn-cancel-generating').addEventListener('click', () => {
+        $('overlay-generating').classList.add('hidden');
+        if (typeof QV !== 'undefined' && QV.stopLoadingTips) QV.stopLoadingTips();
+        clearTimeout(_soloGenTimeout);
+        state.isStartingGame = false;
+        $('btn-start-solo').disabled = false;
+
+        // Leave whatever we're waiting in
+        if (state.currentLobbyId) {
+            socket.emit('leave-lobby', { lobbyId: state.currentLobbyId });
+            state.currentLobbyId = null;
+        }
+        socket.emit('queue-leave');
+
+        showView('view-dashboard');
+        showPanel('home');
+        toast('Cancelled.', 'info');
     });
 
     // ── Game Question ──────────────────────────────────────────
@@ -534,7 +568,7 @@
                     row.className = `round-result-row ${rankClass}`;
                     row.innerHTML = `
                         <span class="round-result-rank">#${idx + 1}</span>
-                        <span class="round-result-name">${isMe ? '⭐ ' : ''}${escapeHtml(p.username)}</span>
+                        <span class="round-result-name clickable-user" data-user-id="${p.userId}" style="cursor:pointer">${isMe ? '⭐ ' : ''}${escapeHtml(p.username)}</span>
                         <span class="round-result-score">${p.score} pts</span>
                         <span class="round-result-change ${changeClass}">${pointsThisRound > 0 ? '+' + pointsThisRound : pointsThisRound === 0 ? '+0' : ''}</span>
                     `;
@@ -608,8 +642,12 @@
         (data.players || []).forEach(p => {
             const card = document.createElement('div');
             card.className = `go-score-card ${data.winner && p.userId === data.winner.userId ? 'winner' : ''}`;
+            const avatarHtml = p.photoURL
+                ? `<img class="go-score-avatar" src="${escapeHtml(p.photoURL)}" alt="" />`
+                : `<div class="go-score-avatar go-score-avatar-letter">${(p.username || '?')[0].toUpperCase()}</div>`;
             card.innerHTML = `
-                <div class="go-score-name">${escapeHtml(p.username)}</div>
+                ${avatarHtml}
+                <div class="go-score-name clickable-user" data-user-id="${p.userId}" style="cursor:pointer">${escapeHtml(p.username)}</div>
                 <div class="go-score-value">${p.score}</div>
             `;
             scoresEl.appendChild(card);

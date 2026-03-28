@@ -1,3 +1,28 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+error.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# AI assistant configs (tool-specific, not project context)
+.claude/
+.copilot/
+
+# Admin panel (local dev only)
 admin/

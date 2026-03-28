@@ -119,20 +119,38 @@
     });
 
     // ═══════════════════════════════════════════════════════════════
-    // MATCH HISTORY
+    // MATCH HISTORY (paginated)
     // ═══════════════════════════════════════════════════════════════
+    let _mhPage = 1;
+    const MH_LIMIT = 10;
+    let _mhTotal = 0;
+
     QV.loadMatchHistory = async function loadMatchHistory() {
+        _mhPage = 1;
         try {
-            const data = await api('/profile/match-history');
-            renderMatchHistory(data.matches || []);
+            const data = await api(`/profile/match-history?page=1&limit=${MH_LIMIT}`);
+            _mhTotal = data.total || 0;
+            renderMatchHistory(data.matches || [], true);
         } catch (err) {
             console.error('Match history error:', err);
         }
     };
 
-    function renderMatchHistory(matches) {
+    async function loadMoreMatches() {
+        _mhPage++;
+        try {
+            const data = await api(`/profile/match-history?page=${_mhPage}&limit=${MH_LIMIT}`);
+            _mhTotal = data.total || 0;
+            renderMatchHistory(data.matches || [], false);
+        } catch (err) {
+            console.error('Match history load more error:', err);
+        }
+    }
+
+    function renderMatchHistory(matches, reset) {
         const list = $('match-history-list');
-        if (!matches.length) {
+
+        if (reset && !matches.length) {
             list.innerHTML = `
                 <div class="match-history-empty">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
@@ -146,7 +164,12 @@
             return;
         }
 
-        list.innerHTML = '';
+        if (reset) list.innerHTML = '';
+
+        // Remove existing pagination controls before appending new rows
+        const oldPag = list.querySelector('.mh-pagination');
+        if (oldPag) oldPag.remove();
+
         matches.forEach(m => {
             const row = document.createElement('div');
             row.className = `mh-row mh-${m.result}`;
@@ -184,19 +207,89 @@
             `;
             list.appendChild(row);
         });
+
+        // Add pagination controls
+        const shown = list.querySelectorAll('.mh-row').length;
+        if (shown < _mhTotal) {
+            const pag = document.createElement('div');
+            pag.className = 'mh-pagination';
+            pag.innerHTML = `
+                <button class="btn btn-ghost btn-sm mh-load-more">Load More</button>
+                <span class="mh-page-info">${shown} of ${_mhTotal}</span>
+            `;
+            pag.querySelector('.mh-load-more').addEventListener('click', loadMoreMatches);
+            list.appendChild(pag);
+        } else if (_mhTotal > MH_LIMIT) {
+            const pag = document.createElement('div');
+            pag.className = 'mh-pagination';
+            pag.innerHTML = `<span class="mh-page-info">All ${_mhTotal} matches shown</span>`;
+            list.appendChild(pag);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // ELO HISTORY CHART (Canvas)
+    // ELO HISTORY CHART (Canvas) — with time filters + tooltip
     // ═══════════════════════════════════════════════════════════════
+    let _eloFullHistory = [];
+    let _eloFilter = 'all';
+
     QV.loadEloHistory = async function loadEloHistory() {
         try {
             const data = await api('/profile/elo-history');
-            renderEloChart(data.history || []);
+            _eloFullHistory = data.history || [];
+            renderEloFilterBar();
+            renderEloChart(filterEloHistory(_eloFullHistory, _eloFilter));
         } catch (err) {
             console.error('ELO history error:', err);
         }
     };
+
+    function filterEloHistory(history, filter) {
+        if (filter === 'all' || !history.length) return history;
+        const now = Date.now();
+        const cutoffs = { '1w': 7 * 86400000, '1m': 30 * 86400000, '3m': 90 * 86400000 };
+        const cutoff = now - (cutoffs[filter] || 0);
+        return history.filter(h => h.timestamp >= cutoff);
+    }
+
+    function renderEloFilterBar() {
+        const section = $('elo-history-section');
+        if (section.querySelector('.elo-filter-bar')) return; // already rendered
+
+        const bar = document.createElement('div');
+        bar.className = 'elo-filter-bar';
+        const filters = [
+            { key: '1w', label: '1 Week' },
+            { key: '1m', label: '1 Month' },
+            { key: '3m', label: '3 Months' },
+            { key: 'all', label: 'All Time' },
+        ];
+        filters.forEach(f => {
+            const btn = document.createElement('button');
+            btn.className = 'elo-filter-btn' + (f.key === _eloFilter ? ' active' : '');
+            btn.textContent = f.label;
+            btn.dataset.filter = f.key;
+            btn.addEventListener('click', () => {
+                _eloFilter = f.key;
+                bar.querySelectorAll('.elo-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f.key));
+                renderEloChart(filterEloHistory(_eloFullHistory, _eloFilter));
+            });
+            bar.appendChild(btn);
+        });
+        const header = section.querySelector('.section-header');
+        header.after(bar);
+    }
+
+    // Tooltip element (shared)
+    let _eloTooltip = null;
+    function getEloTooltip() {
+        if (!_eloTooltip) {
+            _eloTooltip = document.createElement('div');
+            _eloTooltip.className = 'elo-tooltip';
+            document.body.appendChild(_eloTooltip);
+        }
+        return _eloTooltip;
+    }
 
     function renderEloChart(history) {
         const canvas = $('elo-chart');
@@ -211,115 +304,161 @@
         canvas.style.display = 'block';
         emptyMsg.classList.add('hidden');
 
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const accentColor = isDark ? '#818cf8' : '#4F46E5';
+        const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+        const labelColor = isDark ? '#888' : '#999';
+        const dotStroke = isDark ? '#1e1e2e' : '#fff';
+
         const ctx = canvas.getContext('2d');
         const dpr = window.devicePixelRatio || 1;
 
-        // Make canvas sharp on high-DPI
         const rect = canvas.parentElement.getBoundingClientRect();
         canvas.width = rect.width * dpr;
-        canvas.height = 200 * dpr;
+        canvas.height = 220 * dpr;
         canvas.style.width = rect.width + 'px';
-        canvas.style.height = '200px';
+        canvas.style.height = '220px';
         ctx.scale(dpr, dpr);
 
         const W = rect.width;
-        const H = 200;
-        const PAD = { top: 20, right: 20, bottom: 30, left: 50 };
+        const H = 220;
+        const PAD = { top: 24, right: 24, bottom: 32, left: 50 };
         const cW = W - PAD.left - PAD.right;
         const cH = H - PAD.top - PAD.bottom;
 
         const elos = history.map(h => h.elo);
-        const minElo = Math.min(...elos) - 20;
-        const maxElo = Math.max(...elos) + 20;
+        const minElo = Math.min(...elos) - 25;
+        const maxElo = Math.max(...elos) + 25;
         const eloRange = maxElo - minElo || 1;
 
         ctx.clearRect(0, 0, W, H);
 
-        // Background
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-        ctx.fillRect(0, 0, W, H);
-
         // Grid lines
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
+        ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
         const gridSteps = 4;
         for (let i = 0; i <= gridSteps; i++) {
             const y = PAD.top + (cH / gridSteps) * i;
             ctx.beginPath();
+            ctx.setLineDash([4, 4]);
             ctx.moveTo(PAD.left, y);
             ctx.lineTo(W - PAD.right, y);
             ctx.stroke();
+            ctx.setLineDash([]);
 
-            // Y-axis labels
             const val = Math.round(maxElo - (eloRange / gridSteps) * i);
-            ctx.fillStyle = '#999';
+            ctx.fillStyle = labelColor;
             ctx.font = '11px Inter, system-ui, sans-serif';
             ctx.textAlign = 'right';
             ctx.fillText(val, PAD.left - 8, y + 4);
         }
 
-        // Plot line
+        // Compute pixel points
         const points = history.map((h, i) => ({
             x: PAD.left + (i / (history.length - 1)) * cW,
             y: PAD.top + cH - ((h.elo - minElo) / eloRange) * cH,
+            elo: h.elo,
+            ts: h.timestamp,
         }));
 
-        // Gradient fill under line
-        const grad = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
-        grad.addColorStop(0, 'rgba(79, 70, 229, 0.25)');
-        grad.addColorStop(1, 'rgba(79, 70, 229, 0.02)');
+        // Smooth Bézier helper
+        function drawSmoothLine(pts) {
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            if (pts.length === 2) {
+                ctx.lineTo(pts[1].x, pts[1].y);
+            } else {
+                for (let i = 1; i < pts.length; i++) {
+                    const prev = pts[i - 1];
+                    const cur = pts[i];
+                    const cpx = (prev.x + cur.x) / 2;
+                    ctx.bezierCurveTo(cpx, prev.y, cpx, cur.y, cur.x, cur.y);
+                }
+            }
+        }
 
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, H - PAD.bottom);
-        points.forEach(p => ctx.lineTo(p.x, p.y));
+        // Gradient fill under curve
+        const grad = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
+        grad.addColorStop(0, isDark ? 'rgba(129,140,248,0.22)' : 'rgba(79,70,229,0.18)');
+        grad.addColorStop(1, 'rgba(79,70,229,0.01)');
+
+        drawSmoothLine(points);
         ctx.lineTo(points[points.length - 1].x, H - PAD.bottom);
+        ctx.lineTo(points[0].x, H - PAD.bottom);
         ctx.closePath();
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // Line
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length; i++) {
-            ctx.lineTo(points[i].x, points[i].y);
-        }
-        ctx.strokeStyle = '#4F46E5';
+        // Smooth line stroke
+        drawSmoothLine(points);
+        ctx.strokeStyle = accentColor;
         ctx.lineWidth = 2.5;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        // Dots
-        points.forEach((p, i) => {
+        // Dots (smaller for many points, larger for few)
+        const dotR = points.length > 30 ? 2 : 3.5;
+        points.forEach(p => {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-            ctx.fillStyle = '#4F46E5';
+            ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
+            ctx.fillStyle = accentColor;
             ctx.fill();
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = dotStroke;
             ctx.lineWidth = 1.5;
             ctx.stroke();
         });
 
         // Current ELO label at last point
         const last = points[points.length - 1];
-        ctx.fillStyle = '#4F46E5';
+        ctx.fillStyle = accentColor;
         ctx.font = 'bold 12px Inter, system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(elos[elos.length - 1], last.x, last.y - 10);
+        ctx.fillText(elos[elos.length - 1], last.x, last.y - 12);
 
         // X-axis labels (first and last date)
-        ctx.fillStyle = '#999';
+        ctx.fillStyle = labelColor;
         ctx.font = '10px Inter, system-ui, sans-serif';
+        const fmtDate = ts => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         ctx.textAlign = 'left';
-        ctx.fillText(
-            new Date(history[0].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            PAD.left, H - 6
-        );
+        ctx.fillText(fmtDate(history[0].timestamp), PAD.left, H - 6);
         ctx.textAlign = 'right';
-        ctx.fillText(
-            new Date(history[history.length - 1].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            W - PAD.right, H - 6
-        );
+        ctx.fillText(fmtDate(history[history.length - 1].timestamp), W - PAD.right, H - 6);
+
+        // ── Interactive tooltip on hover ──────────────────────────
+        if (canvas._eloAC) canvas._eloAC.abort();
+        const ac = new AbortController();
+        canvas._eloAC = ac;
+
+        canvas.addEventListener('mousemove', (e) => {
+            const cRect = canvas.getBoundingClientRect();
+            const mx = e.clientX - cRect.left;
+            let closest = null, minDist = Infinity;
+            for (const p of points) {
+                const d = Math.abs(p.x - mx);
+                if (d < minDist) { minDist = d; closest = p; }
+            }
+            if (closest && minDist < 30) {
+                const tip = getEloTooltip();
+                const dateStr = new Date(closest.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const timeStr = new Date(closest.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                tip.innerHTML = `<strong>${closest.elo}</strong><br>${dateStr} ${timeStr}`;
+                tip.style.display = 'block';
+                // Position tooltip above the point
+                const tipX = e.pageX;
+                const tipY = cRect.top + window.scrollY + closest.y / dpr - 50;
+                tip.style.left = tipX + 'px';
+                tip.style.top = tipY + 'px';
+                canvas.style.cursor = 'crosshair';
+            } else {
+                getEloTooltip().style.display = 'none';
+                canvas.style.cursor = 'default';
+            }
+        }, { signal: ac.signal });
+
+        canvas.addEventListener('mouseleave', () => {
+            getEloTooltip().style.display = 'none';
+        }, { signal: ac.signal });
     }
 
     // ═══════════════════════════════════════════════════════════════

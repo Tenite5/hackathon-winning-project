@@ -15,7 +15,7 @@ module.exports = function (io, socket, getCurrentUser) {
         if (!currentUser) return;
         const cleanText = sanitizeText(text, 200);
         if (!cleanText) return;
-        const msg = { userId: currentUser.id, username: currentUser.username, text: cleanText, ts: Date.now() };
+        const msg = { userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, text: cleanText, ts: Date.now() };
         db.globalChat.push(msg);
         if (db.globalChat.length > 100) db.globalChat.shift();
         io.emit('global-chat-msg', msg);

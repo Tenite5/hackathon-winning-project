@@ -73,7 +73,7 @@ module.exports = function (io, socket, getCurrentUser) {
             maxPlayers: validateInt(maxPlayers, 2, 8, 2),
             questionCount: qCount,
             timeLimit: validateInt(timeLimit, 5, 30, 10),
-            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: true }],
+            players: [{ userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, socketId: socket.id, score: 0, answers: [], ready: true }],
             status: 'waiting',
             createdAt: Date.now(),
             expiresAt: Date.now() + 10 * 60 * 1000,
@@ -151,7 +151,7 @@ module.exports = function (io, socket, getCurrentUser) {
 
         if (lobby.players.length >= lobby.maxPlayers) return socket.emit('lobby-error', 'Lobby full');
 
-        lobby.players.push({ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: false });
+        lobby.players.push({ userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, socketId: socket.id, score: 0, answers: [], ready: false });
         socket.join(lobby.id);
 
         io.to(lobby.id).emit('lobby-updated', lobby);
@@ -348,7 +348,7 @@ module.exports = function (io, socket, getCurrentUser) {
             id: gameId,
             type: 'solo',
             topic: cleanTopic,
-            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [] }],
+            players: [{ userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, socketId: socket.id, score: 0, answers: [] }],
             questions,
             currentQuestion: 0,
             timeLimit: tLimit,
@@ -403,7 +403,7 @@ module.exports = function (io, socket, getCurrentUser) {
             id: gameId,
             type: 'solo',
             topic: `📚 ${preset.name}`,
-            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [] }],
+            players: [{ userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, socketId: socket.id, score: 0, answers: [] }],
             questions,
             currentQuestion: 0,
             timeLimit,
@@ -443,7 +443,7 @@ module.exports = function (io, socket, getCurrentUser) {
             id: gameId,
             type: 'solo',
             topic: `📄 ${cleanTopic}`,
-            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [] }],
+            players: [{ userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, socketId: socket.id, score: 0, answers: [] }],
             questions: questions.slice(0, 20),
             currentQuestion: 0,
             timeLimit: tLimit,
@@ -484,7 +484,7 @@ module.exports = function (io, socket, getCurrentUser) {
             maxPlayers: validateInt(maxPlayers, 2, 8, 2),
             questionCount: questions.length,
             timeLimit: validateInt(timeLimit, 5, 60, 15),
-            players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: true }],
+            players: [{ userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, socketId: socket.id, score: 0, answers: [], ready: true }],
             presetQuestions: questions.slice(0, 20),
             status: 'waiting',
             createdAt: Date.now(),
@@ -515,48 +515,31 @@ module.exports = function (io, socket, getCurrentUser) {
         const tLimit = rawTime === 0 ? 0 : validateInt(timeLimit, 5, 120, 15);
 
         if (mode === 'solo') {
-            const gameId = uuidv4();
-            const game = {
-                id: gameId,
-                type: 'solo',
-                topic: `✏️ ${cleanTopic}`,
-                players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [] }],
-                questions: questions.slice(0, 30),
-                currentQuestion: 0,
-                timeLimit: tLimit,
-                questionStartTime: null,
-                status: 'playing',
-                chat: [],
-                createdAt: Date.now(),
-            };
-            db.games.set(gameId, game);
-            socket.join(gameId);
-            socket.emit('solo-game-start', { gameId });
-            setTimeout(() => startGameQuestion(gameId, io), 1500);
-        } else {
-            const lobbyId = uuidv4();
-            const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const lobby = {
-                id: lobbyId,
-                inviteCode,
-                topic: `✏️ ${cleanTopic}`,
-                isPublic: isPublic !== false,
-                ranked: false,
-                hostId: currentUser.id,
-                hostUsername: currentUser.username,
-                maxPlayers: validateInt(maxPlayers, 2, 8, 2),
-                questionCount: questions.length,
-                timeLimit: tLimit || 15,
-                players: [{ userId: currentUser.id, username: currentUser.username, socketId: socket.id, score: 0, answers: [], ready: true }],
-                presetQuestions: questions.slice(0, 30),
-                status: 'waiting',
-                createdAt: Date.now(),
-                expiresAt: Date.now() + 15 * 60 * 1000,
-            };
-            db.lobbies.set(lobbyId, lobby);
-            socket.join(lobbyId);
-            socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
-            io.emit('lobbies-updated');
+            return socket.emit('game-error', 'Solo practice is not available for custom quizzes — you already know the answers!');
         }
+
+        const lobbyId = uuidv4();
+        const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const lobby = {
+            id: lobbyId,
+            inviteCode,
+            topic: `✏️ ${cleanTopic}`,
+            isPublic: isPublic !== false,
+            ranked: false,
+            hostId: currentUser.id,
+            hostUsername: currentUser.username,
+            maxPlayers: validateInt(maxPlayers, 2, 8, 2),
+            questionCount: questions.length,
+            timeLimit: tLimit || 15,
+            players: [{ userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, socketId: socket.id, score: 0, answers: [], ready: true }],
+            presetQuestions: questions.slice(0, 30),
+            status: 'waiting',
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 15 * 60 * 1000,
+        };
+        db.lobbies.set(lobbyId, lobby);
+        socket.join(lobbyId);
+        socket.emit('lobby-created', { lobbyId, inviteCode, lobby });
+        io.emit('lobbies-updated');
     });
 };

@@ -86,9 +86,12 @@
         lobby.players.forEach(p => {
             const card = document.createElement('div');
             card.className = `lobby-player-card ${p.ready ? 'ready' : ''}`;
+            const avatarHtml = p.photoURL
+                ? `<img class="lobby-player-avatar" src="${escapeHtml(p.photoURL)}" alt="" style="object-fit:cover" onerror="this.outerHTML='<div class=\\'lobby-player-avatar\\'>${p.username[0].toUpperCase()}</div>'" />`
+                : `<div class="lobby-player-avatar">${p.username[0].toUpperCase()}</div>`;
             card.innerHTML = `
-                <div class="lobby-player-avatar">${p.username[0].toUpperCase()}</div>
-                <div class="lobby-player-name">${p.username}</div>
+                ${avatarHtml}
+                <div class="lobby-player-name clickable-user" data-user-id="${p.userId}" style="cursor:pointer">${escapeHtml(p.username)}</div>
                 <div class="lobby-player-status ${p.ready ? 'ready-yes' : 'ready-no'}">${p.ready ? '✓ Ready' : 'Waiting...'}</div>
             `;
             list.appendChild(card);

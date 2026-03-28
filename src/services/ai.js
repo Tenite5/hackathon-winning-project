@@ -10,7 +10,7 @@ const Groq = require('groq-sdk');
 
 // Gemini — used only for question generation
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const GEMINI_MODEL = 'gemini-3-flash-preview';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 // Groq — used for bio generation and mistake explanations (fast inference)
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });

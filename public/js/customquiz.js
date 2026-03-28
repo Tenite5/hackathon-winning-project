@@ -19,20 +19,9 @@
         validateForm();
     });
 
-    // ── Game type toggle (solo vs custom lobby) ───────────────
-    document.querySelectorAll('input[name="cq-game-type"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-            const lobbyOpts = $('cq-lobby-options');
-            const labels = document.querySelectorAll('#modal-custom-quiz .pdf-game-radio');
-            labels.forEach(l => l.classList.remove('active'));
-            radio.closest('.pdf-game-radio').classList.add('active');
-            if (radio.value === 'custom') {
-                lobbyOpts.classList.remove('hidden');
-            } else {
-                lobbyOpts.classList.add('hidden');
-            }
-        });
-    });
+    // ── Custom quiz always creates a lobby (solo disabled for user-created questions) ──
+    const cqLobbyOpts = $('cq-lobby-options');
+    if (cqLobbyOpts) cqLobbyOpts.classList.remove('hidden');
 
     // ── Add question ──────────────────────────────────────────
     $('btn-cq-add-question').addEventListener('click', addQuestion);
@@ -197,6 +186,6 @@
             isPublic,
         });
         hideModal('modal-custom-quiz');
-        toast(gameType === 'solo' ? 'Starting your custom quiz...' : 'Creating custom quiz lobby...', 'success');
+        toast('Creating custom quiz lobby...', 'success');
     });
 })();

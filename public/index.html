@@ -1270,6 +1270,9 @@
 
       <!-- Cycling tip -->
       <p class="generating-tip" id="generating-tip-text"></p>
+
+      <!-- Cancel / Leave button -->
+      <button class="btn btn-ghost" id="btn-cancel-generating" style="margin-top: 1.25rem;">Cancel</button>
     </div>
   </div>
 
@@ -1686,7 +1689,7 @@
           <span id="igp-avatar-letter"></span>
         </div>
         <div class="ingame-profile-info">
-          <div class="ingame-profile-name" id="igp-username"></div>
+          <div class="ingame-profile-name clickable-user" id="igp-username" style="cursor:pointer"></div>
           <div class="ingame-profile-rank" id="igp-rank"></div>
           <div class="ingame-profile-elo" id="igp-elo"></div>
         </div>
@@ -1698,6 +1701,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn btn-primary btn-sm" id="btn-igp-add-friend">Add Friend</button>
+        <button class="btn btn-ghost btn-sm" id="btn-igp-view-full">View Full Profile</button>
         <button class="btn btn-ghost btn-sm" data-close-modal="modal-ingame-profile">Close</button>
       </div>
     </div>
@@ -1861,17 +1865,13 @@
         <label style="font-weight:600; margin-bottom: 0.5rem; display:block;">Play as:</label>
         <div class="pdf-game-type-btns">
           <label class="pdf-game-radio active">
-            <input type="radio" name="cq-game-type" value="solo" checked />
-            <span>Solo Practice</span>
-          </label>
-          <label class="pdf-game-radio">
-            <input type="radio" name="cq-game-type" value="custom" />
+            <input type="radio" name="cq-game-type" value="custom" checked />
             <span>Custom Lobby</span>
           </label>
         </div>
       </div>
 
-      <div id="cq-lobby-options" class="hidden">
+      <div id="cq-lobby-options">
         <div class="input-row">
           <div class="input-group">
             <label for="cq-max-players">Max Players</label>

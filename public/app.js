@@ -663,7 +663,7 @@
                     row.className = `round-result-row ${rankClass}`;
                     row.innerHTML = `
                         <span class="round-result-rank">#${idx + 1}</span>
-                        <span class="round-result-name">${isMe ? '⭐ ' : ''}${escapeHtml(p.username)}</span>
+                        <span class="round-result-name clickable-user" data-user-id="${p.userId}" style="cursor:pointer">${isMe ? '⭐ ' : ''}${escapeHtml(p.username)}</span>
                         <span class="round-result-score">${p.score} pts</span>
                         <span class="round-result-change ${changeClass}">${pointsThisRound > 0 ? '+' + pointsThisRound : pointsThisRound === 0 ? '+0' : ''}</span>
                     `;
@@ -704,7 +704,7 @@
     socket.on('game-chat-msg', (msg) => {
         const el = document.createElement('div');
         el.className = 'chat-msg';
-        el.innerHTML = `<span class="chat-msg-author">${msg.username}:</span> <span class="chat-msg-text">${escapeHtml(msg.text)}</span>`;
+        el.innerHTML = `${QV.userBadgeHtml(msg.userId, msg.username, msg.photoURL, 20)} <span class="chat-msg-text">${escapeHtml(msg.text)}</span>`;
         $('game-chat-messages').appendChild(el);
         $('game-chat-messages').scrollTop = $('game-chat-messages').scrollHeight;
     });
@@ -738,7 +738,7 @@
         const el = document.createElement('div');
         el.className = 'chat-msg';
         el.innerHTML = `
-      <span class="chat-msg-author">${escapeHtml(msg.username)}:</span>
+      ${QV.userBadgeHtml(msg.userId, msg.username, msg.photoURL, 22)}
       <span class="chat-msg-text">${escapeHtml(msg.text)}</span>
       <span class="chat-msg-time">${formatTime(msg.ts)}</span>
     `;

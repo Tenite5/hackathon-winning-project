@@ -367,6 +367,7 @@ function endGame(gameId, io) {
                     return {
                         userId: p.userId,
                         username: p.username,
+                        photoURL: u ? (u.photoURL || null) : null,
                         score: p.score,
                         answers: p.answers,
                         elo: u ? u.elo : 0,
@@ -426,12 +427,16 @@ function endGame(gameId, io) {
         winner: isDraw ? null : { userId: winner.userId, username: winner.username, score: winner.score },
         isDraw,
         playerCount: game.players.length,
-        players: game.players.map(p => ({
-            userId: p.userId,
-            username: p.username,
-            score: p.score,
-            answers: p.answers,
-        })),
+        players: game.players.map(p => {
+            const pu = db.users.get(p.userId);
+            return {
+                userId: p.userId,
+                username: p.username,
+                photoURL: pu ? (pu.photoURL || null) : null,
+                score: p.score,
+                answers: p.answers,
+            };
+        }),
         questions: game.questions.map(sanitizeQuestionForReview),
         topic: game.topic,
     });
