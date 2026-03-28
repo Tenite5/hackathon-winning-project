@@ -519,6 +519,12 @@
         }
     };
 
+    // Clicking the profile header in the full profile modal scrolls to match history
+    $('modal-profile-header-link').addEventListener('click', () => {
+        const section = $('modal-match-history-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
     // ── Public profile match history ──────────────────────────
     async function loadModalMatchHistory(userId) {
         const list = $('modal-match-history-list');
