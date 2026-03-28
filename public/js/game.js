@@ -174,14 +174,8 @@
         }
     }
 
-    $('btn-igp-view-full').addEventListener('click', () => {
-        if (_igpUserId) {
-            QV.hideModal('modal-ingame-profile');
-            QV.openUserProfile(_igpUserId);
-        }
-    });
-
-    $('igp-username').addEventListener('click', () => {
+    // Clicking the header area (avatar + name) opens the full profile
+    $('igp-header-link').addEventListener('click', () => {
         if (_igpUserId) {
             QV.hideModal('modal-ingame-profile');
             QV.openUserProfile(_igpUserId);

@@ -1683,16 +1683,17 @@
   <div id="modal-ingame-profile" class="modal hidden">
     <div class="modal-backdrop" data-close-modal="modal-ingame-profile"></div>
     <div class="modal-content glass-card ingame-profile-popup">
-      <div class="ingame-profile-header">
+      <div class="ingame-profile-header profile-clickable-header" id="igp-header-link" title="View full profile">
         <div class="ingame-profile-avatar" id="igp-avatar">
           <img id="igp-avatar-img" src="" alt="" class="hidden" />
           <span id="igp-avatar-letter"></span>
         </div>
         <div class="ingame-profile-info">
-          <div class="ingame-profile-name clickable-user" id="igp-username" style="cursor:pointer"></div>
+          <div class="ingame-profile-name" id="igp-username"></div>
           <div class="ingame-profile-rank" id="igp-rank"></div>
           <div class="ingame-profile-elo" id="igp-elo"></div>
         </div>
+        <svg class="profile-link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
       <div class="ingame-profile-stats">
         <div class="igp-stat"><span id="igp-wins">0</span><span>Wins</span></div>
@@ -1701,7 +1702,6 @@
       </div>
       <div class="modal-actions">
         <button class="btn btn-primary btn-sm" id="btn-igp-add-friend">Add Friend</button>
-        <button class="btn btn-ghost btn-sm" id="btn-igp-view-full">View Full Profile</button>
         <button class="btn btn-ghost btn-sm" data-close-modal="modal-ingame-profile">Close</button>
       </div>
     </div>

@@ -785,7 +785,7 @@
           <span class="lb-elo">${user.elo}</span>
           <span class="lb-badge" style="background: ${user.rank.color}20; color: ${user.rank.color}">${user.rank.name}</span>
         `;
-                row.addEventListener('click', () => openUserProfile(user.id));
+                row.addEventListener('click', () => QV.openUserProfile(user.id));
                 table.appendChild(row);
             });
         } catch (err) {
@@ -1125,52 +1125,12 @@
     socket.on('challenge-error', (msg) => toast(msg, 'error'));
 
     // ═══════════════════════════════════════════════════════════════
-    // PUBLIC PROFILE VIEWER
-    // ═══════════════════════════════════════════════════════════════
-    let _modalProfileUserId = null;
-
-    async function openUserProfile(userId) {
-        _modalProfileUserId = userId;
-        try {
-            const data = await api(`/profile/${userId}`);
-            const u = data.user;
-
-            $('modal-profile-avatar-letter').textContent = u.username[0].toUpperCase();
-            $('modal-profile-username').textContent = u.username;
-            $('modal-profile-rank-icon').style.background = u.rank.color;
-            $('modal-profile-rank-name').textContent = u.rank.name;
-            $('modal-profile-elo').textContent = u.elo;
-            $('modal-profile-bio').textContent = u.bio || 'No bio yet.';
-
-            $('modal-stat-wins').textContent = u.stats.totalWins || 0;
-            $('modal-stat-losses').textContent = u.stats.totalLosses || 0;
-            $('modal-stat-games').textContent = u.stats.gamesPlayed || 0;
-            const acc = u.stats.totalAnswers > 0
-                ? Math.round((u.stats.correctAnswers / u.stats.totalAnswers) * 100)
-                : 0;
-            $('modal-stat-accuracy').textContent = acc + '%';
-
-            // Show add-friend button (hide if viewing own profile or already friends)
-            const addFriendBtn = $('btn-modal-add-friend');
-            if (addFriendBtn && state.user && userId !== state.user.id) {
-                const alreadyFriend = state.user.friends && state.user.friends.includes(userId);
-                addFriendBtn.classList.remove('hidden');
-                addFriendBtn.disabled = alreadyFriend;
-                addFriendBtn.textContent = alreadyFriend ? 'Friends ✓' : 'Add Friend';
-            } else if (addFriendBtn) {
-                addFriendBtn.classList.add('hidden');
-            }
-
-            showModal('modal-user-profile');
-        } catch (err) {
-            toast('Could not load profile: ' + err.message, 'error');
-        }
-    }
-
+    // PUBLIC PROFILE VIEWER — handled by /js/profile.js (QV.openUserProfile)
+    // Only the add-friend button handler remains here.
     const btnModalAddFriend = $('btn-modal-add-friend');
     if (btnModalAddFriend) {
         btnModalAddFriend.addEventListener('click', async () => {
-            const targetId = _modalProfileUserId || QV._viewingProfileUserId;
+            const targetId = QV._viewingProfileUserId;
             if (!targetId) return;
             try {
                 await api(`/friends/request/${targetId}`, { method: 'POST' });
@@ -1182,9 +1142,6 @@
             }
         });
     }
-
-    // Expose globally so other modules can open profile modals
-    QV.openUserProfile = openUserProfile;
 
     // ═══════════════════════════════════════════════════════════════
     // UTILITY
