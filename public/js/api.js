@@ -458,6 +458,9 @@ window.QV = window.QV || {};
     const navAvatar = QV.$('nav-avatar');
     if (navAvatar) {
         navAvatar.style.cursor = 'pointer';
-        navAvatar.addEventListener('click', () => QV.showPanel('profile'));
+        navAvatar.addEventListener('click', () => {
+            if (QV.navigateTo) QV.navigateTo('/profile');
+            else QV.showPanel('profile');
+        });
     }
 })();

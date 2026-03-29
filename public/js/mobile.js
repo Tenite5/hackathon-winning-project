@@ -7,13 +7,15 @@
     'use strict';
     const { $, $$, state, socket, showPanel } = QV;
 
-    // ── Mobile Bottom Nav ──────────────────────────────────────
+    // ── Mobile Bottom Nav (uses router for pushState / back-button)
     $$('.mobile-nav-btn[data-panel]').forEach(btn => {
         btn.addEventListener('click', () => {
-            showPanel(btn.dataset.panel);
-            if (btn.dataset.panel === 'leaderboard') QV.loadLeaderboard();
-            if (btn.dataset.panel === 'browser') QV.loadLobbies();
-            if (btn.dataset.panel === 'profile') QV.updateProfile();
+            var path = QV.panelToPath(btn.dataset.panel);
+            if (path) {
+                QV.navigateTo(path);
+            } else {
+                showPanel(btn.dataset.panel);
+            }
         });
     });
 
@@ -32,14 +34,16 @@
         });
     }
 
-    // ── More Menu Items ────────────────────────────────────────
+    // ── More Menu Items (uses router for pushState / back-button)
     $$('.mobile-more-item[data-panel]').forEach(btn => {
         btn.addEventListener('click', () => {
             $('mobile-more-menu').classList.add('hidden');
-            showPanel(btn.dataset.panel);
-            if (btn.dataset.panel === 'friends') QV.loadFriends();
-            if (btn.dataset.panel === 'tournament') QV.loadTournaments();
-            if (btn.dataset.panel === 'wronglog') QV.loadWrongQuestions();
+            var path = QV.panelToPath(btn.dataset.panel);
+            if (path) {
+                QV.navigateTo(path);
+            } else {
+                showPanel(btn.dataset.panel);
+            }
         });
     });
 

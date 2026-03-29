@@ -9,7 +9,8 @@
 
     // ── Tournament mode button ─────────────────────────────────
     if ($('btn-tournament-mode')) $('btn-tournament-mode').addEventListener('click', () => {
-        showPanel('tournament');
+        if (QV.navigateTo) QV.navigateTo('/tournaments');
+        else showPanel('tournament');
     });
 
     // ── Create tournament ──────────────────────────────────────

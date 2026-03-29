@@ -8,23 +8,16 @@
     const { $, $$, state, socket, showView, showPanel, hideModal } = QV;
 
     // ═══════════════════════════════════════════════════════════════
-    // SIDEBAR NAVIGATION
+    // SIDEBAR NAVIGATION (uses router for pushState / back-button)
     // ═══════════════════════════════════════════════════════════════
     $$('.sidebar-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            showPanel(btn.dataset.panel);
-            if (btn.dataset.panel === 'leaderboard') QV.loadLeaderboard();
-            if (btn.dataset.panel === 'friends') QV.loadFriends();
-            if (btn.dataset.panel === 'browser') QV.loadLobbies();
-            if (btn.dataset.panel === 'tournament') QV.loadTournaments();
-            if (btn.dataset.panel === 'profile') {
-                QV.updateProfile();
-                QV.loadMatchHistory();
-                QV.loadEloHistory();
+            var path = QV.panelToPath(btn.dataset.panel);
+            if (path) {
+                QV.navigateTo(path);
+            } else {
+                showPanel(btn.dataset.panel);
             }
-            if (btn.dataset.panel === 'wronglog') QV.loadWrongQuestions();
-            if (btn.dataset.panel === 'shop') QV.loadShop();
-            if (btn.dataset.panel === 'settings') QV.loadSettings();
         });
     });
 
@@ -62,6 +55,9 @@
         QV.loadTournaments();
         QV.updateProfile();
         if (QV.loadNotifications) QV.loadNotifications();
+
+        // Route to the correct panel based on the current URL
+        if (QV.router) QV.router.handleInitialRoute();
     }
 
     // Expose onAuthenticated so auth.js can call it

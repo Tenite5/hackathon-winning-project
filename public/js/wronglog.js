@@ -9,8 +9,8 @@
 
     // ── Wrong Answers button ───────────────────────────────────
     $('btn-wrong-answers').addEventListener('click', () => {
-        showPanel('wronglog');
-        QV.loadWrongQuestions();
+        if (QV.navigateTo) QV.navigateTo('/mistakes');
+        else { showPanel('wronglog'); QV.loadWrongQuestions(); }
     });
 
     // Auto-load when navigating to wronglog panel via sidebar
