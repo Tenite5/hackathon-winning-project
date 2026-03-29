@@ -51,6 +51,8 @@ const BOT_LOBBY_TOPICS = [
 ];
 
 const TARGET_BOT_LOBBIES = 6;    // maintain this many bot lobbies
+let _isReplenishing = false;     // guard against concurrent replenish runs
+let _consecutiveFailures = 0;    // track AI failures to back off
 const LOBBY_LIFETIME = 3 * 60 * 1000;  // 3 minutes before topic rotation
 const QUESTION_COUNT = 7;
 const TIME_LIMIT = 12;
@@ -157,7 +159,7 @@ function stripFillerBots(lobby) {
     lobby.players = lobby.players.filter(p => p.userId === lobby.hostId);
 }
 
-/** Create a single bot lobby with pre-generated questions. */
+/** Create a single bot lobby with pre-generated questions. Returns false on AI failure. */
 async function createBotLobby(io) {
     const bot = pickBotHost();
     if (!bot) return;
@@ -168,10 +170,14 @@ async function createBotLobby(io) {
     if (!questions) {
         try {
             questions = await generateQuestions(topic, QUESTION_COUNT);
+            _consecutiveFailures = 0; // reset on success
         } catch (err) {
-            console.warn('Bot lobby question generation failed:', err.message);
-            return;
+            _consecutiveFailures++;
+            console.warn(`Bot lobby question generation failed (${_consecutiveFailures} consecutive):`, err.message);
+            return false;
         }
+    } else {
+        _consecutiveFailures = 0; // cached questions count as success
     }
 
     if (!questions || questions.length < 3) return;
@@ -222,14 +228,31 @@ function countBotLobbies() {
 
 /** Replenish bot lobbies up to TARGET_BOT_LOBBIES. */
 async function replenishBotLobbies(io) {
-    const current = countBotLobbies();
-    const needed = TARGET_BOT_LOBBIES - current;
-    if (needed <= 0) return;
+    if (_isReplenishing) return; // prevent concurrent runs stacking AI calls
+    _isReplenishing = true;
 
-    for (let i = 0; i < needed; i++) {
-        // Stagger creation to avoid hammering AI
-        await new Promise(r => setTimeout(r, i * 3000));
-        await createBotLobby(io).catch(err => console.warn('Bot lobby creation error:', err.message));
+    try {
+        // If AI has been failing repeatedly, back off to avoid hammering
+        if (_consecutiveFailures >= 3) {
+            console.warn(`Bot lobby replenish skipped — ${_consecutiveFailures} consecutive AI failures, backing off`);
+            return;
+        }
+
+        const current = countBotLobbies();
+        const needed = TARGET_BOT_LOBBIES - current;
+        if (needed <= 0) return;
+
+        for (let i = 0; i < needed; i++) {
+            // Stagger creation to avoid hammering AI
+            await new Promise(r => setTimeout(r, i * 3000));
+            const ok = await createBotLobby(io);
+            if (ok === false) {
+                // AI failure — stop trying to create more this cycle
+                break;
+            }
+        }
+    } finally {
+        _isReplenishing = false;
     }
 }
 
@@ -338,6 +361,10 @@ function initBotLobbies(io) {
 
         // Periodic replenishment every 60s
         setInterval(() => {
+            // Gradually recover from AI failure backoff (reset after ~5 min)
+            if (_consecutiveFailures >= 3) {
+                _consecutiveFailures = Math.max(0, _consecutiveFailures - 1);
+            }
             replenishBotLobbies(io).catch(() => {});
         }, 60000);
 

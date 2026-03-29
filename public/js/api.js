@@ -37,9 +37,9 @@ window.QV = window.QV || {};
     QV.$ = function (id) { return document.getElementById(id); };
     QV.$$ = function (sel) { return document.querySelectorAll(sel); };
 
-    // ── API helper (with auto-retry on 429) ─────────────────
+    // ── API helper (with auto-retry on 429, max 2 retries) ──
     QV.api = async function (path, options = {}) {
-        const maxRetries = 3;
+        const maxRetries = 2;
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             const headers = { 'Content-Type': 'application/json' };
             if (QV.state.token) headers['Authorization'] = `Bearer ${QV.state.token}`;
@@ -50,8 +50,8 @@ window.QV = window.QV || {};
             });
 
             if (res.status === 429 && attempt < maxRetries) {
-                // Rate limited — wait and retry
-                const wait = Math.min((attempt + 1) * 1500, 5000);
+                // Rate limited — exponential backoff (1s, 3s)
+                const wait = attempt === 0 ? 1000 : 3000;
                 await new Promise(r => setTimeout(r, wait));
                 continue;
             }

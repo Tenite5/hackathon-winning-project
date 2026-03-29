@@ -31,16 +31,6 @@ let _queueMatching = false;
 /** Bot fill-in timers: userId -> timeoutId */
 const _botTimers = new Map();
 
-/** Race a promise against a ms timeout. */
-function withTimeout(promise, ms) {
-    return Promise.race([
-        promise,
-        new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
-        ),
-    ]);
-}
-
 /** Cancel all outgoing challenges from a user and notify both sides. */
 function cancelOutgoingChallenges(io, userId) {
     for (const [cId, ch] of db.challenges) {
@@ -96,12 +86,10 @@ async function tryStartMatch(io, p1, p2, isBotMatch = false) {
     questions = getQuestionsFromPool(topic, level);
 
     // 2. Fall back to real-time AI generation
+    //    generateQuestions() already has internal 15s timeout per attempt + max 2 attempts
     if (!questions) {
         try {
-            questions = await withTimeout(
-                generateQuestions(topic, 7, levelCfg.aiDifficulty, level),
-                15000
-            );
+            questions = await generateQuestions(topic, 7, levelCfg.aiDifficulty, level);
         } catch (err) {
             console.error('Matchmaking question generation failed:', err.message);
             if (p1.socketId) io.to(p1.socketId).emit('queue-error', { message: 'Failed to generate questions. Please try again.' });
@@ -302,7 +290,8 @@ module.exports = function (io, socket, getCurrentUser) {
 
         let questions;
         try {
-            questions = await withTimeout(generateQuestions(topic, 7), 15000);
+            // generateQuestions() already has internal 15s timeout per attempt + max 2 attempts
+            questions = await generateQuestions(topic, 7);
         } catch (err) {
             console.error('Challenge question generation failed:', err.message);
             socket.emit('challenge-error', 'Failed to generate questions. Please try again.');
