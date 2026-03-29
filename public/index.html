@@ -236,6 +236,7 @@
         <div class="nav-user-info" id="nav-user-info">
           <span class="nav-username" id="nav-username"></span>
           <span class="nav-elo" id="nav-elo"></span>
+          <span class="nav-points" id="nav-points"><span class="nav-coin">&#x1FA99;</span> <span id="sidebar-points-display">0</span> pts</span>
         </div>
 
         <!-- Notification Bell -->
@@ -334,6 +335,14 @@
               <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
             <span>Mistakes</span>
+          </button>
+          <button class="sidebar-btn" data-panel="shop" id="nav-shop">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+            <span>Shop</span>
           </button>
           <button class="sidebar-btn" data-panel="settings" id="nav-settings">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -486,8 +495,12 @@
 
         <!-- LEADERBOARD PANEL -->
         <div id="panel-leaderboard" class="panel">
-          <h2 class="section-title">Global Rankings</h2>
+          <h2 class="section-title">Rankings</h2>
           <p class="section-subtitle">Top 50 players by Elo rating.</p>
+          <div class="lb-toggle" id="lb-toggle">
+            <button class="lb-toggle-btn active" data-mode="global">Global</button>
+            <button class="lb-toggle-btn" data-mode="friends">Friends</button>
+          </div>
           <div class="leaderboard-table" id="leaderboard-table">
             <div class="empty-state">
               <p>Loading rankings...</p>
@@ -687,6 +700,49 @@
           </h2>
           <p class="section-subtitle">Every question you've gotten wrong. Click "AI Explain" to learn why!</p>
 
+          <!-- Redemption Quiz Section -->
+          <div id="redemption-quiz-section" class="redemption-quiz-section glass-card hidden">
+            <div class="redemption-header">
+              <h3 class="redemption-title">🔄 Redemption Quiz</h3>
+              <p class="redemption-desc">Test yourself on topics you got wrong. AI generates new questions based on your mistakes!</p>
+            </div>
+            <div id="redemption-config" class="redemption-config">
+              <div class="redemption-row">
+                <div class="input-group">
+                  <label for="redemption-source">Mistakes to use</label>
+                  <select id="redemption-source" class="qv-input">
+                    <option value="all">All Mistakes</option>
+                    <option value="10" selected>Last 10</option>
+                    <option value="25">Last 25</option>
+                    <option value="50">Last 50</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="redemption-question-count">Questions</label>
+                  <select id="redemption-question-count" class="qv-input">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="15">15</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="redemption-time-limit">Time (sec)</label>
+                  <select id="redemption-time-limit" class="qv-input">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="15" selected>15</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn btn-redemption" id="btn-start-redemption">
+                <span class="redemption-btn-icon">⚡</span> Start Redemption Quiz
+              </button>
+            </div>
+            <div id="redemption-status" class="redemption-status hidden"></div>
+          </div>
+
           <div id="wrong-questions-list" class="wrong-questions-list">
             <div class="empty-state">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
@@ -699,6 +755,19 @@
               <p>No wrong answers yet — you're perfect! 🎯</p>
               <p class="text-muted">Play some games and any mistakes will show up here for review.</p>
             </div>
+          </div>
+        </div>
+
+        <!-- SHOP PANEL -->
+        <div id="panel-shop" class="panel">
+          <h2 class="section-title">
+            Shop
+            <span class="shop-points-badge" id="shop-points-badge">0 pts</span>
+          </h2>
+          <p class="section-subtitle">Spend your hard-earned points on profile frames and upgrades!</p>
+
+          <div id="shop-items-grid" class="shop-items-grid">
+            <p class="text-muted" style="text-align:center; padding: 2rem;">Loading shop...</p>
           </div>
         </div>
 
@@ -1929,6 +1998,7 @@
   <script src="/js/notifications.js"></script>
   <script src="/js/tournament.js"></script>
   <script src="/js/wronglog.js"></script>
+  <script src="/js/shop.js"></script>
   <script src="/js/pdfmode.js"></script>
   <script src="/js/customquiz.js"></script>
   <script src="/js/mobile.js"></script>

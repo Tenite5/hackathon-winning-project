@@ -278,6 +278,7 @@
             if (btn.dataset.panel === 'tournament') loadTournaments();
             if (btn.dataset.panel === 'profile') updateProfile();
             if (btn.dataset.panel === 'wronglog') loadWrongQuestions();
+            if (btn.dataset.panel === 'shop' && typeof QV.loadShop === 'function') QV.loadShop();
         });
     });
 
@@ -752,45 +753,8 @@
     // ═══════════════════════════════════════════════════════════════
     // LEADERBOARD
     // ═══════════════════════════════════════════════════════════════
-    async function loadLeaderboard() {
-        try {
-            const data = await api('/leaderboard');
-            const table = $('leaderboard-table');
-
-            if (data.leaderboard.length === 0) {
-                table.innerHTML = `<div class="empty-state"><p>No players ranked yet. Be the first!</p></div>`;
-                return;
-            }
-
-            table.innerHTML = `
-        <div class="lb-row lb-header">
-          <span>#</span>
-          <span>Player</span>
-          <span>Elo</span>
-          <span>Rank</span>
-        </div>
-      `;
-
-            data.leaderboard.forEach((user, idx) => {
-                const rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
-                const row = document.createElement('div');
-                row.className = 'lb-row';
-                row.style.cursor = 'pointer';
-                row.innerHTML = `
-          <span class="lb-rank ${rankClass}">${idx + 1}</span>
-          <div class="lb-user">
-            <div class="lb-avatar" style="background: ${getRankColor(user.elo)}">${user.username[0].toUpperCase()}</div>
-            <span class="lb-username">${escapeHtml(user.username)}</span>
-          </div>
-          <span class="lb-elo">${user.elo}</span>
-          <span class="lb-badge" style="background: ${user.rank.color}20; color: ${user.rank.color}">${user.rank.name}</span>
-        `;
-                row.addEventListener('click', () => QV.openUserProfile(user.id));
-                table.appendChild(row);
-            });
-        } catch (err) {
-            console.error('Leaderboard error:', err);
-        }
+    function loadLeaderboard() {
+        if (QV.loadLeaderboard) return QV.loadLeaderboard();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -859,6 +823,13 @@
             const questions = data.wrongQuestions || [];
 
             $('wrong-count-badge').textContent = questions.length;
+
+            // Show/hide redemption quiz section
+            const redemptionEl = $('redemption-quiz-section');
+            if (redemptionEl) {
+                if (questions.length > 0) redemptionEl.classList.remove('hidden');
+                else redemptionEl.classList.add('hidden');
+            }
 
             if (questions.length === 0) {
                 list.innerHTML = `

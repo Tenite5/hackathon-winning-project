@@ -22,6 +22,7 @@ const tournamentsRoutes = require('./routes/tournaments');
 const questionsRoutes = require('./routes/questions');
 const pdfRoutes = require('./routes/pdf');
 const subscriptionRoutes = require('./routes/subscription');
+const shopRoutes = require('./routes/shop');
 
 const helmet = require('helmet');
 
@@ -58,6 +59,7 @@ app.use('/api', apiLimit, lobbiesRoutes);
 app.use('/api', apiLimit, tournamentsRoutes);
 app.use('/api', apiLimit, questionsRoutes);
 app.use('/api', apiLimit, pdfRoutes);
+app.use('/api', apiLimit, shopRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 // Admin panel (local-only, enabled via ADMIN_ENABLED env var)
 if (process.env.ADMIN_ENABLED === 'true') {

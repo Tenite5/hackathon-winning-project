@@ -45,6 +45,9 @@ function sanitizeUser(user) {
         online: user.online,
         friends: user.friends,
         photoURL: user.photoURL || '',
+        points: user.points || 0,
+        activeFrame: user.activeFrame || null,
+        purchasedItems: user.purchasedItems || [],
         isDiamondPro: user.isDiamondPro || false,
         bioCharacter: user.bioCharacter || 'default',
     };

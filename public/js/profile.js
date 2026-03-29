@@ -34,9 +34,12 @@
         $('profile-elo-value').textContent = u.elo;
         $('profile-bio-text').textContent = u.bio || 'No bio yet.';
 
-        // Diamond Pro badge & animated border
-        const avatarZone = $('profile-avatar-img') && $('profile-avatar-img').closest('.profile-avatar-wrap');
+        // Profile frame from shop
+        const avatarZone = $('profile-avatar-img') && $('profile-avatar-img').closest('.profile-avatar');
         if (avatarZone) {
+            // Remove old frame classes
+            avatarZone.className = avatarZone.className.replace(/avatar-frame-\S+/g, '').trim();
+            if (u.activeFrame) avatarZone.classList.add('avatar-frame-' + u.activeFrame);
             avatarZone.classList.toggle('diamond-pro-avatar', !!u.isDiamondPro);
         }
         const diamondBadgeEl = document.getElementById('profile-diamond-badge');
@@ -147,6 +150,55 @@
         }
     }
 
+    function buildMatchDetail(m) {
+        const qd = m.questionsDetail;
+        const totalCorrect = qd.filter(q => q.wasCorrect).length;
+        const accuracy = qd.length > 0 ? Math.round((totalCorrect / qd.length) * 100) : 0;
+        const avgTime = qd.length > 0 ? (qd.reduce((s, q) => s + q.timeTaken, 0) / qd.length).toFixed(1) : '0';
+
+        let html = `<div class="mh-detail-summary">
+            <div class="mh-detail-stat"><div class="label">Correct</div><div class="value">${totalCorrect}/${qd.length}</div></div>
+            <div class="mh-detail-stat"><div class="label">Accuracy</div><div class="value">${accuracy}%</div></div>
+            <div class="mh-detail-stat"><div class="label">Avg Time</div><div class="value">${avgTime}s</div></div>
+        </div>`;
+
+        qd.forEach((q, idx) => {
+            const optionsHtml = q.options.map((opt, oi) => {
+                let cls = '';
+                if (oi === q.correctIndex) cls = 'correct';
+                else if (oi === q.playerAnswer && !q.wasCorrect) cls = 'wrong';
+                const marker = oi === q.playerAnswer ? (q.wasCorrect && oi === q.correctIndex ? ' ✓' : oi !== q.correctIndex ? ' ✗' : '') : '';
+                return `<div class="mh-q-option ${cls}">${escapeHtml(opt)}${marker}</div>`;
+            }).join('');
+
+            let oppHtml = '';
+            if (q.opponentAnswers && q.opponentAnswers.length > 0) {
+                oppHtml = q.opponentAnswers.map(oa => {
+                    const icon = oa.wasCorrect ? '✓' : '✗';
+                    const color = oa.wasCorrect ? '#22c55e' : '#ef4444';
+                    return `<span style="color:${color}">${escapeHtml(oa.username)}: ${icon} (${oa.timeTaken.toFixed(1)}s)</span>`;
+                }).join(' &nbsp; ');
+                oppHtml = `<div class="mh-q-opp">${oppHtml}</div>`;
+            }
+
+            html += `<div class="mh-question-item">
+                <div class="mh-q-header">
+                    <span class="mh-q-num">Q${idx + 1}</span>
+                    <span class="mh-q-text">${escapeHtml(q.questionText)}</span>
+                </div>
+                <div class="mh-q-answers">${optionsHtml}</div>
+                <div class="mh-q-meta">
+                    <span>${q.wasCorrect ? '✓ Correct' : '✗ Wrong'}</span>
+                    <span>${q.timeTaken.toFixed(1)}s</span>
+                    <span>+${q.points} pts</span>
+                </div>
+                ${oppHtml}
+            </div>`;
+        });
+
+        return html;
+    }
+
     function renderMatchHistory(matches, reset) {
         const list = $('match-history-list');
 
@@ -171,8 +223,9 @@
         if (oldPag) oldPag.remove();
 
         matches.forEach(m => {
+            const hasDetail = m.questionsDetail && m.questionsDetail.length > 0;
             const row = document.createElement('div');
-            row.className = `mh-row mh-${m.result}`;
+            row.className = `mh-row mh-${m.result}${hasDetail ? ' mh-clickable' : ''}`;
 
             const resultEmoji = m.result === 'win' ? '🏆' : m.result === 'loss' ? '💀' : '🤝';
             const resultLabel = m.result === 'win' ? 'Victory' : m.result === 'loss' ? 'Defeat' : 'Draw';
@@ -200,12 +253,24 @@
                     ${opponentScore !== '' ? `<span class="mh-separator">-</span><span class="mh-opp-score">${opponentScore}</span>` : ''}
                 </div>
                 <div class="mh-right">
-                    <div class="mh-result-label ${m.result}">${resultLabel}</div>
+                    <div class="mh-result-label ${m.result}">${resultLabel}${hasDetail ? ' <span class="mh-expand-icon">▼</span>' : ''}</div>
                     ${eloStr}
                     <div class="mh-date">${dateStr} ${timeStr}</div>
                 </div>
             `;
             list.appendChild(row);
+
+            if (hasDetail) {
+                const detail = document.createElement('div');
+                detail.className = 'mh-detail';
+                detail.innerHTML = buildMatchDetail(m);
+                list.appendChild(detail);
+
+                row.addEventListener('click', () => {
+                    const isOpen = detail.classList.toggle('open');
+                    row.classList.toggle('mh-expanded', isOpen);
+                });
+            }
         });
 
         // Add pagination controls
@@ -538,8 +603,9 @@
             }
             list.innerHTML = '';
             matches.forEach(m => {
+                const hasDetail = m.questionsDetail && m.questionsDetail.length > 0;
                 const row = document.createElement('div');
-                row.className = `mh-row mh-${m.result}`;
+                row.className = `mh-row mh-${m.result}${hasDetail ? ' mh-clickable' : ''}`;
                 const resultEmoji = m.result === 'win' ? '🏆' : m.result === 'loss' ? '💀' : '🤝';
                 const resultLabel = m.result === 'win' ? 'Victory' : m.result === 'loss' ? 'Defeat' : 'Draw';
                 const opponentName = m.opponents && m.opponents.length > 0 ? m.opponents.map(o => escapeHtml(o.username)).join(', ') : 'Unknown';
@@ -556,12 +622,23 @@
                     </div>
                     <div class="mh-scores"><span class="mh-my-score">${m.myScore}</span>${opponentScore !== '' ? `<span class="mh-separator">-</span><span class="mh-opp-score">${opponentScore}</span>` : ''}</div>
                     <div class="mh-right">
-                        <div class="mh-result-label ${m.result}">${resultLabel}</div>
+                        <div class="mh-result-label ${m.result}">${resultLabel}${hasDetail ? ' <span class="mh-expand-icon">▼</span>' : ''}</div>
                         ${eloStr}
                         <div class="mh-date">${dateStr}</div>
                     </div>
                 `;
                 list.appendChild(row);
+
+                if (hasDetail) {
+                    const detail = document.createElement('div');
+                    detail.className = 'mh-detail';
+                    detail.innerHTML = buildMatchDetail(m);
+                    list.appendChild(detail);
+                    row.addEventListener('click', () => {
+                        const isOpen = detail.classList.toggle('open');
+                        row.classList.toggle('mh-expanded', isOpen);
+                    });
+                }
             });
         } catch (err) {
             list.innerHTML = '<p class="text-muted" style="text-align:center;padding:1rem;">Could not load match history.</p>';
@@ -681,13 +758,23 @@
     // ═══════════════════════════════════════════════════════════════
     // LEADERBOARD
     // ═══════════════════════════════════════════════════════════════
-    QV.loadLeaderboard = async function loadLeaderboard() {
+    let _lbMode = 'global';
+
+    QV.loadLeaderboard = async function loadLeaderboard(mode) {
+        if (mode) _lbMode = mode;
+        // Sync toggle buttons
+        document.querySelectorAll('.lb-toggle-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === _lbMode);
+        });
         try {
-            const data = await api('/leaderboard');
+            const url = _lbMode === 'friends' ? '/leaderboard?friends=true' : '/leaderboard';
+            const data = await api(url);
             const table = $('leaderboard-table');
 
             if (data.leaderboard.length === 0) {
-                table.innerHTML = `<div class="empty-state"><p>No players ranked yet. Be the first!</p></div>`;
+                table.innerHTML = _lbMode === 'friends'
+                    ? `<div class="empty-state"><p>No friends ranked yet. Add some friends first!</p></div>`
+                    : `<div class="empty-state"><p>No players ranked yet. Be the first!</p></div>`;
                 return;
             }
 
@@ -724,6 +811,13 @@
             console.error('Leaderboard error:', err);
         }
     };
+
+    // Leaderboard toggle click handler
+    document.querySelectorAll('.lb-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            QV.loadLeaderboard(btn.dataset.mode);
+        });
+    });
 
     // ═══════════════════════════════════════════════════════════════
     // SETTINGS

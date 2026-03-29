@@ -21,6 +21,55 @@
         });
     }
 
+    // ── Redemption Quiz ─────────────────────────────────────────
+    const redemptionSection = $('redemption-quiz-section');
+    const btnStartRedemption = $('btn-start-redemption');
+    const redemptionStatus = $('redemption-status');
+
+    if (btnStartRedemption) {
+        btnStartRedemption.addEventListener('click', async () => {
+            const source = $('redemption-source').value;
+            const questionCount = parseInt($('redemption-question-count').value) || 10;
+            const timeLimit = parseInt($('redemption-time-limit').value) || 15;
+
+            btnStartRedemption.disabled = true;
+            btnStartRedemption.innerHTML = '<div class="spinner"></div> Generating...';
+            redemptionStatus.classList.remove('hidden');
+            redemptionStatus.textContent = 'AI is creating your redemption quiz...';
+            redemptionStatus.className = 'redemption-status';
+
+            try {
+                const data = await api('/redemption-quiz', {
+                    method: 'POST',
+                    body: {
+                        count: source === 'all' ? 'all' : parseInt(source),
+                        questionCount,
+                        timeLimit,
+                    },
+                });
+
+                if (data.questions && data.questions.length > 0) {
+                    redemptionStatus.textContent = 'Starting game...';
+                    socket.emit('redemption-start', {
+                        questions: data.questions,
+                        timeLimit: data.timeLimit,
+                        topic: 'Redemption Quiz',
+                    });
+                } else {
+                    throw new Error('No questions generated');
+                }
+            } catch (err) {
+                redemptionStatus.textContent = err.message || 'Failed to generate quiz. Try again!';
+                redemptionStatus.classList.add('error');
+            }
+
+            setTimeout(() => {
+                btnStartRedemption.disabled = false;
+                btnStartRedemption.innerHTML = '<span class="redemption-btn-icon">⚡</span> Start Redemption Quiz';
+            }, 5000);
+        });
+    }
+
     // ── Load Wrong Questions ───────────────────────────────────
     QV.loadWrongQuestions = async function loadWrongQuestions() {
         const list = $('wrong-questions-list');
@@ -31,6 +80,15 @@
             const questions = data.wrongQuestions || [];
 
             $('wrong-count-badge').textContent = questions.length;
+
+            // Show/hide redemption quiz section based on whether there are wrong answers
+            if (redemptionSection) {
+                if (questions.length > 0) {
+                    redemptionSection.classList.remove('hidden');
+                } else {
+                    redemptionSection.classList.add('hidden');
+                }
+            }
 
             if (questions.length === 0) {
                 list.innerHTML = `

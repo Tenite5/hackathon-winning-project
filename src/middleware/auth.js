@@ -29,4 +29,14 @@ function socketAuth(token) {
     return getUserBySession(token);
 }
 
-module.exports = { getUserBySession, requireAuth, socketAuth, sanitizeUser };
+/** Express middleware — attaches req.user if valid token present, but does NOT 401. */
+function optionalAuth(req, res, next) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+        const user = getUserBySession(token);
+        if (user) req.user = user;
+    }
+    next();
+}
+
+module.exports = { getUserBySession, requireAuth, optionalAuth, socketAuth, sanitizeUser };

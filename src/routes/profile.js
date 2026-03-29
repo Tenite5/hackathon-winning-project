@@ -7,7 +7,7 @@
 
 const { Router } = require('express');
 const db = require('../db/store');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { sanitizeUser } = require('../services/elo');
 const { generateBio } = require('../services/ai');
 const { BIO_CHARACTERS } = require('../config');
@@ -15,7 +15,18 @@ const { checkDailyLimit, incrementDailyLimit } = require('../middleware/dailyLim
 
 const router = Router();
 
-router.get('/leaderboard', (req, res) => {
+router.get('/leaderboard', optionalAuth, (req, res) => {
+    if (req.query.friends === 'true') {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        const friendIds = new Set(req.user.friends || []);
+        friendIds.add(req.user.id); // include self
+        const users = Array.from(db.users.values())
+            .filter(u => friendIds.has(u.id))
+            .map(u => sanitizeUser(u))
+            .sort((a, b) => b.elo - a.elo)
+            .slice(0, 50);
+        return res.json({ leaderboard: users });
+    }
     const users = Array.from(db.users.values())
         .map(u => sanitizeUser(u))
         .sort((a, b) => b.elo - a.elo)

@@ -15,6 +15,39 @@ const { cacheQuestions } = require('./botLobbies');
  * Prevents casual inspection of answers in browser devtools.
  * NOT cryptographic security — just enough to stop inspect-menu cheating.
  */
+/**
+ * Award shop points to a player and persist.
+ * Returns the number of points awarded.
+ */
+function awardPoints(userId, game, isWinner, isTournament) {
+    const user = db.users.get(userId);
+    if (!user || user.isBot) return 0;
+
+    const player = game.players.find(p => p.userId === userId);
+    if (!player) return 0;
+
+    let earned = 0;
+
+    // +1 per correct answer
+    const correctCount = player.answers.filter(a => a && a.isCorrect).length;
+    earned += correctCount;
+
+    // +1 for completing any game (participation)
+    earned += 1;
+
+    // +3 for winning a ranked match
+    const isRanked = game.players.length === 2 && (
+        game.type === 'quick' || (game.type === 'custom' && game.ranked !== false)
+    );
+    if (isWinner && isRanked) earned += 3;
+
+    // +5 for winning a tournament match
+    if (isWinner && isTournament) earned += 5;
+
+    user.points = (user.points || 0) + earned;
+    return earned;
+}
+
 const OBFUSCATION_KEY = 'QvZ!0_s3cR3t';
 
 function obfuscateString(str) {
@@ -236,6 +269,34 @@ function recordMatchHistory(game, eloUpdates = {}) {
 
         const eloDelta = eloUpdates[p.userId] || 0;
 
+        // Build per-question detail for match review
+        const questionsPlayed = Math.min(game.currentQuestion + 1, game.questions.length);
+        const questionsDetail = game.questions.slice(0, questionsPlayed).map((q, idx) => {
+            const myAns = p.answers[idx];
+            const opponentAnswers = game.players
+                .filter(op => op.userId !== p.userId)
+                .map(op => {
+                    const oa = op.answers[idx];
+                    return {
+                        userId: op.userId,
+                        username: op.username,
+                        answer: oa ? oa.answerIndex : -1,
+                        wasCorrect: oa ? !!oa.isCorrect : false,
+                        timeTaken: oa ? (oa.elapsed || 0) : 0,
+                    };
+                });
+            return {
+                questionText: q.question,
+                options: q.options,
+                correctIndex: q.correct,
+                playerAnswer: myAns ? myAns.answerIndex : -1,
+                wasCorrect: myAns ? !!myAns.isCorrect : false,
+                timeTaken: myAns ? (myAns.elapsed || 0) : 0,
+                points: myAns ? (myAns.points || 0) : 0,
+                opponentAnswers,
+            };
+        });
+
         const entry = {
             gameId: game.id,
             type: game.type,
@@ -245,6 +306,7 @@ function recordMatchHistory(game, eloUpdates = {}) {
             opponents,
             eloAfter: user.elo,
             eloChange: eloDelta,
+            questionsDetail,
             timestamp: Date.now(),
         };
 
@@ -356,6 +418,14 @@ function endGame(gameId, io) {
 
             const eloDelta = eloUpdates[winnerUser.id];
 
+            // Award shop points
+            const isTourney = game.type === 'tournament';
+            const pointsEarned = {};
+            game.players.forEach(p => {
+                const isW = !isDraw && p.userId === winner.userId;
+                pointsEarned[p.userId] = awardPoints(p.userId, game, isW, isTourney);
+            });
+
             io.to(gameId).emit('game-over', {
                 gameId,
                 winner: { userId: winner.userId, username: winner.username, score: winner.score },
@@ -372,6 +442,7 @@ function endGame(gameId, io) {
                         answers: p.answers,
                         elo: u ? u.elo : 0,
                         eloChange: eloUpdates[p.userId] || 0,
+                        pointsEarned: pointsEarned[p.userId] || 0,
                     };
                 }),
                 questions: game.questions.map(sanitizeQuestionForReview),
@@ -422,6 +493,19 @@ function endGame(gameId, io) {
         });
     }
 
+    // Award shop points for non-ranked / solo games
+    const isTourney2 = game.type === 'tournament';
+    const pointsEarned2 = {};
+    game.players.forEach(p => {
+        const isW = !isDraw && winner && p.userId === winner.userId;
+        pointsEarned2[p.userId] = awardPoints(p.userId, game, isW, isTourney2);
+        // Save user after points (solo games don't save above)
+        if (game.type === 'solo') {
+            const u = db.users.get(p.userId);
+            if (u && !u.isBot) db.saveUser(u.id);
+        }
+    });
+
     io.to(gameId).emit('game-over', {
         gameId,
         winner: isDraw ? null : { userId: winner.userId, username: winner.username, score: winner.score },
@@ -435,6 +519,7 @@ function endGame(gameId, io) {
                 photoURL: pu ? (pu.photoURL || null) : null,
                 score: p.score,
                 answers: p.answers,
+                pointsEarned: pointsEarned2[p.userId] || 0,
             };
         }),
         questions: game.questions.map(sanitizeQuestionForReview),

@@ -325,4 +325,60 @@ Output ONLY the explanation. No labels, no formatting.`;
     }
 }
 
-module.exports = { generateQuestions, generateBio, explainQuestion, superExplainQuestion };
+async function generateRedemptionQuestions(wrongAnswers, count = 10) {
+    const topicSummary = wrongAnswers.map(q =>
+        `- Topic: ${q.topic || 'General'} | Q: "${q.question}" | Correct: "${q.correctAnswer}"`
+    ).join('\n');
+
+    const systemPrompt = `You generate "redemption" quiz questions for a player who got certain questions wrong. Your job is to create NEW questions that test the SAME concepts and knowledge areas — but are NOT the exact same questions.
+
+Rules:
+- Analyze the topics and concepts behind the wrong answers provided.
+- Generate ${count} NEW, DIFFERENT questions that test similar knowledge from the same domains.
+- Questions should help the player strengthen their weak areas.
+- Mix difficulty: some slightly easier (to build confidence), some at the same level.
+- 4 plausible options each — one correct, three convincingly wrong.
+- Do NOT repeat any of the original questions verbatim.
+${BASE_FORMAT_INSTRUCTIONS}`;
+
+    const userPrompt = `The player got these questions wrong:\n${topicSummary}\n\nGenerate ${count} new questions covering these same knowledge areas.`;
+
+    // Use the same retry pattern as generateQuestions
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const response = await withTimeout(
+                ai.models.generateContent({
+                    model: GEMINI_MODEL,
+                    contents: `${systemPrompt}\n\n${userPrompt}`,
+                    config: { temperature: 0.65, maxOutputTokens: 4096 },
+                }),
+                15000
+            );
+
+            const raw = response.text.trim();
+            let jsonStr = raw;
+            const match = raw.match(/\[[\s\S]*\]/);
+            if (match) jsonStr = match[0];
+            const questions = JSON.parse(jsonStr);
+
+            const parsed = questions.slice(0, count).map(q => ({
+                question: String(q.question || ''),
+                options: Array.isArray(q.options) && q.options.length === 4
+                    ? q.options.map(String) : null,
+                correct: (typeof q.correct === 'number' && q.correct >= 0 && q.correct <= 3)
+                    ? q.correct : 0,
+                difficulty: q.difficulty || 'medium',
+            }));
+
+            if (parsed.some(q => !q.options || !q.question)) {
+                throw new Error('AI returned malformed redemption questions');
+            }
+            return parsed;
+        } catch (err) {
+            console.error(`Redemption generation attempt ${attempt + 1} failed:`, err.message);
+            if (attempt === 1) throw new Error('Failed to generate redemption questions after 2 attempts');
+        }
+    }
+}
+
+module.exports = { generateQuestions, generateRedemptionQuestions, generateBio, explainQuestion, superExplainQuestion };

@@ -62,6 +62,11 @@ window.QV = window.QV || {};
         }
     };
 
+    // ── Frame CSS class helper ────────────────────────────────
+    QV.getFrameClass = function (frameId) {
+        return frameId ? 'avatar-frame-' + frameId : '';
+    };
+
     // ── Utility functions ──────────────────────────────────────
     QV.escapeHtml = function (str) {
         const div = document.createElement('div');
@@ -427,6 +432,9 @@ window.QV = window.QV || {};
         const rank = QV.state.user.rank;
         const diamondBadge = QV.isDiamondPro() ? QV.getDiamondProBadge(14) : '';
         QV.$('nav-elo').innerHTML = `${rank ? QV.getRankIcon(rank.name, 14) : '⭐'} ${QV.state.user.elo} Elo${diamondBadge ? ' ' + diamondBadge : ''}`;
+        // Points display
+        const ptEl = QV.$('sidebar-points-display');
+        if (ptEl) ptEl.textContent = QV.state.user.points || 0;
         // Show PFP or letter fallback
         const img = QV.$('nav-avatar-img');
         const letter = QV.$('nav-avatar-letter');
@@ -438,6 +446,11 @@ window.QV = window.QV || {};
             img.classList.add('hidden');
             letter.classList.remove('hidden');
             letter.textContent = QV.state.user.username[0].toUpperCase();
+        }
+        // Frame around nav avatar
+        const avatarEl = QV.$('nav-avatar');
+        if (avatarEl) {
+            avatarEl.className = 'nav-avatar' + (QV.state.user.activeFrame ? ' avatar-frame-' + QV.state.user.activeFrame : '');
         }
     };
 

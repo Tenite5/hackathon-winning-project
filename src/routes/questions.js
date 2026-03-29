@@ -8,9 +8,10 @@
 const { Router } = require('express');
 const db = require('../db/store');
 const { requireAuth } = require('../middleware/auth');
-const { explainQuestion, superExplainQuestion } = require('../services/ai');
+const { explainQuestion, superExplainQuestion, generateRedemptionQuestions } = require('../services/ai');
 const { validateInt } = require('../middleware/validate');
 const { checkDailyLimit, incrementDailyLimit } = require('../middleware/dailyLimits');
+const { checkAIRateLimit } = require('../middleware/rateLimit');
 
 const router = Router();
 
@@ -78,6 +79,58 @@ router.post('/super-explain-question', requireAuth, async (req, res) => {
     const explanation = await superExplainQuestion(cleanQuestion, cleanOptions, validCorrectIndex, validYourAnswerIndex);
     incrementDailyLimit(req.user.id, 'explain');
     res.json({ explanation });
+});
+
+// Redemption Quiz — generate new questions based on past wrong answers
+router.post('/redemption-quiz', requireAuth, async (req, res) => {
+    const { count, questionCount, timeLimit } = req.body;
+
+    const wrongQuestions = db.wrongAnswers.get(req.user.id) || [];
+    if (wrongQuestions.length === 0) {
+        return res.status(400).json({ error: 'No wrong answers to redeem. Play some games first!' });
+    }
+
+    // Determine which wrong answers to use
+    let source;
+    if (count === 'all' || !count) {
+        source = wrongQuestions;
+    } else {
+        const n = validateInt(count, 1, 100, 10);
+        // Sort by most recent first, take N
+        const sorted = [...wrongQuestions].sort((a, b) => b.playedAt - a.playedAt);
+        source = sorted.slice(0, n);
+    }
+
+    const qCount = validateInt(questionCount, 5, 20, 10);
+    const tLimit = validateInt(timeLimit, 5, 30, 15);
+
+    // Check daily AI gen limit
+    const user = db.users.get(req.user.id);
+    const dailyRl = checkDailyLimit(req.user.id, user?.isDiamondPro, 'aiGen');
+    if (dailyRl.limited) {
+        const msg = user?.isDiamondPro
+            ? 'You\'ve reached your 60 daily AI game generations. Resets tomorrow.'
+            : `Free accounts get 15 AI game generations per day (${dailyRl.remaining} remaining). Upgrade to Diamond Pro for 60.`;
+        return res.status(429).json({ error: 'daily_limit', message: msg });
+    }
+
+    // Check AI rate limit
+    const rl = checkAIRateLimit(req.user.id);
+    if (rl.limited) {
+        const msg = rl.reason === 'global'
+            ? 'Server is busy — too many games being generated right now. Try again in a few minutes.'
+            : 'You\'ve generated too many games recently. Please wait a couple of minutes.';
+        return res.status(429).json({ error: 'rate_limit', message: msg });
+    }
+
+    try {
+        const questions = await generateRedemptionQuestions(source, qCount);
+        incrementDailyLimit(req.user.id, 'aiGen');
+        res.json({ questions, timeLimit: tLimit, topic: 'Redemption Quiz' });
+    } catch (err) {
+        console.error('Redemption quiz generation failed:', err.message);
+        res.status(500).json({ error: 'Failed to generate redemption questions. Please try again.' });
+    }
 });
 
 module.exports = router;

@@ -662,6 +662,26 @@
             eloSection.classList.add('hidden');
         }
 
+        // Points earned display
+        const me2 = (data.players || []).find(p => p.userId === state.user.id);
+        const earnedPts = me2 ? (me2.pointsEarned || 0) : 0;
+        let ptsEl = document.getElementById('game-over-points');
+        if (!ptsEl) {
+            ptsEl = document.createElement('div');
+            ptsEl.id = 'game-over-points';
+            ptsEl.className = 'game-over-points';
+            eloSection.parentElement.insertBefore(ptsEl, eloSection.nextSibling);
+        }
+        if (earnedPts > 0) {
+            ptsEl.classList.remove('hidden');
+            ptsEl.innerHTML = `<span class="points-earned-badge">&#x1FA99; +${earnedPts} points</span>`;
+            state.user.points = (state.user.points || 0) + earnedPts;
+            QV.updatePointsDisplay(state.user.points);
+            QV.updateNavUser();
+        } else {
+            ptsEl.classList.add('hidden');
+        }
+
         const reviewEl = $('game-over-questions');
         reviewEl.innerHTML = '';
         (data.questions || []).forEach((q, idx) => {

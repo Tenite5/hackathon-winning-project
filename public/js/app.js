@@ -23,6 +23,7 @@
                 QV.loadEloHistory();
             }
             if (btn.dataset.panel === 'wronglog') QV.loadWrongQuestions();
+            if (btn.dataset.panel === 'shop') QV.loadShop();
             if (btn.dataset.panel === 'settings') QV.loadSettings();
         });
     });
