@@ -136,7 +136,20 @@ Example non-STEM: [{"question":"According to the treaty, which nation gained con
                 file: tmpFile,
                 config: { mimeType },
             });
-            console.log(`Gemini file uploaded: ${uploadedFile.name}, uri: ${uploadedFile.uri}`);
+            console.log(`Gemini file uploaded: ${uploadedFile.name}, uri: ${uploadedFile.uri}, state: ${uploadedFile.state}`);
+
+            // Wait for file to become ACTIVE (may start in PROCESSING state)
+            let fileObj = uploadedFile;
+            let pollAttempts = 0;
+            while (fileObj.state === 'PROCESSING' && pollAttempts < 20) {
+                await new Promise(r => setTimeout(r, 2000));
+                fileObj = await ai.files.get({ name: uploadedFile.name });
+                pollAttempts++;
+                console.log(`File state after ${pollAttempts * 2}s: ${fileObj.state}`);
+            }
+            if (fileObj.state === 'FAILED') {
+                throw new Error('Gemini file processing failed');
+            }
 
             // Try creating a cache for reuse (only for PDFs, not small images)
             if (pdfId && mimeType === 'application/pdf') {
@@ -146,7 +159,7 @@ Example non-STEM: [{"question":"According to the treaty, which nation gained con
                         config: {
                             contents: [{
                                 role: 'user',
-                                parts: [{ fileData: { fileUri: uploadedFile.uri, mimeType } }],
+                                parts: [{ fileData: { fileUri: fileObj.uri, mimeType } }],
                             }],
                             displayName: `quizio-pdf-${pdfId}`,
                             ttl: '3600s',
@@ -169,7 +182,7 @@ Example non-STEM: [{"question":"According to the treaty, which nation gained con
                     {
                         role: 'user',
                         parts: [
-                            { fileData: { fileUri: uploadedFile.uri, mimeType } },
+                            { fileData: { fileUri: fileObj.uri, mimeType } },
                             { text: systemPrompt },
                         ],
                     },
