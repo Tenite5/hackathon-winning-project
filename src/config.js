@@ -63,7 +63,8 @@ const RANKS = [
     { name: 'Platinum', min: 1400, max: 1599, color: '#e5e4e2' },
     { name: 'Diamond', min: 1600, max: 1799, color: '#b9f2ff' },
     { name: 'Master', min: 1800, max: 1999, color: '#9b59b6' },
-    { name: 'Grandmaster', min: 2000, max: Infinity, color: '#e74c3c' },
+    { name: 'Grandmaster', min: 2000, max: 8999, color: '#e74c3c' },
+    { name: 'Final Boss', min: 9000, max: Infinity, color: '#ff4500' },
 ];
 
 const PRESET_QUESTIONS = {

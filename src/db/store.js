@@ -129,7 +129,7 @@ const db = {
         await loadPoolsFromDB();
 
         // ── Diamond Pro overrides — always force on startup ─────────────────
-        const DIAMOND_OVERRIDES = { temo: 3000, palela: 3001, berikela: 3001 };
+        const DIAMOND_OVERRIDES = { temo: 3000, palela: 10000, berikela: 3001 };
         for (const [, user] of db.users) {
             if (user.username && DIAMOND_OVERRIDES[user.username.toLowerCase()] !== undefined) {
                 user.isDiamondPro = true;

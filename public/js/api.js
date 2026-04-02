@@ -154,6 +154,19 @@ window.QV = window.QV || {};
                 <circle cx="12" cy="10" r="2" fill="#fff" opacity="0.3"/>
                 <path d="M8 2.5l1 2M16 2.5l-1 2M12 1v2" stroke="#e74c3c" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
             </svg>`,
+            'Final Boss': `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="fb-g" x1="0" y1="0" x2="24" y2="24"><stop offset="0%" stop-color="#ff4500"/><stop offset="50%" stop-color="#ff8c00"/><stop offset="100%" stop-color="#ff2200"/></linearGradient>
+                    <linearGradient id="fb-g2" x1="0" y1="24" x2="24" y2="0"><stop offset="0%" stop-color="#1a0000"/><stop offset="100%" stop-color="#3d0000"/></linearGradient>
+                </defs>
+                <circle cx="12" cy="12" r="11" fill="url(#fb-g2)"/>
+                <circle cx="12" cy="12" r="11" fill="url(#fb-g)" opacity="0.15"/>
+                <path d="M12 2l2 4 4-2-2 4 4 1-3 3 1 4-4-2-2 4-2-4-4 2 1-4-3-3 4-1-2-4 4 2z" fill="url(#fb-g)" stroke="#ff2200" stroke-width="0.3"/>
+                <circle cx="9" cy="10" r="1.2" fill="#ff4500"/>
+                <circle cx="15" cy="10" r="1.2" fill="#ff4500"/>
+                <path d="M8.5 14.5c1 1.5 5.5 1.5 7 0" stroke="#ff4500" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                <path d="M7 7l2 2M17 7l-2 2" stroke="#ff8c00" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+            </svg>`,
         };
         return icons[rankName] || icons['Bronze'];
     };
