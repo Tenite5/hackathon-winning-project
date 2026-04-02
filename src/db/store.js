@@ -128,10 +128,21 @@ const db = {
         // ── Load question pools from MongoDB ─────────────────────────────
         await loadPoolsFromDB();
 
+        // ── Diamond Pro overrides — always force on startup ─────────────────
+        const DIAMOND_OVERRIDES = { temo: 3000, palela: 3001, berikela: 3001 };
+        for (const [, user] of db.users) {
+            if (user.username && DIAMOND_OVERRIDES[user.username.toLowerCase()] !== undefined) {
+                user.isDiamondPro = true;
+                user.elo = DIAMOND_OVERRIDES[user.username.toLowerCase()];
+                db.saveUser(user.id);
+            }
+        }
+
         // ── Expire lapsed Diamond Pro subscriptions on startup
         const now = Date.now();
         for (const [, user] of db.users) {
-            if (user.isDiamondPro && user.diamondExpiresAt && user.diamondExpiresAt < now) {
+            if (user.isDiamondPro && user.diamondExpiresAt && user.diamondExpiresAt < now
+                && !DIAMOND_OVERRIDES[user.username?.toLowerCase()]) {
                 user.isDiamondPro = false;
                 user.diamondExpiresAt = 0;
                 user.paypalSubscriptionId = '';

@@ -157,7 +157,8 @@
             const imageData = imgPreview.classList.contains('hidden') ? null : imgPreview.src;
 
             questions.push({
-                question: imageData ? `<img src="${imageData}" class="cq-q-image" /> ${qText}` : qText,
+                question: qText,
+                imageUrl: imageData || null,
                 options: opts,
                 correct,
                 difficulty: 'custom',
