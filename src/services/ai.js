@@ -10,7 +10,7 @@ const Groq = require('groq-sdk');
 
 // Gemini — used only for question generation
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // Groq — used for bio generation and mistake explanations (fast inference)
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -118,15 +118,23 @@ async function _tryGenerateQuestions(topic, count, difficulty, level) {
     return parsed;
 }
 
+function isRetryable(err) {
+    const msg = (err.message || '').toLowerCase();
+    // Never retry on hard errors — model not found, bad request, auth
+    if (/404|not found|400|bad request|401|403|invalid api key|api key/.test(msg)) return false;
+    return true; // retry on timeouts, network errors, 5xx
+}
+
 async function generateQuestions(topic, count = 5, difficulty = null, level = null) {
     // Attempt 1
     try {
         return await _tryGenerateQuestions(topic, count, difficulty, level);
     } catch (err1) {
         console.error('AI generation attempt 1 failed:', err1.message);
+        if (!isRetryable(err1)) throw err1; // hard error — don't retry
     }
 
-    // Attempt 2 (retry once)
+    // Attempt 2 — only reached for transient errors
     try {
         return await _tryGenerateQuestions(topic, count, difficulty, level);
     } catch (err2) {
@@ -376,7 +384,7 @@ ${BASE_FORMAT_INSTRUCTIONS}`;
             return parsed;
         } catch (err) {
             console.error(`Redemption generation attempt ${attempt + 1} failed:`, err.message);
-            if (attempt === 1) throw new Error('Failed to generate redemption questions after 2 attempts');
+            if (!isRetryable(err) || attempt === 1) throw new Error('Failed to generate redemption questions: ' + err.message);
         }
     }
 }
