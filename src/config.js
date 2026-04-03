@@ -52,6 +52,9 @@ function loadSATPreset() {
                 difficulty: q.difficulty || 'medium',
             };
             if (q.image_url) entry.imageUrl = q.image_url;
+            // Preserve metadata for keyword search (ignored by game logic)
+            if (q.question_type) entry._questionType = q.question_type;
+            if (q.subject) entry._subject = q.subject;
             return entry;
         });
 }

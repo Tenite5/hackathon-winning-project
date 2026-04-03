@@ -64,11 +64,19 @@ router.patch('/users/:id', async (req, res) => {
     ];
 
     const updates = {};
+    const oldElo = user.elo;
     for (const key of allowed) {
         if (req.body[key] !== undefined) {
             user[key] = req.body[key];
             updates[key] = req.body[key];
         }
+    }
+
+    // Track admin ELO changes in eloHistory
+    if (req.body.elo !== undefined && req.body.elo !== oldElo) {
+        if (!user.eloHistory) user.eloHistory = [];
+        user.eloHistory.push({ elo: user.elo, timestamp: Date.now() });
+        if (user.eloHistory.length > 100) user.eloHistory = user.eloHistory.slice(-100);
     }
 
     try {
@@ -81,6 +89,7 @@ router.patch('/users/:id', async (req, res) => {
             isDiamondPro: !!user.isDiamondPro,
             bioCharacter: user.bioCharacter || 'default',
             stats: user.stats,
+            eloHistory: user.eloHistory || [],
         }, { upsert: true });
         console.log(`✅ Admin saved user ${user.username} (elo: ${user.elo})`);
         res.json({ ok: true, updates });

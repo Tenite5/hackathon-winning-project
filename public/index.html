@@ -703,7 +703,7 @@
           <!-- Redemption Quiz Section -->
           <div id="redemption-quiz-section" class="redemption-quiz-section glass-card hidden">
             <div class="redemption-header">
-              <h3 class="redemption-title">🔄 Redemption Quiz</h3>
+              <h3 class="redemption-title">Redemption Quiz</h3>
               <p class="redemption-desc">Test yourself on topics you got wrong. AI generates new questions based on your mistakes!</p>
             </div>
             <div id="redemption-config" class="redemption-config">
@@ -736,8 +736,8 @@
                   </select>
                 </div>
               </div>
-              <button class="btn btn-redemption" id="btn-start-redemption">
-                <span class="redemption-btn-icon">⚡</span> Start Redemption Quiz
+              <button class="btn btn-primary btn-full" id="btn-start-redemption">
+                Start Redemption Quiz
               </button>
             </div>
             <div id="redemption-status" class="redemption-status hidden"></div>
@@ -1372,6 +1372,11 @@
           <option value="sat">📝 SAT (235 questions)</option>
         </select>
       </div>
+      <div id="lobby-preset-topic-group" class="input-group hidden">
+        <label for="lobby-preset-topic">Search topic (optional)</label>
+        <input type="text" id="lobby-preset-topic" placeholder="e.g. Grammar, Linear Equations, Geometry..." />
+        <span class="input-hint">AI will find matching questions from the question bank</span>
+      </div>
       <div class="input-row-3col">
         <div class="input-group">
           <label for="lobby-time">Time (sec)</label>
@@ -1425,6 +1430,11 @@
           <option value="math">📐 მათემატიკის ეროვნული გამოცდა (600)</option>
           <option value="sat">📝 SAT (235 questions)</option>
         </select>
+      </div>
+      <div id="solo-preset-topic-group" class="input-group hidden">
+        <label for="solo-preset-topic">Search topic (optional)</label>
+        <input type="text" id="solo-preset-topic" placeholder="e.g. Grammar, Linear Equations, Geometry..." />
+        <span class="input-hint">AI will find matching questions from the question bank</span>
       </div>
       <div class="input-row">
         <div class="input-group">

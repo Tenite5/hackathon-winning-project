@@ -389,4 +389,76 @@ ${BASE_FORMAT_INSTRUCTIONS}`;
     }
 }
 
-module.exports = { generateQuestions, generateRedemptionQuestions, generateBio, explainQuestion, superExplainQuestion };
+/**
+ * Filter preset questions by keyword matching (no AI call — instant and free).
+ * Checks question text, options, and metadata fields (_questionType, _subject).
+ * Returns array of matching indices sorted by relevance score (best first).
+ */
+function filterQuestionsByKeyword(questions, query, maxResults = 30) {
+    if (!questions || !questions.length || !query) return [];
+
+    const queryLower = query.toLowerCase().trim();
+    const words = queryLower.split(/\s+/).filter(w => w.length > 1);
+    if (!words.length) return [];
+
+    // Common synonyms/aliases to expand search coverage
+    const ALIASES = {
+        'grammar': ['conventions', 'english conventions', 'standard english', 'sentence structure', 'punctuation'],
+        'vocabulary': ['craft and structure', 'word meaning', 'most nearly mean', 'context clues'],
+        'reading': ['information and ideas', 'passage', 'comprehension', 'inference'],
+        'writing': ['expression of ideas', 'craft and structure', 'conventions'],
+        'algebra': ['equation', 'variable', 'solve for', 'linear', 'quadratic', 'polynomial'],
+        'geometry': ['triangle', 'circle', 'angle', 'area', 'perimeter', 'volume', 'trigonometry'],
+        'trig': ['trigonometry', 'sine', 'cosine', 'tangent', 'angle'],
+        'trigonometry': ['sine', 'cosine', 'tangent', 'angle', 'geometry and trigonometry'],
+        'statistics': ['data analysis', 'probability', 'mean', 'median', 'problem solving'],
+        'data': ['data analysis', 'statistics', 'graph', 'table', 'chart', 'problem solving'],
+        'fractions': ['1/', '2/', '3/', '4/', '5/'],
+    };
+
+    // Expand search terms with aliases
+    const expandedTerms = [...words];
+    for (const word of words) {
+        if (ALIASES[word]) expandedTerms.push(...ALIASES[word]);
+    }
+    // Also check the full phrase as an alias key
+    if (ALIASES[queryLower]) expandedTerms.push(...ALIASES[queryLower]);
+
+    const scored = [];
+
+    for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        // Build a searchable string from all available fields
+        const parts = [
+            q.question || '',
+            (q.options || []).join(' '),
+            q._questionType || '',
+            q._subject || '',
+        ];
+        const haystack = parts.join(' ').toLowerCase();
+
+        let score = 0;
+
+        // Exact full-phrase match gets highest boost
+        if (haystack.includes(queryLower)) {
+            score += 10;
+        }
+
+        // Score individual search words + expanded aliases
+        for (const term of expandedTerms) {
+            if (haystack.includes(term)) {
+                score += term.length > 3 ? 2 : 1; // longer matches score higher
+            }
+        }
+
+        if (score > 0) {
+            scored.push({ index: i, score });
+        }
+    }
+
+    // Sort by score descending, take top N
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, maxResults).map(s => s.index);
+}
+
+module.exports = { generateQuestions, generateRedemptionQuestions, generateBio, explainQuestion, superExplainQuestion, filterQuestionsByKeyword };

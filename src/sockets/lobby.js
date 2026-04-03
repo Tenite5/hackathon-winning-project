@@ -8,7 +8,7 @@
 const { randomUUID: uuidv4 } = require('crypto');
 const db = require('../db/store');
 const { PRESET_QUESTIONS } = require('../config');
-const { generateQuestions } = require('../services/ai');
+const { generateQuestions, filterQuestionsByKeyword } = require('../services/ai');
 const { startGameQuestion } = require('../services/gameEngine');
 const { sanitizeText, validateInt } = require('../middleware/validate');
 const { checkAIRateLimit } = require('../middleware/rateLimit');
@@ -18,7 +18,7 @@ const { stripFillerBots } = require('../services/botLobbies');
 
 module.exports = function (io, socket, getCurrentUser) {
 
-    socket.on('create-lobby', async ({ topic, isPublic, timeLimit, questionCount, maxPlayers, ranked, presetId }) => {
+    socket.on('create-lobby', async ({ topic, isPublic, timeLimit, questionCount, maxPlayers, ranked, presetId, presetTopic }) => {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
 
@@ -30,7 +30,20 @@ module.exports = function (io, socket, getCurrentUser) {
 
         if (presetId && PRESET_QUESTIONS[presetId]) {
             const preset = PRESET_QUESTIONS[presetId];
-            const shuffled = [...preset.questions].sort(() => Math.random() - 0.5);
+            const cleanPresetTopic = presetTopic ? sanitizeText(presetTopic, 100) : '';
+            let pool = [...preset.questions];
+            let topicMatched = false;
+
+            // Keyword filtering if a search term was provided (instant, no AI call)
+            if (cleanPresetTopic) {
+                const matchingIndices = filterQuestionsByKeyword(preset.questions, cleanPresetTopic, 50);
+                if (matchingIndices.length >= 3) {
+                    pool = matchingIndices.map(i => preset.questions[i]);
+                    topicMatched = true;
+                }
+            }
+
+            const shuffled = pool.sort(() => Math.random() - 0.5);
             // Non-Diamond users get 50% of preset questions
             const allQuestions = shuffled.slice(0, qCount);
             if (!currentUser.isDiamondPro) {
@@ -39,7 +52,9 @@ module.exports = function (io, socket, getCurrentUser) {
             } else {
                 resolvedPresetQuestions = allQuestions;
             }
-            resolvedTopic = `📚 ${preset.name}`;
+            resolvedTopic = (cleanPresetTopic && topicMatched)
+                ? `📚 ${preset.name} — ${cleanPresetTopic}`
+                : `📚 ${preset.name}`;
         } else {
             // Check daily AI gen limit
             const dailyRl = checkDailyLimit(currentUser.id, currentUser.isDiamondPro, 'aiGen');
@@ -365,7 +380,7 @@ module.exports = function (io, socket, getCurrentUser) {
     });
 
     // Preset Game Mode — starts as a solo game, not a public lobby
-    socket.on('preset-start', ({ presetId }) => {
+    socket.on('preset-start', async ({ presetId, topic }) => {
         const currentUser = getCurrentUser();
         if (!currentUser) return;
         const now = Date.now();
@@ -376,7 +391,22 @@ module.exports = function (io, socket, getCurrentUser) {
         const preset = PRESET_QUESTIONS[presetId];
         if (!preset) return socket.emit('game-error', 'Invalid preset');
 
-        const shuffled = [...preset.questions].sort(() => Math.random() - 0.5);
+        const cleanTopic = topic ? sanitizeText(topic, 100) : '';
+        let pool = [...preset.questions];
+        let topicMatched = false;
+
+        // Keyword filtering if a search term was provided (instant, no AI call)
+        if (cleanTopic) {
+            const matchingIndices = filterQuestionsByKeyword(preset.questions, cleanTopic, 30);
+            if (matchingIndices.length >= 3) {
+                pool = matchingIndices.map(i => preset.questions[i]);
+                topicMatched = true;
+            } else {
+                socket.emit('preset-topic-fallback');
+            }
+        }
+
+        const shuffled = pool.sort(() => Math.random() - 0.5);
         // Non-Diamond users get 50% of preset questions
         const allPreset = currentUser.isDiamondPro ? shuffled : shuffled.slice(0, Math.ceil(shuffled.length / 2));
         const picked = allPreset.slice(0, 3);
@@ -395,6 +425,9 @@ module.exports = function (io, socket, getCurrentUser) {
         });
 
         const timeLimit = presetId === 'math' ? 120 : 30;
+        const topicLabel = (cleanTopic && topicMatched)
+            ? `📚 ${preset.name} — ${cleanTopic}`
+            : `📚 ${preset.name}`;
 
         // Create a solo game directly instead of a public lobby
         const gameId = uuidv4();
@@ -402,7 +435,7 @@ module.exports = function (io, socket, getCurrentUser) {
         const game = {
             id: gameId,
             type: 'solo',
-            topic: `📚 ${preset.name}`,
+            topic: topicLabel,
             players: [{ userId: currentUser.id, username: currentUser.username, photoURL: currentUser.photoURL || null, socketId: socket.id, score: 0, answers: [] }],
             questions,
             currentQuestion: 0,

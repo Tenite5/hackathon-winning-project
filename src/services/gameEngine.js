@@ -452,6 +452,9 @@ function endGame(gameId, io) {
             if (!winnerUser.isBot && winnerUser.stats.gamesPlayed % 3 === 0) generateBio(winnerUser).then(bio => { winnerUser.bio = bio; db.saveUser(winnerUser.id); }).catch(err => console.error('Bio regen error:', err.message));
             if (!loserUser.isBot && loserUser.stats.gamesPlayed % 3 === 0) generateBio(loserUser).then(bio => { loserUser.bio = bio; db.saveUser(loserUser.id); }).catch(err => console.error('Bio regen error:', err.message));
 
+            // Record match history BEFORE saving — ranked games need this
+            recordMatchHistory(game, eloUpdates);
+
             if (!winnerUser.isBot) db.saveUser(winnerUser.id);
             if (!loserUser.isBot) db.saveUser(loserUser.id);
 

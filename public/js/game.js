@@ -272,10 +272,26 @@
     $('btn-solo-mode').addEventListener('click', () => QV.showModal('modal-solo'));
 
     $('solo-preset-select').addEventListener('change', function () {
-        if (this.value) $('solo-topic').value = '';
+        const topicGroup = $('solo-preset-topic-group');
+        if (this.value) {
+            $('solo-topic').value = '';
+            topicGroup.classList.remove('hidden');
+        } else {
+            topicGroup.classList.add('hidden');
+            $('solo-preset-topic').value = '';
+        }
     });
     $('solo-topic').addEventListener('input', function () {
-        if (this.value.trim()) $('solo-preset-select').value = '';
+        if (this.value.trim()) {
+            $('solo-preset-select').value = '';
+            $('solo-preset-topic-group').classList.add('hidden');
+            $('solo-preset-topic').value = '';
+        }
+    });
+
+    // Fallback toast when AI finds no matching questions
+    socket.on('preset-topic-fallback', () => {
+        toast('No matching questions found for that topic — using random selection', 'info');
     });
 
     let _soloGenTimeout = null;
@@ -287,9 +303,10 @@
 
         const presetId = $('solo-preset-select').value;
         if (presetId) {
-            socket.emit('preset-start', { presetId });
+            const presetTopic = ($('solo-preset-topic').value || '').trim();
+            socket.emit('preset-start', { presetId, topic: presetTopic || undefined });
             QV.hideModal('modal-solo');
-            toast('Creating preset game...', 'info');
+            toast(presetTopic ? `Finding "${presetTopic}" questions...` : 'Creating preset game...', 'info');
         } else {
             const topic = $('solo-topic').value.trim() || 'General Knowledge';
             const questionCount = parseInt($('solo-questions').value) || 5;

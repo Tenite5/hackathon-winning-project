@@ -10,12 +10,23 @@
     // ── Create Lobby ───────────────────────────────────────────
     $('btn-custom-game').addEventListener('click', () => showModal('modal-create-lobby'));
 
-    // Preset/topic interaction: if user picks a preset, clear topic; if user types topic, reset preset
+    // Preset/topic interaction: if user picks a preset, clear topic and show search; if user types topic, reset preset
     $('lobby-preset-select').addEventListener('change', function () {
-        if (this.value) $('lobby-topic').value = '';
+        const topicGroup = $('lobby-preset-topic-group');
+        if (this.value) {
+            $('lobby-topic').value = '';
+            topicGroup.classList.remove('hidden');
+        } else {
+            topicGroup.classList.add('hidden');
+            $('lobby-preset-topic').value = '';
+        }
     });
     $('lobby-topic').addEventListener('input', function () {
-        if (this.value.trim()) $('lobby-preset-select').value = '';
+        if (this.value.trim()) {
+            $('lobby-preset-select').value = '';
+            $('lobby-preset-topic-group').classList.add('hidden');
+            $('lobby-preset-topic').value = '';
+        }
     });
 
     $('btn-create-lobby').addEventListener('click', () => {
@@ -26,8 +37,9 @@
         const maxPlayers = parseInt($('lobby-players').value) || 2;
         const isPublic = $('lobby-public').checked;
         const ranked = $('lobby-ranked').checked;
+        const presetTopic = presetId ? ($('lobby-preset-topic').value || '').trim() : undefined;
 
-        socket.emit('create-lobby', { topic, presetId, isPublic, timeLimit, questionCount, maxPlayers, ranked });
+        socket.emit('create-lobby', { topic, presetId, presetTopic, isPublic, timeLimit, questionCount, maxPlayers, ranked });
         hideModal('modal-create-lobby');
     });
 

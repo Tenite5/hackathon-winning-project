@@ -65,7 +65,7 @@
 
             setTimeout(() => {
                 btnStartRedemption.disabled = false;
-                btnStartRedemption.innerHTML = '<span class="redemption-btn-icon">⚡</span> Start Redemption Quiz';
+                btnStartRedemption.innerHTML = 'Start Redemption Quiz';
             }, 5000);
         });
     }
