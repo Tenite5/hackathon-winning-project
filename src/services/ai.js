@@ -5,6 +5,112 @@
 
 'use strict';
 
+// ── Global AI concurrency control ─────────────────────────────────────────────
+// Limits concurrent Gemini API calls to prevent flooding the API.
+const MAX_CONCURRENT_AI = 2;
+let _activeAICalls = 0;
+let _queuedAICalls = [];
+
+/** Returns true if the AI queue is full or has pending items. */
+function isAIBusy() {
+    return _activeAICalls >= MAX_CONCURRENT_AI || _queuedAICalls.length > 0;
+}
+
+/** Queue-aware wrapper: waits for a slot before running the AI call. */
+function enqueueAICall(fn) {
+    return new Promise((resolve, reject) => {
+        const run = () => {
+            _activeAICalls++;
+            fn().then(resolve).catch(reject).finally(() => {
+                _activeAICalls--;
+                if (_queuedAICalls.length > 0) {
+                    const next = _queuedAICalls.shift();
+                    next();
+                }
+            });
+        };
+        if (_activeAICalls < MAX_CONCURRENT_AI) {
+            run();
+        } else {
+            _queuedAICalls.push(run);
+        }
+    });
+}
+
+// ── AI Call Tracking ──────────────────────────────────────────────────────────
+// Logs every AI API call for admin visibility.
+const AI_LOG_MAX = 500; // ring buffer size
+const _aiCallLog = [];
+let _aiCallIdCounter = 0;
+
+// Aggregate counters (never reset — monotonic since server start)
+const _aiStats = {
+    serverStartedAt: Date.now(),
+    gemini: { total: 0, success: 0, failed: 0 },
+    groq:   { total: 0, success: 0, failed: 0 },
+    byFunction: {},   // functionName -> { total, success, failed }
+    byCaller: {},     // callerModule -> { total, success, failed }
+};
+
+function _incStat(provider, fn, caller, ok) {
+    const p = _aiStats[provider];
+    p.total++;
+    ok ? p.success++ : p.failed++;
+
+    if (!_aiStats.byFunction[fn]) _aiStats.byFunction[fn] = { total: 0, success: 0, failed: 0 };
+    const f = _aiStats.byFunction[fn];
+    f.total++;
+    ok ? f.success++ : f.failed++;
+
+    if (!_aiStats.byCaller[caller]) _aiStats.byCaller[caller] = { total: 0, success: 0, failed: 0 };
+    const c = _aiStats.byCaller[caller];
+    c.total++;
+    ok ? c.success++ : c.failed++;
+}
+
+/** Extract the calling module from a stack trace (skips ai.js frames). */
+function _getCaller() {
+    const err = new Error();
+    const lines = (err.stack || '').split('\n');
+    for (let i = 2; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.includes('ai.js')) continue; // skip self
+        // Extract filename from stack frame
+        const m = line.match(/[/\\]([^/\\]+\.js)/);
+        if (m) return m[1];
+    }
+    return 'unknown';
+}
+
+/**
+ * Log an AI call to the ring buffer.
+ * @param {{ provider, fn, caller, topic, userId, durationMs, success, error }} entry
+ */
+function _logAICall(entry) {
+    const record = {
+        id: ++_aiCallIdCounter,
+        ts: Date.now(),
+        ...entry,
+    };
+    _aiCallLog.push(record);
+    if (_aiCallLog.length > AI_LOG_MAX) _aiCallLog.shift();
+    _incStat(entry.provider, entry.fn, entry.caller, entry.success);
+}
+
+/** Get the recent AI call log (newest first). */
+function getAICallLog(limit = 200) {
+    return _aiCallLog.slice(-limit).reverse();
+}
+
+/** Get aggregate AI stats. */
+function getAIStats() {
+    return {
+        ..._aiStats,
+        uptimeMs: Date.now() - _aiStats.serverStartedAt,
+        queue: { active: _activeAICalls, queued: _queuedAICalls.length },
+    };
+}
+
 const { GoogleGenAI } = require('@google/genai');
 const Groq = require('groq-sdk');
 
@@ -125,22 +231,35 @@ function isRetryable(err) {
     return true; // retry on timeouts, network errors, 5xx
 }
 
-async function generateQuestions(topic, count = 5, difficulty = null, level = null) {
-    // Attempt 1
-    try {
-        return await _tryGenerateQuestions(topic, count, difficulty, level);
-    } catch (err1) {
-        console.error('AI generation attempt 1 failed:', err1.message);
-        if (!isRetryable(err1)) throw err1; // hard error — don't retry
-    }
+async function generateQuestions(topic, count = 5, difficulty = null, level = null, _meta = {}) {
+    const caller = _meta.caller || _getCaller();
+    const userId = _meta.userId || null;
+    const startTs = Date.now();
+    return enqueueAICall(async () => {
+        // Attempt 1
+        try {
+            const result = await _tryGenerateQuestions(topic, count, difficulty, level);
+            _logAICall({ provider: 'gemini', fn: 'generateQuestions', caller, topic, userId, durationMs: Date.now() - startTs, success: true });
+            return result;
+        } catch (err1) {
+            console.error('AI generation attempt 1 failed:', err1.message);
+            if (!isRetryable(err1)) {
+                _logAICall({ provider: 'gemini', fn: 'generateQuestions', caller, topic, userId, durationMs: Date.now() - startTs, success: false, error: err1.message });
+                throw err1;
+            }
+        }
 
-    // Attempt 2 — only reached for transient errors
-    try {
-        return await _tryGenerateQuestions(topic, count, difficulty, level);
-    } catch (err2) {
-        console.error('AI generation attempt 2 failed:', err2.message);
-        throw new Error('Failed to generate questions after 2 attempts');
-    }
+        // Attempt 2 — only reached for transient errors
+        try {
+            const result = await _tryGenerateQuestions(topic, count, difficulty, level);
+            _logAICall({ provider: 'gemini', fn: 'generateQuestions', caller, topic, userId, durationMs: Date.now() - startTs, success: true });
+            return result;
+        } catch (err2) {
+            console.error('AI generation attempt 2 failed:', err2.message);
+            _logAICall({ provider: 'gemini', fn: 'generateQuestions', caller, topic, userId, durationMs: Date.now() - startTs, success: false, error: err2.message });
+            throw new Error('Failed to generate questions after 2 attempts');
+        }
+    });
 }
 
 const BIO_CHARACTER_PROMPTS = {
@@ -190,6 +309,8 @@ const BIO_CHARACTER_PROMPTS = {
 };
 
 async function generateBio(user, character) {
+    const caller = _getCaller();
+    const startTs = Date.now();
     try {
         if (!user || !user.username) {
             return 'A mysterious competitor with untold powers.';
@@ -250,14 +371,19 @@ Category breakdown: ${statsStr || 'No category data yet'}`;
         }
         // Strip common prefixes the AI might add
         bio = bio.replace(/^(bio:\s*|here'?s?\s*(the|your)?\s*bio:\s*)/i, '').trim();
+        _logAICall({ provider: 'groq', fn: 'generateBio', caller, topic: `bio:${user.username}`, userId: user.id, durationMs: Date.now() - startTs, success: true });
         return bio || `${user.username} is a mysterious competitor with untold powers.`;
     } catch (err) {
         console.error('Bio generation error:', err.message);
+        _logAICall({ provider: 'groq', fn: 'generateBio', caller, topic: `bio:${user?.username || '?'}`, userId: user?.id, durationMs: Date.now() - startTs, success: false, error: err.message });
         return `${user.username} is a mysterious competitor with untold powers.`;
     }
 }
 
-async function explainQuestion(question, options, correctIndex, yourAnswerIndex) {
+async function explainQuestion(question, options, correctIndex, yourAnswerIndex, _meta = {}) {
+    const caller = _meta.caller || _getCaller();
+    const userId = _meta.userId || null;
+    const startTs = Date.now();
     try {
         const safeCorrectIndex = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
         const yourAnswer = (yourAnswerIndex >= 0 && yourAnswerIndex < options.length) ? options[yourAnswerIndex] : 'No answer (timed out)';
@@ -287,9 +413,11 @@ Player: ${wasTimeout ? 'Timed out' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
             temperature: 0.5,
         });
 
+        _logAICall({ provider: 'groq', fn: 'explainQuestion', caller, topic: 'explain', userId, durationMs: Date.now() - startTs, success: true });
         return (response.choices?.[0]?.message?.content || '').trim();
     } catch (err) {
         console.error('Explain error:', err.message);
+        _logAICall({ provider: 'groq', fn: 'explainQuestion', caller, topic: 'explain', userId, durationMs: Date.now() - startTs, success: false, error: err.message });
         const safeIdx = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
         return `The correct answer is "${options[safeIdx]}". Unfortunately I couldn't generate a detailed explanation right now. Try again later!`;
     }
@@ -297,7 +425,10 @@ Player: ${wasTimeout ? 'Timed out' : `[${yourAnswerIndex}] "${yourAnswer}"`}`;
 
 
 
-async function superExplainQuestion(question, options, correctIndex, yourAnswerIndex) {
+async function superExplainQuestion(question, options, correctIndex, yourAnswerIndex, _meta = {}) {
+    const caller = _meta.caller || _getCaller();
+    const userId = _meta.userId || null;
+    const startTs = Date.now();
     try {
         const safeCorrectIndex = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
         const yourAnswer = (yourAnswerIndex >= 0 && yourAnswerIndex < options.length) ? options[yourAnswerIndex] : 'No answer (timed out)';
@@ -325,20 +456,26 @@ Output ONLY the explanation. No labels, no formatting.`;
             15000
         );
 
+        _logAICall({ provider: 'gemini', fn: 'superExplainQuestion', caller, topic: 'superExplain', userId, durationMs: Date.now() - startTs, success: true });
         return (response.text || '').trim();
     } catch (err) {
         console.error('Super explain error:', err.message);
+        _logAICall({ provider: 'gemini', fn: 'superExplainQuestion', caller, topic: 'superExplain', userId, durationMs: Date.now() - startTs, success: false, error: err.message });
         const safeIdx = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
         return `The correct answer is "${options[safeIdx]}". Super Explain is temporarily unavailable — try Simple Explain instead.`;
     }
 }
 
-async function generateRedemptionQuestions(wrongAnswers, count = 10) {
-    const topicSummary = wrongAnswers.map(q =>
-        `- Topic: ${q.topic || 'General'} | Q: "${q.question}" | Correct: "${q.correctAnswer}"`
-    ).join('\n');
+async function generateRedemptionQuestions(wrongAnswers, count = 10, _meta = {}) {
+    const caller = _meta.caller || _getCaller();
+    const userId = _meta.userId || null;
+    const startTs = Date.now();
+    return enqueueAICall(async () => {
+        const topicSummary = wrongAnswers.map(q =>
+            `- Topic: ${q.topic || 'General'} | Q: "${q.question}" | Correct: "${q.correctAnswer}"`
+        ).join('\n');
 
-    const systemPrompt = `You generate "redemption" quiz questions for a player who got certain questions wrong. Your job is to create NEW questions that test the SAME concepts and knowledge areas — but are NOT the exact same questions.
+        const systemPrompt = `You generate "redemption" quiz questions for a player who got certain questions wrong. Your job is to create NEW questions that test the SAME concepts and knowledge areas — but are NOT the exact same questions.
 
 Rules:
 - Analyze the topics and concepts behind the wrong answers provided.
@@ -349,44 +486,49 @@ Rules:
 - Do NOT repeat any of the original questions verbatim.
 ${BASE_FORMAT_INSTRUCTIONS}`;
 
-    const userPrompt = `The player got these questions wrong:\n${topicSummary}\n\nGenerate ${count} new questions covering these same knowledge areas.`;
+        const userPrompt = `The player got these questions wrong:\n${topicSummary}\n\nGenerate ${count} new questions covering these same knowledge areas.`;
 
-    // Use the same retry pattern as generateQuestions
-    for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-            const response = await withTimeout(
-                ai.models.generateContent({
-                    model: GEMINI_MODEL,
-                    contents: `${systemPrompt}\n\n${userPrompt}`,
-                    config: { temperature: 0.65, maxOutputTokens: 4096 },
-                }),
-                15000
-            );
+        // Use the same retry pattern as generateQuestions
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const response = await withTimeout(
+                    ai.models.generateContent({
+                        model: GEMINI_MODEL,
+                        contents: `${systemPrompt}\n\n${userPrompt}`,
+                        config: { temperature: 0.65, maxOutputTokens: 4096 },
+                    }),
+                    15000
+                );
 
-            const raw = response.text.trim();
-            let jsonStr = raw;
-            const match = raw.match(/\[[\s\S]*\]/);
-            if (match) jsonStr = match[0];
-            const questions = JSON.parse(jsonStr);
+                const raw = response.text.trim();
+                let jsonStr = raw;
+                const match = raw.match(/\[[\s\S]*\]/);
+                if (match) jsonStr = match[0];
+                const questions = JSON.parse(jsonStr);
 
-            const parsed = questions.slice(0, count).map(q => ({
-                question: String(q.question || ''),
-                options: Array.isArray(q.options) && q.options.length === 4
-                    ? q.options.map(String) : null,
-                correct: (typeof q.correct === 'number' && q.correct >= 0 && q.correct <= 3)
-                    ? q.correct : 0,
-                difficulty: q.difficulty || 'medium',
-            }));
+                const parsed = questions.slice(0, count).map(q => ({
+                    question: String(q.question || ''),
+                    options: Array.isArray(q.options) && q.options.length === 4
+                        ? q.options.map(String) : null,
+                    correct: (typeof q.correct === 'number' && q.correct >= 0 && q.correct <= 3)
+                        ? q.correct : 0,
+                    difficulty: q.difficulty || 'medium',
+                }));
 
-            if (parsed.some(q => !q.options || !q.question)) {
-                throw new Error('AI returned malformed redemption questions');
+                if (parsed.some(q => !q.options || !q.question)) {
+                    throw new Error('AI returned malformed redemption questions');
+                }
+                _logAICall({ provider: 'gemini', fn: 'generateRedemptionQuestions', caller, topic: 'redemption', userId, durationMs: Date.now() - startTs, success: true });
+                return parsed;
+            } catch (err) {
+                console.error(`Redemption generation attempt ${attempt + 1} failed:`, err.message);
+                if (!isRetryable(err) || attempt === 1) {
+                    _logAICall({ provider: 'gemini', fn: 'generateRedemptionQuestions', caller, topic: 'redemption', userId, durationMs: Date.now() - startTs, success: false, error: err.message });
+                    throw new Error('Failed to generate redemption questions: ' + err.message);
+                }
             }
-            return parsed;
-        } catch (err) {
-            console.error(`Redemption generation attempt ${attempt + 1} failed:`, err.message);
-            if (!isRetryable(err) || attempt === 1) throw new Error('Failed to generate redemption questions: ' + err.message);
         }
-    }
+    });
 }
 
 /**
@@ -461,4 +603,4 @@ function filterQuestionsByKeyword(questions, query, maxResults = 30) {
     return scored.slice(0, maxResults).map(s => s.index);
 }
 
-module.exports = { generateQuestions, generateRedemptionQuestions, generateBio, explainQuestion, superExplainQuestion, filterQuestionsByKeyword };
+module.exports = { generateQuestions, generateRedemptionQuestions, generateBio, explainQuestion, superExplainQuestion, filterQuestionsByKeyword, isAIBusy, getAICallLog, getAIStats };

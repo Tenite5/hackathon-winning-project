@@ -13,7 +13,7 @@
 
 const { randomUUID } = require('crypto');
 const db = require('../db/store');
-const { generateQuestions } = require('./ai');
+const { generateQuestions, isAIBusy } = require('./ai');
 const QuestionCacheModel = require('../db/models/QuestionCache');
 
 // ── Bot lobby topics — interesting, diverse, things people would click on ────
@@ -57,7 +57,7 @@ const LOBBY_LIFETIME = 3 * 60 * 1000;  // 3 minutes before topic rotation
 const QUESTION_COUNT = 7;
 const TIME_LIMIT = 12;
 const PLAYER_SHUFFLE_INTERVAL = 20 * 1000; // shuffle fake players every 20s
-const TOPIC_ROTATE_INTERVAL = 45 * 1000;   // rotate 1-2 lobby topics every 45s
+const TOPIC_ROTATE_INTERVAL = 90 * 1000;   // rotate 1-2 lobby topics every 90s (was 45s)
 
 // ── Question cache (in-memory mirror of MongoDB) ────────────────────────────
 const questionCache = new Map(); // topic -> [{questions, createdAt}]
@@ -168,6 +168,11 @@ async function createBotLobby(io) {
     let questions = getCachedQuestions(topic);
 
     if (!questions) {
+        // Skip AI call if the queue is already busy
+        if (isAIBusy()) {
+            console.log(`Bot lobby skipped for "${topic}" — AI queue busy`);
+            return false;
+        }
         try {
             questions = await generateQuestions(topic, QUESTION_COUNT);
             _consecutiveFailures = 0; // reset on success
@@ -233,7 +238,7 @@ async function replenishBotLobbies(io) {
 
     try {
         // If AI has been failing repeatedly, back off to avoid hammering
-        if (_consecutiveFailures >= 3) {
+        if (_consecutiveFailures >= 2) {
             console.warn(`Bot lobby replenish skipped — ${_consecutiveFailures} consecutive AI failures, backing off`);
             return;
         }
@@ -244,7 +249,7 @@ async function replenishBotLobbies(io) {
 
         for (let i = 0; i < needed; i++) {
             // Stagger creation to avoid hammering AI
-            await new Promise(r => setTimeout(r, i * 3000));
+            await new Promise(r => setTimeout(r, i * 5000)); // 5s stagger (was 3s)
             const ok = await createBotLobby(io);
             if (ok === false) {
                 // AI failure — stop trying to create more this cycle
@@ -354,26 +359,26 @@ function rotateTopics(io) {
 function initBotLobbies(io) {
     // Load cached questions first, then create initial lobbies
     loadQuestionCache().then(() => {
-        // Stagger initial creation
+        // Stagger initial creation — give question pools time to warm up first
         setTimeout(() => {
             replenishBotLobbies(io);
-        }, 15000); // wait 15s for question pools to warm up
+        }, 30000); // wait 30s (was 15s) for question pools to warm up
 
-        // Periodic replenishment every 60s
+        // Periodic replenishment every 120s (was 60s)
         setInterval(() => {
             // Gradually recover from AI failure backoff (reset after ~5 min)
-            if (_consecutiveFailures >= 3) {
+            if (_consecutiveFailures >= 2) {
                 _consecutiveFailures = Math.max(0, _consecutiveFailures - 1);
             }
             replenishBotLobbies(io).catch(() => {});
-        }, 60000);
+        }, 120000);
 
         // Shuffle fake player counts every 20s (pure in-memory, no cost)
         setInterval(() => {
             shuffleFakePlayers(io);
         }, PLAYER_SHUFFLE_INTERVAL);
 
-        // Rotate 1-2 lobby topics every 45s (uses cached questions, no AI)
+        // Rotate 1-2 lobby topics every 90s (uses cached questions, no AI)
         setInterval(() => {
             rotateTopics(io);
         }, TOPIC_ROTATE_INTERVAL);

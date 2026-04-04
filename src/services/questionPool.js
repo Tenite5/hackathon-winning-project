@@ -17,7 +17,7 @@
 'use strict';
 
 const QuestionPoolModel = require('../db/models/QuestionPool');
-const { generateQuestions } = require('./ai');
+const { generateQuestions, isAIBusy } = require('./ai');
 const { QUICK_GAME_TOPICS } = require('../config');
 
 // ── Level config ─────────────────────────────────────────────────────────────
@@ -113,15 +113,19 @@ function getQuestionsFromPool(topic, level) {
     const key = poolKey(topic, level);
     const sets = cache.get(key);
     if (!sets || !sets.length) {
-        // Pool cold — trigger background generation, caller falls back to real-time
-        setImmediate(() => generateAndStore(topic, level).catch(() => {}));
+        // Pool cold — trigger background generation only if AI isn't already busy
+        if (!isAIBusy()) {
+            setImmediate(() => generateAndStore(topic, level).catch(() => {}));
+        }
         return null;
     }
 
     // Use the freshest non-expired set (createdAt > 0 means not yet consumed)
     const available = sets.filter(s => s.createdAt > 0);
     if (!available.length) {
-        setImmediate(() => generateAndStore(topic, level).catch(() => {}));
+        if (!isAIBusy()) {
+            setImmediate(() => generateAndStore(topic, level).catch(() => {}));
+        }
         return null;
     }
 
@@ -131,8 +135,10 @@ function getQuestionsFromPool(topic, level) {
     // Mark consumed
     chosen.createdAt = 0;
 
-    // Trigger background refill
-    setImmediate(() => generateAndStore(topic, level).catch(() => {}));
+    // Trigger background refill only if AI has capacity
+    if (!isAIBusy()) {
+        setTimeout(() => generateAndStore(topic, level).catch(() => {}), 5000);
+    }
 
     return chosen.questions;
 }
@@ -142,24 +148,33 @@ function getQuestionsFromPool(topic, level) {
  * Only generates sets that are missing or fully consumed.
  */
 function warmUpPools() {
-    console.log('🎯 Warming up question pools (background)...');
+    console.log('🎯 Warming up question pools (background, throttled)...');
     let delay = 0;
-    const STAGGER_MS = 4500; // 4.5s between AI calls
+    const STAGGER_MS = 8000; // 8s between AI calls (was 4.5s)
+    const MAX_WARMUP_CALLS = 20; // cap total warmup calls to avoid API flood
+    let scheduled = 0;
 
     for (const topic of QUICK_GAME_TOPICS) {
         for (const level of [1, 2, 3, 4, 5]) {
+            if (scheduled >= MAX_WARMUP_CALLS) break;
             const key = poolKey(topic, level);
             const existing = cache.get(key) || [];
             const fresh = existing.filter(s => s.createdAt > 0).length;
-            const needed = 2 - fresh;
+            // Only generate if pool is completely empty (no fresh sets at all)
+            if (fresh > 0) continue;
+            const needed = 1; // Just generate 1 set, not 2
             for (let i = 0; i < needed; i++) {
+                if (scheduled >= MAX_WARMUP_CALLS) break;
                 delay += STAGGER_MS;
+                scheduled++;
                 setTimeout(() => {
                     generateAndStore(topic, level).catch(() => {});
                 }, delay);
             }
         }
+        if (scheduled >= MAX_WARMUP_CALLS) break;
     }
+    console.log(`   Scheduled ${scheduled} warmup generations (max ${MAX_WARMUP_CALLS})`);
 }
 
 module.exports = { getLevelFromElo, getQuestionsFromPool, loadPoolsFromDB, warmUpPools, LEVEL_CONFIGS };

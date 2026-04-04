@@ -1,6 +1,6 @@
 /**
  * @file routes/admin.js
- * @description Admin routes for user management (list, update, delete).
+ * @description Admin routes for user management, AI monitoring (list, update, delete).
  *              Local-only — no authentication required.
  */
 
@@ -12,6 +12,7 @@ const UserModel = require('../db/models/User');
 const SessionModel = require('../db/models/Session');
 const WrongAnswerModel = require('../db/models/WrongAnswer');
 const MessageThreadModel = require('../db/models/Message');
+const { getAICallLog, getAIStats } = require('../services/ai');
 
 const router = Router();
 
@@ -129,6 +130,34 @@ router.delete('/users/:id', async (req, res) => {
     }
 
     res.json({ ok: true, deleted: req.params.id });
+});
+
+// ── GET /api/admin/ai-log — Recent AI API call log ────────────
+router.get('/ai-log', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
+    let log = getAICallLog(limit);
+
+    // Optional filters
+    if (req.query.provider) log = log.filter(e => e.provider === req.query.provider);
+    if (req.query.fn) log = log.filter(e => e.fn === req.query.fn);
+    if (req.query.caller) log = log.filter(e => e.caller === req.query.caller);
+
+    // Resolve userIds to usernames for display
+    const enriched = log.map(entry => {
+        const out = { ...entry };
+        if (entry.userId) {
+            const u = db.users.get(entry.userId);
+            out.username = u ? u.username : null;
+        }
+        return out;
+    });
+
+    res.json({ log: enriched, total: enriched.length });
+});
+
+// ── GET /api/admin/ai-stats — Aggregate AI usage stats ────────
+router.get('/ai-stats', (req, res) => {
+    res.json(getAIStats());
 });
 
 module.exports = router;
