@@ -1985,6 +1985,70 @@
   </div>
 
   <!-- ═══════════════════════════════════════════ -->
+  <!-- MINI PROFILE POPUP (quick peek, no match history) -->
+  <!-- Click the header to open the full member page.   -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="modal-mini-profile" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal="modal-mini-profile"></div>
+    <div class="modal-content glass-card mini-profile-popup">
+      <button type="button" class="mini-profile-close" data-close-modal="modal-mini-profile" aria-label="Close">&times;</button>
+      <div class="mini-profile-header profile-clickable-header" id="mini-profile-header-link" title="Open full profile page">
+        <div class="mini-profile-avatar profile-avatar" id="mini-profile-avatar">
+          <img id="mini-profile-avatar-img" src="" alt="" class="profile-avatar-img hidden" />
+          <span id="mini-profile-avatar-letter"></span>
+        </div>
+        <div class="mini-profile-info">
+          <div class="mini-profile-name" id="mini-profile-username">
+            <span id="mini-profile-username-text"></span>
+            <span id="mini-profile-diamond-badge" class="mini-diamond-badge"></span>
+          </div>
+          <div class="mini-profile-meta">
+            <span class="mini-profile-rank">
+              <span class="rank-icon" id="mini-profile-rank-icon"></span>
+              <span id="mini-profile-rank-name"></span>
+            </span>
+            <span class="mini-profile-elo">
+              <span id="mini-profile-elo">0</span> Elo
+            </span>
+          </div>
+        </div>
+        <svg class="profile-link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+      <div class="mini-profile-bio" id="mini-profile-bio-wrap">
+        <p id="mini-profile-bio" class="mini-profile-bio-text"></p>
+      </div>
+      <div class="mini-profile-stats">
+        <div class="mini-stat">
+          <span class="mini-stat-value" id="mini-stat-wins">0</span>
+          <span class="mini-stat-label">Wins</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-value" id="mini-stat-losses">0</span>
+          <span class="mini-stat-label">Losses</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-value" id="mini-stat-games">0</span>
+          <span class="mini-stat-label">Games</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-value" id="mini-stat-accuracy">0%</span>
+          <span class="mini-stat-label">Accuracy</span>
+        </div>
+      </div>
+      <div class="mini-profile-actions">
+        <button type="button" class="btn btn-ghost btn-sm hidden" id="btn-mini-challenge">⚔️ Challenge</button>
+        <button type="button" class="btn btn-primary btn-sm hidden" id="btn-mini-add-friend">+ Add Friend</button>
+        <button type="button" class="btn btn-primary btn-sm mini-full-btn" id="btn-mini-view-full">
+          View Full Profile
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:4px;vertical-align:-2px"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
   <!-- USER PROFILE MODAL (public view) -->
   <!-- ═══════════════════════════════════════════ -->
   <div id="modal-user-profile" class="modal hidden">

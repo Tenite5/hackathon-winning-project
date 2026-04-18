@@ -219,6 +219,57 @@ window.QV = window.QV || {};
         setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
     };
 
+    /**
+     * Pretty confirmation dialog. Returns a Promise<boolean>.
+     *   QV.confirm({ title, message, confirmText, cancelText, danger, icon })
+     */
+    QV.confirm = function (opts) {
+        opts = opts || {};
+        const title = opts.title || 'Are you sure?';
+        const message = opts.message || '';
+        const confirmText = opts.confirmText || 'Confirm';
+        const cancelText = opts.cancelText || 'Cancel';
+        const danger = !!opts.danger;
+        const icon = opts.icon || (danger ? '⚠️' : '❓');
+
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal qv-confirm-modal';
+            const iconCls = danger ? 'qv-confirm-icon danger' : 'qv-confirm-icon';
+            overlay.innerHTML = `
+                <div class="modal-backdrop qv-confirm-backdrop"></div>
+                <div class="modal-content glass-card qv-confirm-card">
+                    <div class="${iconCls}">${icon}</div>
+                    <h3 class="qv-confirm-title">${QV.escapeHtml(title)}</h3>
+                    <p class="qv-confirm-message">${QV.escapeHtml(message)}</p>
+                    <div class="qv-confirm-actions">
+                        <button type="button" class="btn btn-ghost qv-confirm-cancel">${QV.escapeHtml(cancelText)}</button>
+                        <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'} qv-confirm-ok">${QV.escapeHtml(confirmText)}</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            function cleanup(result) {
+                overlay.classList.add('qv-confirm-closing');
+                setTimeout(() => { overlay.remove(); }, 180);
+                document.removeEventListener('keydown', onKey);
+                resolve(result);
+            }
+            function onKey(e) {
+                if (e.key === 'Escape') cleanup(false);
+                else if (e.key === 'Enter') cleanup(true);
+            }
+            document.addEventListener('keydown', onKey);
+
+            overlay.querySelector('.qv-confirm-backdrop').addEventListener('click', () => cleanup(false));
+            overlay.querySelector('.qv-confirm-cancel').addEventListener('click', () => cleanup(false));
+            overlay.querySelector('.qv-confirm-ok').addEventListener('click', () => cleanup(true));
+
+            setTimeout(() => overlay.querySelector('.qv-confirm-ok').focus(), 20);
+        });
+    };
+
     /** Chess.com-style filled diamond badge for Diamond Pro subscribers */
     QV.getDiamondProBadge = function (size) {
         size = size || 16;
@@ -312,7 +363,15 @@ window.QV = window.QV || {};
 
     /** Cancel the user's Diamond Pro subscription */
     QV.cancelDiamondSubscription = async function () {
-        if (!confirm('Are you sure you want to cancel your Diamond Pro subscription? Your access will remain active until the end of the current billing period.')) return;
+        const ok = await QV.confirm({
+            title: 'Cancel Diamond Pro?',
+            message: 'You will keep Diamond Pro perks until the end of the current billing period, then lose access.',
+            confirmText: 'Cancel Subscription',
+            cancelText: 'Keep Diamond',
+            danger: true,
+            icon: '💎',
+        });
+        if (!ok) return;
         const btn = document.getElementById('btn-cancel-diamond');
         if (btn) { btn.disabled = true; btn.textContent = 'Cancelling...'; }
         try {

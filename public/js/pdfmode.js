@@ -366,7 +366,15 @@
     };
 
     QV.deletePdf = async function (id) {
-        if (!confirm('Delete this saved PDF?')) return;
+        const ok = await QV.confirm({
+            title: 'Delete saved PDF?',
+            message: 'This will permanently remove this file from your library. Generated questions for it will also be lost.',
+            confirmText: 'Delete PDF',
+            cancelText: 'Keep',
+            danger: true,
+            icon: '📄',
+        });
+        if (!ok) return;
         try {
             const res = await fetch('/api/pdf/' + id, {
                 method: 'DELETE',

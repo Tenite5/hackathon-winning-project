@@ -107,9 +107,12 @@
             </div>
         `;
 
-        // Clicking a card (not self) opens the in-game profile popup
+        // Clicking a card (not self) opens the mini profile popup
         if (!isMe) {
-            card.addEventListener('click', () => openIngameProfile(p.userId));
+            card.addEventListener('click', () => {
+                if (typeof QV.openMiniProfile === 'function') QV.openMiniProfile(p.userId);
+                else openIngameProfile(p.userId);
+            });
         }
 
         return card;
@@ -591,14 +594,22 @@
     });
 
     // ── Leave Game ─────────────────────────────────────────────
-    $('btn-leave-game').addEventListener('click', () => {
+    $('btn-leave-game').addEventListener('click', async () => {
         const gameId = state.currentGameId;
         if (!gameId) {
             showView('view-dashboard');
             showPanel('home');
             return;
         }
-        if (!confirm('Leave game? In multiplayer this counts as a forfeit and you will lose ELO.')) return;
+        const ok = await QV.confirm({
+            title: 'Leave this game?',
+            message: 'In multiplayer matches this counts as a forfeit and you will lose ELO.',
+            confirmText: 'Leave & Forfeit',
+            cancelText: 'Keep Playing',
+            danger: true,
+            icon: '🏳️',
+        });
+        if (!ok) return;
 
         clearInterval(state.gameTimerInterval);
         state.leavingGame = true;

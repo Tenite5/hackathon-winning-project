@@ -527,9 +527,158 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // PUBLIC PROFILE VIEWER
+    // MINI PROFILE POPUP — quick peek, no match history
+    // Clicking the header (or "View Full Profile") opens the full page.
     // ═══════════════════════════════════════════════════════════════
-    QV.openUserProfile = async function openUserProfile(userId) {
+    let _miniCurrentUserId = null;
+    let _miniCurrentUser = null;
+
+    QV.openMiniProfile = async function openMiniProfile(userId) {
+        if (!userId) return;
+        _miniCurrentUserId = userId;
+        _miniCurrentUser = null;
+
+        // If we're clicking our own profile, go straight to the profile panel
+        if (state.user && userId === state.user.id) {
+            QV.showPanel('profile');
+            return;
+        }
+
+        // Show modal immediately with a loading state so it feels snappy
+        $('mini-profile-username-text').textContent = 'Loading...';
+        $('mini-profile-rank-name').textContent = '—';
+        $('mini-profile-elo').textContent = '—';
+        $('mini-profile-bio').textContent = '';
+        $('mini-stat-wins').textContent = '—';
+        $('mini-stat-losses').textContent = '—';
+        $('mini-stat-games').textContent = '—';
+        $('mini-stat-accuracy').textContent = '—';
+        $('btn-mini-add-friend').classList.add('hidden');
+        $('btn-mini-challenge').classList.add('hidden');
+        $('mini-profile-diamond-badge').innerHTML = '';
+        showModal('modal-mini-profile');
+
+        try {
+            const data = await api(`/profile/${userId}`);
+            const u = data.user;
+            _miniCurrentUser = u;
+
+            // Avatar
+            const img = $('mini-profile-avatar-img');
+            const letter = $('mini-profile-avatar-letter');
+            if (u.photoURL) {
+                img.src = u.photoURL;
+                img.classList.remove('hidden');
+                letter.style.display = 'none';
+            } else {
+                img.classList.add('hidden');
+                letter.style.display = '';
+                letter.textContent = (u.username || '?')[0].toUpperCase();
+            }
+
+            // Avatar frame
+            const avatarZone = $('mini-profile-avatar');
+            avatarZone.className = avatarZone.className.replace(/avatar-frame-\S+/g, '').trim();
+            if (u.activeFrame) avatarZone.classList.add('avatar-frame-' + u.activeFrame);
+            avatarZone.classList.toggle('diamond-pro-avatar', !!u.isDiamondPro);
+
+            // Username + diamond badge
+            $('mini-profile-username-text').textContent = u.username;
+            $('mini-profile-diamond-badge').innerHTML = u.isDiamondPro ? QV.getDiamondProBadge(16) : '';
+
+            // Rank + ELO
+            const rankIcon = $('mini-profile-rank-icon');
+            rankIcon.innerHTML = QV.getRankIcon(u.rank.name, 16);
+            rankIcon.style.background = 'none';
+            $('mini-profile-rank-name').textContent = u.rank.name;
+            $('mini-profile-elo').textContent = u.elo;
+
+            // Bio
+            $('mini-profile-bio').textContent = u.bio || 'No bio yet.';
+
+            // Stats
+            $('mini-stat-wins').textContent = u.stats.totalWins || 0;
+            $('mini-stat-losses').textContent = u.stats.totalLosses || 0;
+            $('mini-stat-games').textContent = u.stats.gamesPlayed || 0;
+            const acc = u.stats.totalAnswers > 0
+                ? Math.round((u.stats.correctAnswers / u.stats.totalAnswers) * 100)
+                : 0;
+            $('mini-stat-accuracy').textContent = acc + '%';
+
+            // Action buttons — hide on own profile or if already friends
+            const addBtn = $('btn-mini-add-friend');
+            const chalBtn = $('btn-mini-challenge');
+            if (state.user && userId !== state.user.id) {
+                const alreadyFriend = state.user.friends && state.user.friends.includes(userId);
+                addBtn.classList.remove('hidden');
+                addBtn.disabled = alreadyFriend;
+                addBtn.textContent = alreadyFriend ? 'Friends ✓' : '+ Add Friend';
+                // Challenge button only shown if we're friends (backend allows)
+                if (alreadyFriend) {
+                    chalBtn.classList.remove('hidden');
+                } else {
+                    chalBtn.classList.add('hidden');
+                }
+            } else {
+                addBtn.classList.add('hidden');
+                chalBtn.classList.add('hidden');
+            }
+        } catch (err) {
+            toast('Could not load profile: ' + err.message, 'error');
+            QV.hideModal('modal-mini-profile');
+        }
+    };
+
+    // Make openUserProfile — the app-wide entry point — open the mini popup first.
+    // A second click on the header (or the "View Full Profile" button) opens the
+    // old full-page profile modal below.
+    QV.openUserProfile = function openUserProfile(userId) {
+        return QV.openMiniProfile(userId);
+    };
+
+    // Header / "View Full Profile" button → open the full profile
+    function promoteMiniToFull() {
+        if (!_miniCurrentUserId) return;
+        const uid = _miniCurrentUserId;
+        QV.hideModal('modal-mini-profile');
+        QV.openFullUserProfile(uid);
+    }
+
+    const miniHeader = document.getElementById('mini-profile-header-link');
+    if (miniHeader) miniHeader.addEventListener('click', promoteMiniToFull);
+    const miniFullBtn = document.getElementById('btn-mini-view-full');
+    if (miniFullBtn) miniFullBtn.addEventListener('click', promoteMiniToFull);
+
+    // Add Friend from mini popup
+    const miniAddFriend = document.getElementById('btn-mini-add-friend');
+    if (miniAddFriend) miniAddFriend.addEventListener('click', async () => {
+        if (!_miniCurrentUser) return;
+        try {
+            await api('/friends/request', { method: 'POST', body: { username: _miniCurrentUser.username } });
+            toast('Friend request sent!', 'success');
+            miniAddFriend.textContent = 'Sent ✓';
+            miniAddFriend.disabled = true;
+        } catch (err) {
+            toast(err.message || 'Could not send request.', 'error');
+        }
+    });
+
+    // Challenge from mini popup (delegates to existing send-challenge flow)
+    const miniChallengeBtn = document.getElementById('btn-mini-challenge');
+    if (miniChallengeBtn) miniChallengeBtn.addEventListener('click', () => {
+        if (!_miniCurrentUserId || !_miniCurrentUser) return;
+        const friendNameEl = document.getElementById('challenge-send-friend-name');
+        if (friendNameEl) friendNameEl.textContent = _miniCurrentUser.username || '';
+        const confirmBtn = document.getElementById('btn-send-challenge-confirm');
+        if (confirmBtn) confirmBtn.dataset.friendId = _miniCurrentUserId;
+        QV.hideModal('modal-mini-profile');
+        QV.showModal('modal-send-challenge');
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // FULL PUBLIC PROFILE VIEWER (match history, ELO chart, etc.)
+    // ═══════════════════════════════════════════════════════════════
+    QV.openFullUserProfile = async function openFullUserProfile(userId) {
         QV._viewingProfileUserId = userId;
         try {
             const data = await api(`/profile/${userId}`);
