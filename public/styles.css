@@ -695,14 +695,30 @@ input::placeholder {
 }
 
 .logo-icon {
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
   margin: 0 auto 1rem;
   animation: float 5s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logo-icon svg rect {
   fill: #4f46e5;
+}
+
+.logo-icon .logo-img,
+.nav-brand-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.nav-brand-img {
+  width: 36px;
+  height: 36px;
 }
 
 @keyframes float {

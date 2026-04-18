@@ -46,6 +46,7 @@ app.use(helmet({
 }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
 
 // General API rate limit: high ceiling — no practical limit for normal usage
 const apiLimit = createRateLimit({ windowMs: 60000, max: 2000 });
